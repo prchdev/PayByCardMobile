@@ -29,9 +29,6 @@
     "production": {
       "android": {
         "buildType": "app-bundle"
-      },
-      "ios": {
-        "buildType": "archive"
       }
     }
   },
