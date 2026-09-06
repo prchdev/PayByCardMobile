@@ -4,10 +4,10 @@
     "slug": "paybycard",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./public/PayByCard-Logo.png",
+    "icon": "./public/app-icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./public/PayByCard-Logo.png",
+      "image": "./public/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -22,7 +22,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./public/PayByCard-Logo.png",
+        "foregroundImage": "./public/app-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "in.paybycard.app",
