@@ -1,16 +1,12 @@
+import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 
-let Notifications: typeof import('expo-notifications') | null = null;
-if (Platform.OS !== 'web') {
-  Notifications = require('expo-notifications');
-}
-
 export async function registerPushToken(userId: string): Promise<void> {
-  if (Platform.OS === 'web' || !userId) return;
+  if (!userId) return;
 
   try {
-    const { data: token } = await Notifications!.getExpoPushTokenAsync({
+    const { data: token } = await Notifications.getExpoPushTokenAsync({
       projectId: process.env.EXPO_PUBLIC_EXPO_PROJECT_ID,
     });
 
@@ -35,7 +31,7 @@ export async function registerPushToken(userId: string): Promise<void> {
 }
 
 export async function unregisterPushToken(userId: string, pushToken: string): Promise<void> {
-  if (Platform.OS === 'web' || !userId || !pushToken) return;
+  if (!userId || !pushToken) return;
 
   try {
     await fetch(`${SUPABASE_URL}/functions/v1/register-push-token`, {
