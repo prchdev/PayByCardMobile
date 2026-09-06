@@ -62,7 +62,7 @@ export default function MobileHome() {
       {/* Hero */}
       <View className="px-4 pt-12 pb-3">
         <Image
-          source={require('../../../../public/PayByCard-Logo.png')}
+          source={require('../../../public/PayByCard-Logo.png')}
           className="w-28 h-14 self-center"
           resizeMode="contain"
         />

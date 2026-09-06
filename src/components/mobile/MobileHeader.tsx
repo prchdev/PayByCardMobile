@@ -85,7 +85,7 @@ export default function MobileHeader({ userEmail, userId, onLogout, showBack, ti
           )}
           <TouchableOpacity onPress={() => navigate('/mobile/dashboard')} activeOpacity={0.8}>
             <Image
-              source={require('../../../../public/PayByCard.png')}
+              source={require('../../../public/PayByCard.png')}
               className="w-36 h-9"
               resizeMode="contain"
             />

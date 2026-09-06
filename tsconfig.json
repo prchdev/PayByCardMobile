@@ -5,10 +5,22 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./src/*"],
-      "./App": ["./App.tsx"]
+      "~/*": [
+        "./src/*"
+      ],
+      "./App": [
+        "./App.tsx"
+      ]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "App.tsx"],
-  "exclude": ["node_modules", "supabase"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "App.tsx",
+    "nativewind-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "supabase"
+  ]
 }

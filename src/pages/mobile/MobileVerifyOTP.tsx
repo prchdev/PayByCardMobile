@@ -114,7 +114,7 @@ export default function MobileVerifyOTP() {
       <View className="max-w-sm w-full self-center">
         <View className="items-center mb-4">
           <Image
-            source={require('../../../../public/PayByCard-Logo.png')}
+            source={require('../../../public/PayByCard-Logo.png')}
             className="w-20 h-20"
             resizeMode="contain"
           />
