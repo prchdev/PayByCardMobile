@@ -1,0 +1,281 @@
+[functions.admin-review-kyc]
+verify_jwt = false
+
+[functions.admin-review-merchant-kyc]
+verify_jwt = false
+
+[functions.initiate-payment]
+verify_jwt = false
+
+[functions.payment-gateway-webhook]
+verify_jwt = false
+
+[functions.check-payment-status]
+verify_jwt = false
+
+[functions.check-payout-status]
+verify_jwt = false
+
+[functions.auto-payout]
+verify_jwt = false
+
+[functions.process-phonepe-payment]
+verify_jwt = false
+
+[functions.process-phonepe-payout]
+verify_jwt = false
+
+[functions.admin-bulk-email]
+verify_jwt = false
+
+[functions.admin-bulk-sms]
+verify_jwt = false
+
+[functions.admin-get-dashboard-stats]
+verify_jwt = false
+
+[functions.save-beneficiary]
+verify_jwt = false
+[functions.add-ticket-reply]
+verify_jwt = false
+[functions.admin-add-user]
+verify_jwt = false
+[functions.admin-bulk-payout]
+verify_jwt = false
+[functions.admin-change-password]
+verify_jwt = false
+[functions.admin-end-notification]
+verify_jwt = false
+[functions.admin-forgot-password]
+verify_jwt = false
+[functions.admin-gateway-refund]
+verify_jwt = false
+[functions.admin-get-all-transactions]
+verify_jwt = false
+[functions.admin-get-email-settings]
+verify_jwt = false
+[functions.admin-get-expired-onboarding]
+verify_jwt = false
+[functions.admin-get-kyc-list]
+verify_jwt = false
+[functions.admin-get-master-settings]
+verify_jwt = false
+[functions.admin-get-merchant-kyc]
+verify_jwt = false
+[functions.admin-get-non-kyced-transactions]
+verify_jwt = false
+[functions.admin-get-notifications]
+verify_jwt = false
+[functions.admin-get-payment-categories]
+verify_jwt = false
+[functions.admin-get-pending-payouts]
+verify_jwt = false
+[functions.admin-get-support-tickets]
+verify_jwt = false
+[functions.admin-get-user-summary]
+verify_jwt = false
+[functions.admin-get-users]
+verify_jwt = false
+[functions.admin-login]
+verify_jwt = false
+[functions.admin-process-manual-payout]
+verify_jwt = false
+[functions.admin-process-refund]
+verify_jwt = false
+[functions.admin-reset-password]
+verify_jwt = false
+[functions.admin-save-email-settings]
+verify_jwt = false
+[functions.admin-save-master-settings]
+verify_jwt = false
+[functions.admin-save-notification]
+verify_jwt = false
+[functions.admin-save-payment-category]
+verify_jwt = false
+[functions.admin-save-surge-charge]
+verify_jwt = false
+[functions.admin-toggle-account-status]
+verify_jwt = false
+[functions.admin-toggle-user-status]
+verify_jwt = false
+[functions.admin-update-ticket-status]
+verify_jwt = false
+[functions.admin-update-user]
+verify_jwt = false
+[functions.admin-verify-login-otp]
+verify_jwt = false
+[functions.admin-verify-reset-otp]
+verify_jwt = false
+[functions.auto-refund-kyc-expired]
+verify_jwt = false
+[functions.calculate-payment-option-charges]
+verify_jwt = false
+[functions.change-password]
+verify_jwt = false
+[functions.check-kyc-status]
+verify_jwt = false
+[functions.check-settlement-status]
+verify_jwt = false
+[functions.create-support-ticket]
+verify_jwt = false
+[functions.digilocker-kyc]
+verify_jwt = false
+[functions.download-ticket-attachment]
+verify_jwt = false
+[functions.generate-invoice-html]
+verify_jwt = false
+[functions.generate-invoice-pdf]
+verify_jwt = false
+[functions.get-active-beneficiaries]
+verify_jwt = false
+[functions.get-beneficiaries]
+verify_jwt = false
+[functions.get-company-settings]
+verify_jwt = false
+[functions.get-gateway-charges]
+verify_jwt = false
+[functions.get-kyc-data]
+verify_jwt = false
+[functions.get-kyc-method-settings]
+verify_jwt = false
+[functions.get-kyc-provider]
+verify_jwt = false
+[functions.get-merchant-onboarding]
+verify_jwt = false
+[functions.get-payment-options]
+verify_jwt = false
+[functions.get-payment-categories-list]
+verify_jwt = false
+[functions.get-payment-gateways]
+verify_jwt = false
+[functions.get-payment-limits]
+verify_jwt = false
+[functions.get-role-permissions]
+verify_jwt = false
+[functions.get-sms-settings]
+verify_jwt = false
+[functions.get-support-tickets]
+verify_jwt = false
+[functions.get-ticket-details]
+verify_jwt = false
+[functions.get-user-bank-accounts]
+verify_jwt = false
+[functions.get-user-permissions]
+verify_jwt = false
+[functions.get-user-profile-for-bank]
+verify_jwt = false
+[functions.get-user-stats]
+verify_jwt = false
+[functions.get-user-transactions]
+verify_jwt = false
+[functions.log-digilocker-event]
+verify_jwt = false
+[functions.login-user]
+verify_jwt = false
+[functions.merchant-digilocker-kyc]
+verify_jwt = false
+[functions.poll-stale-payments]
+verify_jwt = false
+[functions.process-cashfree-payment]
+verify_jwt = false
+[functions.process-cashfree-payout]
+verify_jwt = false
+[functions.process-ccavenue-payment]
+verify_jwt = false
+[functions.process-ccavenue-payout]
+verify_jwt = false
+[functions.process-easebuzz-payment]
+verify_jwt = false
+[functions.process-easebuzz-payout]
+verify_jwt = false
+[functions.process-enkash-payment]
+verify_jwt = false
+[functions.process-enkash-payout]
+verify_jwt = false
+[functions.process-payu-payment]
+verify_jwt = false
+[functions.process-payu-payout]
+verify_jwt = false
+[functions.process-razorpay-payment]
+verify_jwt = false
+[functions.process-razorpay-payout]
+verify_jwt = false
+[functions.process-zaakpay-payment]
+verify_jwt = false
+[functions.process-zaakpay-payout]
+verify_jwt = false
+[functions.register-user]
+verify_jwt = false
+[functions.remove-business-info]
+verify_jwt = false
+[functions.resend-otp]
+verify_jwt = false
+[functions.save-kyc-data]
+verify_jwt = false
+[functions.save-kyc-method-settings]
+verify_jwt = false
+[functions.save-merchant-onboarding]
+verify_jwt = false
+[functions.save-payment-options]
+verify_jwt = false
+[functions.save-payment-gateways]
+verify_jwt = false
+[functions.save-payment-limits]
+verify_jwt = false
+[functions.save-sms-settings]
+verify_jwt = false
+[functions.save-transaction-status]
+verify_jwt = false
+[functions.save-user-bank-account]
+verify_jwt = false
+[functions.send-email]
+verify_jwt = false
+[functions.send-sms]
+verify_jwt = false
+[functions.set-default-bank-account]
+verify_jwt = false
+[functions.toggle-beneficiary-status]
+verify_jwt = false
+[functions.update-role-permissions]
+verify_jwt = false
+[functions.update-user-profile]
+verify_jwt = false
+[functions.upload-kyc-file]
+verify_jwt = false
+[functions.upload-ticket-attachment]
+verify_jwt = false
+[functions.user-forgot-password]
+verify_jwt = false
+[functions.user-reset-password]
+verify_jwt = false
+[functions.user-verify-reset-otp]
+verify_jwt = false
+[functions.validate-ifsc]
+verify_jwt = false
+[functions.verify-otp]
+verify_jwt = false
+[functions.waf-validate]
+verify_jwt = false
+[functions.get-payout-settings]
+verify_jwt = false
+[functions.save-payout-settings]
+verify_jwt = false
+[functions.process-axis-payout]
+verify_jwt = false
+[functions.razorpay-payment-configs]
+verify_jwt = false
+
+[functions.phonepe-payment-configs]
+verify_jwt = false
+
+[functions.dashboard-notifications]
+verify_jwt = false
+
+[functions.admin-manage-notification-campaign]
+verify_jwt = false
+
+[functions.get-user-notifications]
+verify_jwt = false
+
+[functions.register-push-token]
+verify_jwt = false

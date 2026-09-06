@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "PayByCard",
+    "slug": "paybycard",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./public/PayByCard-Logo.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./public/PayByCard-Logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "in.paybycard.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "PayByCard uses Face ID to securely unlock your account.",
+        "NSCameraUsageDescription": "PayByCard needs camera access to capture KYC documents."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./public/PayByCard-Logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "in.paybycard.app",
+      "permissions": [
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "CAMERA",
+        "INTERNET",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "SCHEDULE_EXACT_ALARM",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      "expo-local-authentication",
+      [
+        "expo-notifications",
+        {
+          "color": "#ffffff",
+          "defaultChannelId": "default",
+          "androidMode": "default"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}
