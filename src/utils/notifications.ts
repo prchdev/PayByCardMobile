@@ -1,22 +1,23 @@
-/**
- * Native notification setup for Android and iOS.
- * Configures notification channels (Android) and foreground notification handler.
- * This file only loads on native — the web version is a no-op.
- */
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+let Notifications: typeof import('expo-notifications') | null = null;
+if (Platform.OS !== 'web') {
+  Notifications = require('expo-notifications');
+}
+
 export async function setupNotifications(): Promise<void> {
+  if (Platform.OS === 'web') return;
+
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
+    await Notifications!.setNotificationChannelAsync('default', {
       name: 'Default',
-      importance: Notifications.AndroidImportance.HIGH,
+      importance: Notifications!.AndroidImportance.HIGH,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FF231F7C',
     });
   }
 
-  Notifications.setNotificationHandler({
+  Notifications!.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
       shouldPlaySound: true,
@@ -26,11 +27,13 @@ export async function setupNotifications(): Promise<void> {
 }
 
 export async function requestNotificationPermission(): Promise<boolean> {
-  const { status: existing } = await Notifications.getPermissionsAsync();
+  if (Platform.OS === 'web') return false;
+
+  const { status: existing } = await Notifications!.getPermissionsAsync();
   let finalStatus = existing;
 
   if (existing !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
+    const { status } = await Notifications!.requestPermissionsAsync();
     finalStatus = status;
   }
 
@@ -38,9 +41,8 @@ export async function requestNotificationPermission(): Promise<boolean> {
     return false;
   }
 
-  // On iOS, ensure the app is registered for remote notifications
   if (Platform.OS === 'ios') {
-    await Notifications.setNotificationCategoryAsync('default', []);
+    await Notifications!.setNotificationCategoryAsync('default', []);
   }
 
   return true;

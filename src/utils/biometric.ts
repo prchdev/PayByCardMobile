@@ -1,12 +1,18 @@
-import * as LocalAuth from 'expo-local-authentication';
+import { Platform } from 'react-native';
 import { getItem, setItem, removeItem } from './secureStorage';
+
+let LocalAuth: typeof import('expo-local-authentication') | null = null;
+if (Platform.OS !== 'web') {
+  LocalAuth = require('expo-local-authentication');
+}
 
 const CREDENTIAL_KEY = 'pbc_biometric_enrolled';
 
 export async function isBiometricSupported(): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
   try {
-    const hasHardware = await LocalAuth.hasHardwareAsync();
-    const isEnrolled = await LocalAuth.isEnrolledAsync();
+    const hasHardware = await LocalAuth!.hasHardwareAsync();
+    const isEnrolled = await LocalAuth!.isEnrolledAsync();
     return hasHardware && isEnrolled;
   } catch {
     return false;
@@ -14,8 +20,9 @@ export async function isBiometricSupported(): Promise<boolean> {
 }
 
 export async function registerBiometric(_email: string): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
   try {
-    const result = await LocalAuth.authenticateAsync({
+    const result = await LocalAuth!.authenticateAsync({
       promptMessage: 'Enable Biometric Unlock',
       fallbackLabel: 'Use Passcode',
       cancelLabel: 'Cancel',
@@ -31,8 +38,9 @@ export async function registerBiometric(_email: string): Promise<boolean> {
 }
 
 export async function authenticateBiometric(): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
   try {
-    const result = await LocalAuth.authenticateAsync({
+    const result = await LocalAuth!.authenticateAsync({
       promptMessage: 'Unlock PayByCard',
       fallbackLabel: 'Use Passcode',
       cancelLabel: 'Cancel',
