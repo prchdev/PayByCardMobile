@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Pressable, ScrollView } from 'react-native';
 import { Lock, Eye, EyeOff, CircleAlert as AlertCircle, CircleCheck as CheckCircle } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -56,84 +56,81 @@ export default function MobileChangePassword() {
 
   return (
     <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout} showBack>
-      <View className="px-4 py-3 max-w-sm self-center w-full">
-        <Text className="text-lg font-bold text-gray-900 mb-3">Change Password</Text>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <View className="px-4 py-4 gap-4">
+          <Text className="text-xl font-bold text-gray-900">Change Password</Text>
 
-        {error ? (
-          <View className="mb-3 bg-red-50 border border-red-300 rounded-xl p-2.5 flex-row items-start gap-2">
-            <AlertCircle size={16} color="#dc2626" />
-            <View>
-              <Text className="text-sm font-semibold text-red-900">Error</Text>
-              <Text className="text-xs text-red-800 mt-0.5">{error}</Text>
+          {error ? (
+            <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-center gap-2">
+              <AlertCircle size={18} color="#dc2626" />
+              <Text className="text-sm text-red-700 flex-1">{error}</Text>
             </View>
-          </View>
-        ) : null}
-        {success ? (
-          <View className="mb-3 bg-green-50 border border-green-300 rounded-xl p-2.5 flex-row items-start gap-2">
-            <CheckCircle size={16} color="#16a34a" />
-            <View>
-              <Text className="text-sm font-semibold text-green-900">Success</Text>
-              <Text className="text-xs text-green-800 mt-0.5">Password changed successfully!</Text>
+          ) : null}
+          {success ? (
+            <View className="bg-green-50 border border-green-300 rounded-xl p-3 flex-row items-center gap-2">
+              <CheckCircle size={18} color="#16a34a" />
+              <Text className="text-sm text-green-700 flex-1">Password changed successfully!</Text>
             </View>
-          </View>
-        ) : null}
+          ) : null}
 
-        <View className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 gap-3">
-          {([
-            { key: 'currentPassword', label: 'Current Password', show: showCurrent, toggle: () => setShowCurrent(!showCurrent), placeholder: 'Enter current password' },
-            { key: 'newPassword', label: 'New Password', show: showNew, toggle: () => setShowNew(!showNew), placeholder: 'Enter new password' },
-            { key: 'confirmPassword', label: 'Confirm New Password', show: showConfirm, toggle: () => setShowConfirm(!showConfirm), placeholder: 'Re-enter new password' },
-          ] as const).map(({ key, label, show, toggle, placeholder }) => (
-            <View key={key}>
-              <Text className="text-xs font-semibold text-gray-700 mb-1.5">{label}</Text>
-              <View className="flex-row items-center">
-                <TextInput
-                  value={formData[key]}
-                  onChangeText={(v) => setFormData({ ...formData, [key]: v })}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm pr-10"
-                  placeholder={placeholder}
-                  secureTextEntry={!show}
-                  autoCapitalize="none"
-                  editable={!loading && !success}
-                />
-                <TouchableOpacity onPress={toggle} className="absolute right-3" activeOpacity={0.7}>
-                  {show ? <EyeOff size={16} color="#9ca3af" /> : <Eye size={16} color="#9ca3af" />}
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-
-          <View className="bg-gray-50 border border-gray-200 rounded-xl p-2.5">
-            <Text className="text-xs text-gray-600 mb-1.5 font-medium">Password must contain:</Text>
-            {PASSWORD_REQUIREMENTS.map((req, idx) => (
-              <View key={idx} className="flex-row items-center gap-1.5 mb-0.5">
-                <View className="w-1 h-1 bg-[#8c76f0] rounded-full" />
-                <Text className="text-xs text-gray-500">{req}</Text>
+          <View className="gap-4">
+            {([
+              { key: 'currentPassword', label: 'Current Password', show: showCurrent, toggle: () => setShowCurrent(!showCurrent), placeholder: 'Enter current password' },
+              { key: 'newPassword', label: 'New Password', show: showNew, toggle: () => setShowNew(!showNew), placeholder: 'Enter new password' },
+              { key: 'confirmPassword', label: 'Confirm New Password', show: showConfirm, toggle: () => setShowConfirm(!showConfirm), placeholder: 'Re-enter new password' },
+            ] as const).map(({ key, label, show, toggle, placeholder }) => (
+              <View key={key}>
+                <Text className="text-sm font-semibold text-gray-700 mb-1.5">{label}</Text>
+                <View className="flex-row items-center w-full px-4 py-3 border border-gray-300 rounded-xl bg-white">
+                  <TextInput
+                    value={formData[key]}
+                    onChangeText={(v) => setFormData({ ...formData, [key]: v })}
+                    className="flex-1 text-base text-gray-900"
+                    placeholder={placeholder}
+                    placeholderTextColor="#9ca3af"
+                    secureTextEntry={!show}
+                    autoCapitalize="none"
+                    editable={!loading && !success}
+                  />
+                  <TouchableOpacity onPress={toggle} activeOpacity={0.7}>
+                    {show ? <EyeOff size={18} color="#9ca3af" /> : <Eye size={18} color="#9ca3af" />}
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </View>
 
-          <View className="flex-row gap-3 pt-1">
+          <View className="bg-gray-50 border border-gray-200 rounded-xl p-3 gap-1.5">
+            <Text className="text-sm font-medium text-gray-600 mb-1">Password must contain:</Text>
+            {PASSWORD_REQUIREMENTS.map((req, idx) => (
+              <View key={idx} className="flex-row items-center gap-2">
+                <View className="w-1.5 h-1.5 bg-[#8c76f0] rounded-full" />
+                <Text className="text-sm text-gray-500">{req}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View className="flex-row gap-3">
             <TouchableOpacity
               onPress={() => navigate('/mobile/dashboard', { state: { userId, userEmail } })}
               disabled={loading || success}
-              className="px-4 py-2 border border-gray-300 rounded-xl"
+              className="flex-1 px-4 py-3.5 border border-gray-300 rounded-xl"
               activeOpacity={0.7}
             >
-              <Text className="text-gray-700 text-sm font-medium">Cancel</Text>
+              <Text className="text-gray-700 text-base font-medium text-center">Cancel</Text>
             </TouchableOpacity>
             <Pressable
               onPress={handleSubmit}
               disabled={loading || success}
-              className="flex-1 flex-row items-center justify-center gap-2 px-4 py-2 bg-[#8c76f0] rounded-xl"
+              className="flex-1 flex-row items-center justify-center gap-2 px-4 py-3.5 bg-[#8c76f0] rounded-xl"
               style={{ opacity: loading || success ? 0.5 : 1 }}
             >
-              <Lock size={16} color="white" />
-              <Text className="text-white text-sm font-semibold">{loading ? 'Updating...' : 'Change Password'}</Text>
+              <Lock size={18} color="white" />
+              <Text className="text-white text-base font-semibold">{loading ? 'Updating...' : 'Change Password'}</Text>
             </Pressable>
           </View>
         </View>
-      </View>
+      </ScrollView>
     </MobileLayout>
   );
 }

@@ -272,7 +272,7 @@ export default function MobileMyBankAccounts() {
                   <TouchableOpacity
                     onPress={handleIfscFetch}
                     disabled={ifscFetching}
-                    className="px-4 py-3 bg-blue-600 rounded-xl flex-row items-center gap-1.5"
+                    className="px-4 py-3 bg-[#8c76f0] rounded-xl flex-row items-center gap-1.5"
                     activeOpacity={0.7}
                     style={{ opacity: ifscFetching ? 0.5 : 1 }}
                   >

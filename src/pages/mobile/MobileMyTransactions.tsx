@@ -48,12 +48,13 @@ export default function MobileMyTransactions() {
     fetchTransactions();
   }, [userId]);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = async (statusFilter?: string) => {
+    const effectiveFilter = statusFilter !== undefined ? statusFilter : filter;
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-transactions`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, page: 1, limit: 50, status: filter }),
+        body: JSON.stringify({ userId, page: 1, limit: 50, status: effectiveFilter }),
       });
       const data = await res.json();
       if (res.ok) setTransactions(data.payments || []);
@@ -68,7 +69,9 @@ export default function MobileMyTransactions() {
     { label: 'All', value: 'all' },
     { label: 'Completed', value: 'completed' },
     { label: 'Processing', value: 'processing' },
+    { label: 'Settlement', value: 'settlement_pending' },
     { label: 'Failed', value: 'failed' },
+    { label: 'Refunded', value: 'refunded' },
   ];
 
   return (
@@ -81,7 +84,7 @@ export default function MobileMyTransactions() {
             {filters.map(f => (
               <TouchableOpacity
                 key={f.value}
-                onPress={() => { setFilter(f.value); setLoading(true); fetchTransactions(); }}
+                onPress={() => { setFilter(f.value); setLoading(true); fetchTransactions(f.value); }}
                 className={`px-3 py-1.5 rounded-full ${filter === f.value ? 'bg-[#8c76f0]' : 'bg-gray-100'}`}
                 activeOpacity={0.7}
               >

@@ -105,6 +105,8 @@ Deno.serve(async (req: Request) => {
         discount_applicable: cat.show_discount || false,
         gst_percentage: parseFloat(cat.gst_percentage || 18),
         status: cat.is_enabled ? 'active' : 'inactive',
+        gateway_id: cat.gateway_id || null,
+        card_type: cat.card_type || null,
       }));
 
       return new Response(
