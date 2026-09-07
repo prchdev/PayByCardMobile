@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Pressable, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { Users, Plus, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Trash2, X, User, Landmark, Search } from 'lucide-react-native';
+import { Users, Plus, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Power, X, User, Landmark, Search } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
@@ -30,7 +30,8 @@ export default function MobileMyBeneficiaries() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Beneficiary | null>(null);
+  const [toggleTarget, setToggleTarget] = useState<Beneficiary | null>(null);
+  const [toggling, setToggling] = useState(false);
   const [kycVerified, setKycVerified] = useState(false);
   const [ifscFetching, setIfscFetching] = useState(false);
   const [ifscError, setIfscError] = useState('');
@@ -149,19 +150,21 @@ export default function MobileMyBeneficiaries() {
     } finally { setSubmitting(false); }
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
+  const handleToggleStatus = async () => {
+    if (!toggleTarget) return;
+    setToggling(true);
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/save-beneficiary`, {
-        method: 'DELETE',
+      const newStatus = toggleTarget.status === 'Active' ? 'Inactive' : 'Active';
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/toggle-beneficiary-status`, {
+        method: 'POST',
         headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, beneficiaryId: deleteTarget.id }),
+        body: JSON.stringify({ beneficiary_id: toggleTarget.id, status: newStatus, userId }),
       });
       if (res.ok) {
-        setBeneficiaries(prev => prev.filter(b => b.id !== deleteTarget.id));
-        setDeleteTarget(null);
+        setBeneficiaries(prev => prev.map(b => b.id === toggleTarget.id ? { ...b, status: newStatus } : b));
+        setToggleTarget(null);
       }
-    } catch {}
+    } catch {} finally { setToggling(false); }
   };
 
   const handleLogout = () => { logout(); reset('/mobile/login'); };
@@ -249,12 +252,12 @@ export default function MobileMyBeneficiaries() {
                         <Text className="text-sm font-medium text-gray-900">{b.account_type}</Text>
                       </View>
                       <TouchableOpacity
-                        onPress={() => setDeleteTarget(b)}
+                        onPress={() => setToggleTarget(b)}
                         className="flex-row items-center gap-2 mt-2 self-start"
                         activeOpacity={0.7}
                       >
-                        <Trash2 size={16} color="#dc2626" />
-                        <Text className="text-sm text-red-600 font-medium">Delete Payee</Text>
+                        <Power size={16} color={isActive ? '#dc2626' : '#16a34a'} />
+                        <Text className={`text-sm font-medium ${isActive ? 'text-red-600' : 'text-green-600'}`}>{isActive ? 'Deactivate Payee' : 'Activate Payee'}</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -415,17 +418,25 @@ export default function MobileMyBeneficiaries() {
         </View>
       </Modal>
 
-      <Modal visible={deleteTarget !== null} animationType="fade" transparent>
+      <Modal visible={toggleTarget !== null} animationType="fade" transparent>
         <View className="flex-1 bg-black/60 justify-center items-center p-4">
           <View className="bg-white rounded-2xl p-5 w-full max-w-sm gap-3">
-            <Text className="text-lg font-bold text-gray-900">Delete Payee?</Text>
-            <Text className="text-base text-gray-600">Are you sure you want to delete {deleteTarget?.full_name}?</Text>
+            <Text className="text-lg font-bold text-gray-900">{toggleTarget?.status === 'Active' ? 'Deactivate Payee?' : 'Activate Payee?'}</Text>
+            <Text className="text-base text-gray-600">{toggleTarget?.status === 'Active'
+              ? `Are you sure you want to deactivate ${toggleTarget?.full_name}? They will not appear in Make Payment.`
+              : `Are you sure you want to activate ${toggleTarget?.full_name}? They will appear in Make Payment.`}</Text>
             <View className="flex-row gap-3 mt-2">
-              <TouchableOpacity onPress={() => setDeleteTarget(null)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl" activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => setToggleTarget(null)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl" activeOpacity={0.7}>
                 <Text className="text-base text-gray-700 font-medium text-center">Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleDelete} className="flex-1 px-4 py-3 bg-red-600 rounded-xl" activeOpacity={0.7}>
-                <Text className="text-base text-white font-semibold text-center">Delete</Text>
+              <TouchableOpacity
+                onPress={handleToggleStatus}
+                disabled={toggling}
+                className={`flex-1 px-4 py-3 rounded-xl ${toggleTarget?.status === 'Active' ? 'bg-red-600' : 'bg-green-600'}`}
+                style={{ opacity: toggling ? 0.5 : 1 }}
+                activeOpacity={0.7}
+              >
+                <Text className="text-base text-white font-semibold text-center">{toggling ? 'Processing...' : toggleTarget?.status === 'Active' ? 'Deactivate' : 'Activate'}</Text>
               </TouchableOpacity>
             </View>
           </View>
