@@ -2,7 +2,7 @@
   "expo": {
     "name": "PayByCard",
     "slug": "paybycard",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./public/app-icon-padded.png",
     "userInterfaceStyle": "light",
