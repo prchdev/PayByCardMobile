@@ -110,7 +110,7 @@ export default function MobileVerifyOTP() {
   );
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 px-4 pt-12 pb-6">
+    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} className="flex-1 bg-gray-50 px-4 py-6" keyboardShouldPersistTaps="handled">
       <View className="max-w-sm w-full self-center">
         <View className="items-center mb-4">
           <Image
@@ -154,7 +154,7 @@ export default function MobileVerifyOTP() {
               {mobileTimer > 0 ? (
                 <Text className="text-xs text-gray-500">Resend in {mobileTimer}s</Text>
               ) : (
-                <TouchableOpacity onPress={() => handleResend('mobile')} className="flex-row items-center gap-1" activeOpacity={0.7}>
+                <TouchableOpacity onPress={() => handleResend('mobile')} className="flex-row items-center gap-1" activeOpacity={0.7} delayPressIn={0}>
                   <RefreshCw size={12} color="#8c76f0" />
                   <Text className="text-xs text-[#8c76f0] font-semibold">Resend Mobile OTP</Text>
                 </TouchableOpacity>
@@ -180,7 +180,7 @@ export default function MobileVerifyOTP() {
               {emailTimer > 0 ? (
                 <Text className="text-xs text-gray-500">Resend in {emailTimer}s</Text>
               ) : (
-                <TouchableOpacity onPress={() => handleResend('email')} className="flex-row items-center gap-1" activeOpacity={0.7}>
+                <TouchableOpacity onPress={() => handleResend('email')} className="flex-row items-center gap-1" activeOpacity={0.7} delayPressIn={0}>
                   <RefreshCw size={12} color="#8c76f0" />
                   <Text className="text-xs text-[#8c76f0] font-semibold">Resend Email OTP</Text>
                 </TouchableOpacity>
@@ -191,10 +191,10 @@ export default function MobileVerifyOTP() {
           <Pressable
             onPress={handleVerify}
             disabled={isVerifying}
-            className="w-full bg-[#8c76f0] rounded-xl py-2.5"
+            className="w-full bg-[#8c76f0] rounded-xl py-3"
             style={{ opacity: isVerifying ? 0.5 : 1 }}
           >
-            <Text className="text-white font-semibold text-center">
+            <Text className="text-white font-semibold text-center text-base">
               {isVerifying ? 'Verifying...' : 'Verify & Continue'}
             </Text>
           </Pressable>

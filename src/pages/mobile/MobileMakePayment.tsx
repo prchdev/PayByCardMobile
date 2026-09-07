@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Linking, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
 import {
   CreditCard, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Info, ArrowUpRight,
   Landmark, FileText, Wallet, Calculator, CheckCircle, Search, Clock,
@@ -191,69 +192,40 @@ export default function MobileMakePayment() {
   };
 
   // ── Payment Gateway Checkout ─────────────────────────────────────────────────
-  // After initiate-payment returns gatewayConfig, open the gateway's checkout page.
-  // For Razorpay: load checkout.js SDK and open the checkout modal (web only).
-  // For PhonePe: redirect to the checkoutUrl returned by the server.
-  // For other gateways on mobile: redirect to the checkoutUrl if available.
+  // After initiate-payment returns gatewayConfig, open the gateway's checkout page
+  // in a mini web browser (expo-web-browser). For Razorpay on web, load the SDK
+  // and open the checkout modal. For all other gateways, open the checkout URL
+  // in the in-app browser. After the browser closes, check payment status.
   const openGatewayCheckout = async (gatewayConfig: any, paymentInfo: any) => {
     const gatewayName = (gatewayConfig.gateway || '').toLowerCase();
     setGatewayLoading(false);
 
     try {
-      if (gatewayName === 'phonepe') {
-        const checkoutUrl = gatewayConfig.options?.checkoutUrl;
-        if (checkoutUrl) {
-          if (Platform.OS === 'web') {
-            window.location.href = checkoutUrl;
-          } else {
-            await Linking.openURL(checkoutUrl);
-          }
-          return;
-        }
+      if (gatewayName === 'razorpay' && Platform.OS === 'web') {
+        const sdkUrl = gatewayConfig.sdkUrl || 'https://checkout.razorpay.com/v1/checkout.js';
+        await loadScript(sdkUrl);
+        const RazorpayClass = (window as any).Razorpay;
+        if (!RazorpayClass) throw new Error('Razorpay SDK failed to load');
+        const options = {
+          ...gatewayConfig.options,
+          handler: (response: any) => handlePaymentSuccess(response, paymentInfo),
+          modal: { ondismiss: () => handlePaymentDismiss(paymentInfo) },
+        };
+        const rzp = new RazorpayClass(options);
+        rzp.open();
+        return;
       }
 
-      if (gatewayName === 'razorpay') {
-        if (Platform.OS === 'web') {
-          // Load Razorpay checkout.js and open checkout
-          const sdkUrl = gatewayConfig.sdkUrl || 'https://checkout.razorpay.com/v1/checkout.js';
-          await loadScript(sdkUrl);
-          const RazorpayClass = (window as any).Razorpay;
-          if (!RazorpayClass) throw new Error('Razorpay SDK failed to load');
-
-          const options = {
-            ...gatewayConfig.options,
-            handler: (response: any) => {
-              handlePaymentSuccess(response, paymentInfo);
-            },
-            modal: {
-              ondismiss: () => {
-                handlePaymentDismiss(paymentInfo);
-              },
-            },
-          };
-          const rzp = new RazorpayClass(options);
-          rzp.open();
-          return;
-        } else {
-          // On native, open the Razorpay checkout URL in browser
-          const checkoutUrl = gatewayConfig.options?.checkoutUrl;
-          if (checkoutUrl) {
-            await Linking.openURL(checkoutUrl);
-            return;
-          }
-        }
-      }
-
-      // For other gateways, try to redirect to a checkout URL
+      // For all gateways on native (and non-Razorpay on web), open checkout URL in browser
       const checkoutUrl = gatewayConfig.options?.checkoutUrl || gatewayConfig.sdkUrl;
       if (checkoutUrl) {
-        if (Platform.OS === 'web') {
-          window.location.href = checkoutUrl;
-        } else {
-          await Linking.openURL(checkoutUrl);
-        }
+        await WebBrowser.openBrowserAsync(checkoutUrl, {
+          toolbarColor: '#8c76f0',
+          controlsColor: '#8c76f0',
+        });
+        // After browser closes, check payment status
+        await checkPaymentStatus(paymentInfo);
       } else {
-        // No SDK/redirect available on mobile - show pending status
         setPaymentResult({
           success: true,
           reference: paymentInfo.reference || '',
@@ -267,6 +239,42 @@ export default function MobileMakePayment() {
         reference: paymentInfo?.reference || '',
         totalAmount: String(paymentInfo?.totalAmount || chargeBreakdown?.totalAmount || amount),
         message: err instanceof Error ? err.message : 'Failed to open payment gateway',
+      });
+    }
+  };
+
+  const checkPaymentStatus = async (paymentInfo: any) => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/check-payment-status`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId: paymentInfo.id }),
+      });
+      const data = await res.json();
+      if (res.ok && data.status === 'success') {
+        handlePaymentSuccess(data.gatewayResponse || {}, paymentInfo);
+      } else if (res.ok && data.status === 'failed') {
+        setPaymentResult({
+          success: false,
+          reference: paymentInfo.reference || '',
+          totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
+          message: data.message || 'Payment failed. Please try again.',
+        });
+      } else {
+        // Still pending - show pending result
+        setPaymentResult({
+          success: true,
+          reference: paymentInfo.reference || '',
+          totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
+          message: 'Payment is being processed. You can check the status in your transaction history.',
+        });
+      }
+    } catch {
+      setPaymentResult({
+        success: true,
+        reference: paymentInfo.reference || '',
+        totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
+        message: 'Payment is being processed. You can check the status in your transaction history.',
       });
     }
   };
@@ -414,10 +422,10 @@ export default function MobileMakePayment() {
             </View>
           </View>
           <View className="flex-row gap-3 mt-5 w-full">
-            <TouchableOpacity onPress={resetForm} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl" activeOpacity={0.7}>
+            <TouchableOpacity onPress={resetForm} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl" activeOpacity={0.7} delayPressIn={0}>
               <Text className="text-base text-gray-700 font-medium text-center">New Payment</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => navigate('/mobile/my-transactions', { state: { userId, userEmail } })} className="flex-1 px-4 py-3 bg-[#8c76f0] rounded-xl" activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => navigate('/mobile/my-transactions', { state: { userId, userEmail } })} className="flex-1 px-4 py-3 bg-[#8c76f0] rounded-xl" activeOpacity={0.7} delayPressIn={0}>
               <Text className="text-base text-white font-semibold text-center">View Transactions</Text>
             </TouchableOpacity>
           </View>
@@ -458,7 +466,7 @@ export default function MobileMakePayment() {
                 <TouchableOpacity
                   onPress={() => { setShowBeneficiaryList(!showBeneficiaryList); setShowCategoryList(false); setShowOptionList(false); }}
                   className="flex-row items-center justify-between w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
-                  activeOpacity={0.7}
+                  activeOpacity={0.7} delayPressIn={0}
                 >
                   <Text className={`text-base ${selectedBen ? 'text-gray-900' : 'text-gray-400'}`}>
                     {selectedBen ? `${selectedBen.full_name} (****${(selectedBen.bank_account || '').slice(-4)})` : 'Choose beneficiary...'}
@@ -471,7 +479,7 @@ export default function MobileMakePayment() {
                       {beneficiaries.length === 0 ? (
                         <View className="p-4 items-center">
                           <Text className="text-base text-gray-500">No active beneficiaries yet</Text>
-                          <TouchableOpacity onPress={() => navigate('/mobile/my-beneficiaries', { state: { userId, userEmail } })} activeOpacity={0.7}>
+                          <TouchableOpacity onPress={() => navigate('/mobile/my-beneficiaries', { state: { userId, userEmail } })} activeOpacity={0.7} delayPressIn={0}>
                             <Text className="text-sm text-[#8c76f0] font-semibold mt-1.5">Add Payee</Text>
                           </TouchableOpacity>
                         </View>
@@ -480,7 +488,7 @@ export default function MobileMakePayment() {
                           key={b.id}
                           onPress={() => { selection(); setSelectedBeneficiary(b.id); setShowBeneficiaryList(false); }}
                           className={`p-3.5 border-b border-gray-100 ${selectedBeneficiary === b.id ? 'bg-[#f3f0fe]' : ''}`}
-                          activeOpacity={0.7}
+                          activeOpacity={0.7} delayPressIn={0}
                         >
                           <Text className="text-base font-medium text-gray-900">{b.full_name}</Text>
                           <View className="flex-row items-center gap-2 mt-0.5">
@@ -531,7 +539,7 @@ export default function MobileMakePayment() {
                 <TouchableOpacity
                   onPress={() => { setShowCategoryList(!showCategoryList); setShowBeneficiaryList(false); setShowOptionList(false); }}
                   className="flex-row items-center justify-between w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
-                  activeOpacity={0.7}
+                  activeOpacity={0.7} delayPressIn={0}
                 >
                   <Text className={`text-base ${selectedCat ? 'text-gray-900' : 'text-gray-400'}`}>
                     {selectedCat?.category_name || 'Choose category...'}
@@ -550,7 +558,7 @@ export default function MobileMakePayment() {
                           key={c.id}
                           onPress={() => { selection(); setSelectedCategory(c.id); setShowCategoryList(false); }}
                           className={`p-3.5 border-b border-gray-100 ${selectedCategory === c.id ? 'bg-[#f3f0fe]' : ''}`}
-                          activeOpacity={0.7}
+                          activeOpacity={0.7} delayPressIn={0}
                         >
                           <View className="flex-row items-center gap-2">
                             <FileText size={16} color="#8c76f0" />
@@ -572,7 +580,7 @@ export default function MobileMakePayment() {
                 <TouchableOpacity
                   onPress={() => { setShowOptionList(!showOptionList); setShowBeneficiaryList(false); setShowCategoryList(false); }}
                   className="flex-row items-center justify-between w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
-                  activeOpacity={0.7}
+                  activeOpacity={0.7} delayPressIn={0}
                 >
                   <Text className={`text-base ${selectedOpt ? 'text-gray-900' : 'text-gray-400'}`}>
                     {selectedOpt?.category_name || 'Choose payment option...'}
@@ -591,7 +599,7 @@ export default function MobileMakePayment() {
                           key={o.id}
                           onPress={() => { selection(); setSelectedOption(o.id); setShowOptionList(false); }}
                           className={`p-3.5 border-b border-gray-100 ${selectedOption === o.id ? 'bg-[#f3f0fe]' : ''}`}
-                          activeOpacity={0.7}
+                          activeOpacity={0.7} delayPressIn={0}
                         >
                           <View className="flex-row items-center gap-2">
                             <Wallet size={16} color="#8c76f0" />
@@ -677,7 +685,7 @@ export default function MobileMakePayment() {
                 disabled={submitting || calculating}
                 className="w-full bg-[#8c76f0] rounded-xl py-3.5"
                 style={{ opacity: submitting || calculating ? 0.5 : 1 }}
-                activeOpacity={0.7}
+                activeOpacity={0.7} delayPressIn={0}
               >
                 <Text className="text-white font-semibold text-center text-base">
                   {submitting ? 'Processing...' : 'Pay Now'}
@@ -741,10 +749,10 @@ export default function MobileMakePayment() {
               You will be redirected to {selectedOpt?.gateway_name || 'the payment gateway'} to complete the payment.
             </Text>
             <View className="flex-row gap-3">
-              <TouchableOpacity onPress={() => setShowConfirm(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl" activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => setShowConfirm(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl" activeOpacity={0.7} delayPressIn={0}>
                 <Text className="text-base text-gray-700 font-medium text-center">Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleSubmit} disabled={submitting} className="flex-1 px-4 py-3 bg-[#8c76f0] rounded-xl" activeOpacity={0.7} style={{ opacity: submitting ? 0.5 : 1 }}>
+              <TouchableOpacity onPress={handleSubmit} disabled={submitting} className="flex-1 px-4 py-3 bg-[#8c76f0] rounded-xl" activeOpacity={0.7} delayPressIn={0} style={{ opacity: submitting ? 0.5 : 1 }}>
                 <Text className="text-base text-white font-semibold text-center">{submitting ? 'Processing...' : 'Confirm & Pay'}</Text>
               </TouchableOpacity>
             </View>

@@ -125,7 +125,7 @@ export default function MobileDashboard() {
           <TouchableOpacity
             onPress={() => { impact('light'); navigate('/mobile/notifications', { state: { userId, userEmail } }); }}
             className="relative p-2 rounded-xl bg-white border border-gray-200"
-            activeOpacity={0.7}
+            activeOpacity={0.7} delayPressIn={0}
           >
             <Bell size={24} color="#374151" />
             {unreadNotifs > 0 && (
@@ -152,7 +152,7 @@ export default function MobileDashboard() {
                 <View className="flex-1">
                   <Text className="text-base font-semibold text-blue-900">KYC Under Review</Text>
                   <Text className="text-sm text-blue-700 mt-1">Your documents are being reviewed.</Text>
-                  <TouchableOpacity onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })} activeOpacity={0.7}>
+                  <TouchableOpacity onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })} activeOpacity={0.7} delayPressIn={0}>
                     <Text className="mt-1.5 text-sm font-semibold text-blue-700 underline">View Status</Text>
                   </TouchableOpacity>
                 </View>
@@ -163,7 +163,7 @@ export default function MobileDashboard() {
                 <View className="flex-1">
                   <Text className="text-base font-semibold text-red-900">KYC Rejected</Text>
                   <Text className="text-sm text-red-700 mt-1">Please review and resubmit.</Text>
-                  <TouchableOpacity onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })} activeOpacity={0.7}>
+                  <TouchableOpacity onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })} activeOpacity={0.7} delayPressIn={0}>
                     <Text className="mt-1.5 text-sm font-semibold text-red-700 underline">Review & Resubmit</Text>
                   </TouchableOpacity>
                 </View>
@@ -174,7 +174,7 @@ export default function MobileDashboard() {
                 <View className="flex-1">
                   <Text className="text-base font-semibold text-yellow-900">KYC Verification Pending</Text>
                   <Text className="text-sm text-yellow-700 mt-1">Required to access payment features.</Text>
-                  <TouchableOpacity onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })} activeOpacity={0.7}>
+                  <TouchableOpacity onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })} activeOpacity={0.7} delayPressIn={0}>
                     <View className="mt-2 px-4 py-2 bg-yellow-600 rounded-lg">
                       <Text className="text-white text-sm font-medium">Submit KYC</Text>
                     </View>
@@ -237,7 +237,7 @@ export default function MobileDashboard() {
                 onPress={() => { impact('light'); navigate(a.path, { state: { userId, userEmail } }); }}
                 className="flex-row items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white border border-gray-200"
                 style={{ width: '48%' }}
-                activeOpacity={0.7}
+                activeOpacity={0.7} delayPressIn={0}
               >
                 <a.icon size={20} color="#374151" />
                 <Text className="text-base font-medium text-gray-700">{a.label}</Text>
@@ -249,7 +249,7 @@ export default function MobileDashboard() {
         <View>
           <View className="flex-row items-center justify-between mb-1.5">
             <Text className="text-sm font-bold text-gray-900">Recent Activity</Text>
-            <TouchableOpacity onPress={() => navigate('/mobile/my-transactions', { state: { userId, userEmail } })} className="flex-row items-center gap-1" activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => navigate('/mobile/my-transactions', { state: { userId, userEmail } })} className="flex-row items-center gap-1" activeOpacity={0.7} delayPressIn={0}>
               <History size={12} color="#2563eb" />
               <Text className="text-xs text-blue-600 font-medium">View All</Text>
             </TouchableOpacity>
@@ -264,7 +264,7 @@ export default function MobileDashboard() {
             <View className="bg-white rounded-xl border border-gray-200 p-4 items-center">
               <Clock size={28} color="#d1d5db" />
               <Text className="text-base text-gray-700 font-medium mt-1.5">No transactions yet</Text>
-              <TouchableOpacity onPress={() => navigate('/mobile/make-payment', { state: { userId, userEmail } })} activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => navigate('/mobile/make-payment', { state: { userId, userEmail } })} activeOpacity={0.7} delayPressIn={0}>
                 <View className="mt-2 px-4 py-2 bg-[#8c76f0] rounded-lg">
                   <Text className="text-white text-sm font-medium">Make First Payment</Text>
                 </View>
@@ -280,7 +280,7 @@ export default function MobileDashboard() {
                     key={txn.id}
                     onPress={() => navigate('/mobile/my-transactions', { state: { userId, userEmail } })}
                     className={`flex-row items-center gap-3 p-2.5 ${idx > 0 ? 'border-t border-gray-100' : ''}`}
-                    activeOpacity={0.7}
+                    activeOpacity={0.7} delayPressIn={0}
                   >
                     <View className={`w-8 h-8 rounded-lg items-center justify-center ${
                       ds === 'completed' ? 'bg-green-50' : ds === 'failed' || ds === 'cancelled' ? 'bg-red-50' :

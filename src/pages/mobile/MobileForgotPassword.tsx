@@ -127,7 +127,7 @@ export default function MobileForgotPassword() {
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} className="flex-1 bg-gray-50 px-4 py-6">
       <View className="max-w-sm w-full self-center">
-        <TouchableOpacity onPress={() => navigate('/mobile/login')} className="mb-3 flex-row items-center" activeOpacity={0.7}>
+        <TouchableOpacity onPress={() => navigate('/mobile/login')} className="mb-3 flex-row items-center" activeOpacity={0.7} delayPressIn={0}>
           <ArrowLeft size={16} color="#4b5563" />
           <Text className="text-sm text-gray-600 ml-1">Back to Login</Text>
         </TouchableOpacity>
@@ -190,7 +190,7 @@ export default function MobileForgotPassword() {
                 {otpRow(emailOtp, setEmailOtp, emailRefs)}
                 <View className="items-center mt-2">
                   {emailTimer > 0 ? <Text className="text-xs text-gray-500">Resend in {emailTimer}s</Text> :
-                    <TouchableOpacity onPress={() => handleResend('email')} className="flex-row items-center gap-1" activeOpacity={0.7}>
+                    <TouchableOpacity onPress={() => handleResend('email')} className="flex-row items-center gap-1" activeOpacity={0.7} delayPressIn={0}>
                       <RefreshCw size={12} color="#8c76f0" />
                       <Text className="text-xs text-[#8c76f0] font-semibold">Resend Email OTP</Text>
                     </TouchableOpacity>}
@@ -205,7 +205,7 @@ export default function MobileForgotPassword() {
                 {otpRow(mobileOtp, setMobileOtp, mobileRefs)}
                 <View className="items-center mt-2">
                   {mobileTimer > 0 ? <Text className="text-xs text-gray-500">Resend in {mobileTimer}s</Text> :
-                    <TouchableOpacity onPress={() => handleResend('mobile')} className="flex-row items-center gap-1" activeOpacity={0.7}>
+                    <TouchableOpacity onPress={() => handleResend('mobile')} className="flex-row items-center gap-1" activeOpacity={0.7} delayPressIn={0}>
                       <RefreshCw size={12} color="#8c76f0" />
                       <Text className="text-xs text-[#8c76f0] font-semibold">Resend Mobile OTP</Text>
                     </TouchableOpacity>}
@@ -214,7 +214,7 @@ export default function MobileForgotPassword() {
               <Pressable onPress={handleVerifyOTP} disabled={loading} className="w-full bg-[#8c76f0] rounded-xl py-2.5" style={{ opacity: loading ? 0.5 : 1 }}>
                 <Text className="text-white font-semibold text-center">{loading ? 'Verifying...' : 'Verify OTPs'}</Text>
               </Pressable>
-              <TouchableOpacity onPress={() => { setStep('email'); setSuccess(''); setError(''); }} activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => { setStep('email'); setSuccess(''); setError(''); }} activeOpacity={0.7} delayPressIn={0}>
                 <Text className="text-xs text-gray-500 text-center">Didn't receive codes? Go back</Text>
               </TouchableOpacity>
             </View>
@@ -230,7 +230,7 @@ export default function MobileForgotPassword() {
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm pr-10"
                     placeholder="********" secureTextEntry={!showPassword} autoCapitalize="none"
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="absolute right-3" activeOpacity={0.7}>
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="absolute right-3" activeOpacity={0.7} delayPressIn={0}>
                     {showPassword ? <EyeOff size={16} color="#9ca3af" /> : <Eye size={16} color="#9ca3af" />}
                   </TouchableOpacity>
                 </View>
@@ -243,7 +243,7 @@ export default function MobileForgotPassword() {
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm pr-10"
                     placeholder="********" secureTextEntry={!showConfirm} autoCapitalize="none"
                   />
-                  <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} className="absolute right-3" activeOpacity={0.7}>
+                  <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} className="absolute right-3" activeOpacity={0.7} delayPressIn={0}>
                     {showConfirm ? <EyeOff size={16} color="#9ca3af" /> : <Eye size={16} color="#9ca3af" />}
                   </TouchableOpacity>
                 </View>

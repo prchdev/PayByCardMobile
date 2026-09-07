@@ -151,7 +151,7 @@ export default function MobileMyBankAccounts() {
           <TouchableOpacity
             onPress={openModal}
             className="flex-row items-center gap-2 px-4 py-2.5 bg-[#8c76f0] rounded-xl"
-            activeOpacity={0.7}
+            activeOpacity={0.7} delayPressIn={0}
           >
             <Plus size={18} color="white" />
             <Text className="text-white text-sm font-semibold">Add Account</Text>
@@ -208,7 +208,7 @@ export default function MobileMyBankAccounts() {
                     <Text className="text-sm font-medium text-gray-900">{a.account_type}</Text>
                   </View>
                   {!a.is_default && (
-                    <TouchableOpacity onPress={() => setDefault(a.id)} className="mt-2" activeOpacity={0.7}>
+                    <TouchableOpacity onPress={() => setDefault(a.id)} className="mt-2" activeOpacity={0.7} delayPressIn={0}>
                       <Text className="text-sm text-[#8c76f0] font-semibold">Set as Default</Text>
                     </TouchableOpacity>
                   )}
@@ -219,21 +219,19 @@ export default function MobileMyBankAccounts() {
         )}
       </View>
 
-      <Modal visible={showModal} animationType="slide" transparent>
-        <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-white rounded-t-2xl max-h-[85%]">
-            <View className="flex-row items-center justify-between p-4 border-b border-gray-100">
-              <Text className="text-lg font-bold text-gray-900">Add Bank Account</Text>
-              <TouchableOpacity onPress={() => setShowModal(false)} className="p-2" activeOpacity={0.7}>
-                <X size={22} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={{ flex: 1 }}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-            >
-            <ScrollView className="px-4 pt-3" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" contentContainerStyle={{ paddingBottom: 40 }}>
+      <Modal visible={showModal} animationType="slide" transparent={false}>
+        <View className="flex-1 bg-gray-50">
+          <View className="flex-row items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+            <Text className="text-lg font-bold text-gray-900">Add Bank Account</Text>
+            <TouchableOpacity onPress={() => setShowModal(false)} className="p-2" activeOpacity={0.7} delayPressIn={0}>
+              <X size={22} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
+          <ScrollView className="flex-1 px-4 pt-4" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}>
               {error ? (
                 <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-center gap-2 mb-3">
                   <AlertCircle size={18} color="#dc2626" />
@@ -278,7 +276,7 @@ export default function MobileMyBankAccounts() {
                     onPress={handleIfscFetch}
                     disabled={ifscFetching}
                     className="px-4 py-3 bg-[#8c76f0] rounded-xl flex-row items-center gap-1.5"
-                    activeOpacity={0.7}
+                    activeOpacity={0.7} delayPressIn={0}
                     style={{ opacity: ifscFetching ? 0.5 : 1 }}
                   >
                     {ifscFetching ? <ActivityIndicator size="small" color="white" /> : <Search size={18} color="white" />}
@@ -315,7 +313,7 @@ export default function MobileMyBankAccounts() {
                       key={type}
                       onPress={() => setFormData({ ...formData, account_type: type })}
                       className={`flex-1 py-3 rounded-xl border ${formData.account_type === type ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
-                      activeOpacity={0.7}
+                      activeOpacity={0.7} delayPressIn={0}
                     >
                       <Text className={`text-center text-sm font-semibold ${formData.account_type === type ? 'text-white' : 'text-gray-700'}`}>
                         {type}
@@ -358,8 +356,7 @@ export default function MobileMyBankAccounts() {
                 <Text className="text-white font-semibold text-center text-base">{submitting ? 'Saving...' : 'Save Account'}</Text>
               </Pressable>
             </ScrollView>
-            </KeyboardAvoidingView>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
     </MobileLayout>

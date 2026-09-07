@@ -38,7 +38,7 @@ export default function MobileMore() {
                 key={item.label}
                 onPress={() => navigate(item.path, { state: { userId, userEmail } })}
                 className={`flex-row items-center gap-3 p-4 ${idx > 0 ? 'border-t border-gray-100' : ''}`}
-                activeOpacity={0.7}
+                activeOpacity={0.7} delayPressIn={0}
               >
                 <View className={`w-10 h-10 rounded-xl items-center justify-center ${item.color}`}>
                   <item.icon size={20} color={item.iconColor} />
@@ -53,7 +53,7 @@ export default function MobileMore() {
         <TouchableOpacity
           onPress={handleLogout}
           className="flex-row items-center justify-center gap-2 p-4 bg-white rounded-2xl border border-red-200"
-          activeOpacity={0.7}
+          activeOpacity={0.7} delayPressIn={0}
         >
           <LogOut size={20} color="#dc2626" />
           <Text className="text-red-600 font-semibold text-base">Log Out</Text>

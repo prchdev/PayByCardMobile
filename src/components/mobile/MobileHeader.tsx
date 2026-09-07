@@ -81,7 +81,7 @@ export default function MobileHeader({ userEmail, userId, onLogout, showBack, ti
       <View className="flex-row items-center justify-between h-11">
         <View className="flex-row items-center gap-2">
           {showBack && (
-            <TouchableOpacity onPress={goBack} className="p-2 -ml-2" activeOpacity={0.7}>
+            <TouchableOpacity onPress={goBack} className="p-2 -ml-2" activeOpacity={0.7} delayPressIn={0}>
               <ChevronLeft size={22} color="#374151" />
             </TouchableOpacity>
           )}
@@ -98,7 +98,7 @@ export default function MobileHeader({ userEmail, userId, onLogout, showBack, ti
         <View className="flex-row items-center gap-2">
           {userEmail && renderKycBadge()}
           {onLogout && (
-            <TouchableOpacity onPress={onLogout} className="p-2" activeOpacity={0.7}>
+            <TouchableOpacity onPress={onLogout} className="p-2" activeOpacity={0.7} delayPressIn={0}>
               <LogOut size={18} color="#4b5563" />
             </TouchableOpacity>
           )}

@@ -187,7 +187,7 @@ export default function MobileMyBeneficiaries() {
               openModal();
             }}
             className="flex-row items-center gap-2 px-4 py-2.5 bg-[#8c76f0] rounded-xl"
-            activeOpacity={0.7}
+            activeOpacity={0.7} delayPressIn={0}
           >
             <Plus size={18} color="white" />
             <Text className="text-white text-sm font-semibold">Add Payee</Text>
@@ -217,7 +217,7 @@ export default function MobileMyBeneficiaries() {
                   <TouchableOpacity
                     onPress={() => setExpandedId(isExpanded ? null : b.id)}
                     className="flex-row items-center gap-3"
-                    activeOpacity={0.7}
+                    activeOpacity={0.7} delayPressIn={0}
                   >
                     <View className="w-11 h-11 rounded-xl bg-[#f3f0fe] items-center justify-center">
                       <User size={22} color="#8c76f0" />
@@ -254,7 +254,7 @@ export default function MobileMyBeneficiaries() {
                       <TouchableOpacity
                         onPress={() => setToggleTarget(b)}
                         className="flex-row items-center gap-2 mt-2 self-start"
-                        activeOpacity={0.7}
+                        activeOpacity={0.7} delayPressIn={0}
                       >
                         <Power size={16} color={isActive ? '#dc2626' : '#16a34a'} />
                         <Text className={`text-sm font-medium ${isActive ? 'text-red-600' : 'text-green-600'}`}>{isActive ? 'Deactivate Payee' : 'Activate Payee'}</Text>
@@ -268,21 +268,19 @@ export default function MobileMyBeneficiaries() {
         )}
       </View>
 
-      <Modal visible={showModal} animationType="slide" transparent>
-        <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-white rounded-t-2xl max-h-[85%]">
-            <View className="flex-row items-center justify-between p-4 border-b border-gray-100">
-              <Text className="text-lg font-bold text-gray-900">Add New Payee</Text>
-              <TouchableOpacity onPress={() => setShowModal(false)} className="p-2" activeOpacity={0.7}>
-                <X size={22} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={{ flex: 1 }}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-            >
-            <ScrollView className="px-4 pt-3" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" contentContainerStyle={{ paddingBottom: 40 }}>
+      <Modal visible={showModal} animationType="slide" transparent={false}>
+        <View className="flex-1 bg-gray-50">
+          <View className="flex-row items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+            <Text className="text-lg font-bold text-gray-900">Add New Payee</Text>
+            <TouchableOpacity onPress={() => setShowModal(false)} className="p-2" activeOpacity={0.7} delayPressIn={0}>
+              <X size={22} color="#6b7280" />
+            </TouchableOpacity>
+          </View>
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
+          >
+          <ScrollView className="flex-1 px-4 pt-4" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}>
               {error ? (
                 <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-center gap-2 mb-3">
                   <AlertCircle size={18} color="#dc2626" />
@@ -327,7 +325,7 @@ export default function MobileMyBeneficiaries() {
                     onPress={handleIfscFetch}
                     disabled={ifscFetching}
                     className="px-4 py-3 bg-[#8c76f0] rounded-xl flex-row items-center gap-1.5"
-                    activeOpacity={0.7}
+                    activeOpacity={0.7} delayPressIn={0}
                     style={{ opacity: ifscFetching ? 0.5 : 1 }}
                   >
                     {ifscFetching ? (
@@ -370,7 +368,7 @@ export default function MobileMyBeneficiaries() {
                       key={type}
                       onPress={() => setFormData({ ...formData, account_type: type })}
                       className={`flex-1 py-3 rounded-xl border ${formData.account_type === type ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
-                      activeOpacity={0.7}
+                      activeOpacity={0.7} delayPressIn={0}
                     >
                       <Text className={`text-center text-sm font-semibold ${formData.account_type === type ? 'text-white' : 'text-gray-700'}`}>
                         {type}
@@ -413,8 +411,7 @@ export default function MobileMyBeneficiaries() {
                 <Text className="text-white font-semibold text-center text-base">{submitting ? 'Saving...' : 'Save Payee'}</Text>
               </Pressable>
             </ScrollView>
-            </KeyboardAvoidingView>
-          </View>
+          </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -426,7 +423,7 @@ export default function MobileMyBeneficiaries() {
               ? `Are you sure you want to deactivate ${toggleTarget?.full_name}? They will not appear in Make Payment.`
               : `Are you sure you want to activate ${toggleTarget?.full_name}? They will appear in Make Payment.`}</Text>
             <View className="flex-row gap-3 mt-2">
-              <TouchableOpacity onPress={() => setToggleTarget(null)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl" activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => setToggleTarget(null)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl" activeOpacity={0.7} delayPressIn={0}>
                 <Text className="text-base text-gray-700 font-medium text-center">Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -434,7 +431,7 @@ export default function MobileMyBeneficiaries() {
                 disabled={toggling}
                 className={`flex-1 px-4 py-3 rounded-xl ${toggleTarget?.status === 'Active' ? 'bg-red-600' : 'bg-green-600'}`}
                 style={{ opacity: toggling ? 0.5 : 1 }}
-                activeOpacity={0.7}
+                activeOpacity={0.7} delayPressIn={0}
               >
                 <Text className="text-base text-white font-semibold text-center">{toggling ? 'Processing...' : toggleTarget?.status === 'Active' ? 'Deactivate' : 'Activate'}</Text>
               </TouchableOpacity>

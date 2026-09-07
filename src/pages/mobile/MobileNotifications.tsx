@@ -140,7 +140,7 @@ export default function MobileNotifications() {
       <View className="px-4 py-3 gap-3">
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-2">
-            <TouchableOpacity onPress={() => navigate('/mobile/dashboard', { state: { userId, userEmail } })} className="p-1.5 -ml-1.5 rounded-lg" activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => navigate('/mobile/dashboard', { state: { userId, userEmail } })} className="p-1.5 -ml-1.5 rounded-lg" activeOpacity={0.7} delayPressIn={0}>
               <ArrowLeft size={20} color="#374151" />
             </TouchableOpacity>
             <View>
@@ -149,7 +149,7 @@ export default function MobileNotifications() {
             </View>
           </View>
           {unreadCount > 0 && (
-            <TouchableOpacity onPress={markAllRead} className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f3f0fe]" activeOpacity={0.7}>
+            <TouchableOpacity onPress={markAllRead} className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f3f0fe]" activeOpacity={0.7} delayPressIn={0}>
               <CheckCheck size={14} color="#8c76f0" />
               <Text className="text-[#8c76f0] text-xs font-semibold">Mark all read</Text>
             </TouchableOpacity>
@@ -162,7 +162,7 @@ export default function MobileNotifications() {
               key={f}
               onPress={() => setFilter(f)}
               className={`px-4 py-1.5 rounded-full ${filter === f ? 'bg-[#8c76f0]' : 'bg-gray-100'}`}
-              activeOpacity={0.7}
+              activeOpacity={0.7} delayPressIn={0}
             >
               <Text className={`text-xs font-semibold ${filter === f ? 'text-white' : 'text-gray-600'}`}>
                 {f === 'all' ? 'All' : `Unread${unreadCount > 0 ? ` (${unreadCount})` : ''}`}
@@ -173,7 +173,7 @@ export default function MobileNotifications() {
 
         {campaigns.map((c) => (
           <View key={c.id} className="relative bg-[#f3f0fe] border border-[#8c76f0]/30 rounded-2xl overflow-hidden">
-            <TouchableOpacity onPress={() => dismissCampaign(c.id)} className="absolute top-2 right-2 z-10 p-1 rounded-full bg-white/70" activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => dismissCampaign(c.id)} className="absolute top-2 right-2 z-10 p-1 rounded-full bg-white/70" activeOpacity={0.7} delayPressIn={0}>
               <X size={14} color="#6b7280" />
             </TouchableOpacity>
             {c.image_url ? (
@@ -187,7 +187,7 @@ export default function MobileNotifications() {
                 <Text className="text-sm font-bold text-gray-900">{c.title}</Text>
                 <Text className="text-xs text-gray-600 mt-0.5">{c.message}</Text>
                 {c.action_label && (
-                  <TouchableOpacity onPress={() => clickCampaign(c.id, c.action_url, c.action_type)} className="mt-2 px-3 py-1.5 bg-[#8c76f0] rounded-lg self-start" activeOpacity={0.7}>
+                  <TouchableOpacity onPress={() => clickCampaign(c.id, c.action_url, c.action_type)} className="mt-2 px-3 py-1.5 bg-[#8c76f0] rounded-lg self-start" activeOpacity={0.7} delayPressIn={0}>
                     <Text className="text-white text-xs font-semibold">{c.action_label}</Text>
                   </TouchableOpacity>
                 )}
@@ -240,7 +240,7 @@ export default function MobileNotifications() {
                       {notif.body ? <Text className="text-xs text-gray-600 mt-0.5">{notif.body}</Text> : null}
                       <View className="flex-row items-center justify-between mt-1.5">
                         <Text className="text-[10px] text-gray-400">{timeAgo(notif.created_at)}</Text>
-                        <TouchableOpacity onPress={() => deleteNotification(notif.id)} className="p-1 rounded-lg" activeOpacity={0.7}>
+                        <TouchableOpacity onPress={() => deleteNotification(notif.id)} className="p-1 rounded-lg" activeOpacity={0.7} delayPressIn={0}>
                           <Trash2 size={14} color="#9ca3af" />
                         </TouchableOpacity>
                       </View>

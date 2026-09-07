@@ -100,7 +100,7 @@ export default function MobileLogin() {
                 </Text>
                 <Text className={`text-xs mt-0.5 ${isLocked ? 'text-orange-800' : 'text-red-800'}`}>{error}</Text>
                 {isLocked && (
-                  <TouchableOpacity onPress={() => navigate('/mobile/forgot-password')} activeOpacity={0.7}>
+                  <TouchableOpacity onPress={() => navigate('/mobile/forgot-password')} activeOpacity={0.7} delayPressIn={0}>
                     <Text className="text-xs font-semibold text-orange-700 underline mt-1">Reset your password</Text>
                   </TouchableOpacity>
                 )}
@@ -139,7 +139,7 @@ export default function MobileLogin() {
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
                 className="absolute right-3"
-                activeOpacity={0.7}
+                activeOpacity={0.7} delayPressIn={0}
               >
                 {showPassword ? <EyeOff size={16} color="#9ca3af" /> : <Eye size={16} color="#9ca3af" />}
               </TouchableOpacity>
@@ -148,7 +148,7 @@ export default function MobileLogin() {
           </View>
 
           <View className="flex-row justify-end">
-            <TouchableOpacity onPress={() => navigate('/mobile/forgot-password')} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => navigate('/mobile/forgot-password')} activeOpacity={0.7} delayPressIn={0}>
               <Text className="text-xs text-[#8c76f0] font-medium">Forgot Password?</Text>
             </TouchableOpacity>
           </View>
@@ -167,7 +167,7 @@ export default function MobileLogin() {
 
         <View className="flex-row justify-center mt-3">
           <Text className="text-sm text-gray-600">Don't have an account? </Text>
-          <TouchableOpacity onPress={() => navigate('/mobile/register')} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => navigate('/mobile/register')} activeOpacity={0.7} delayPressIn={0}>
             <Text className="text-sm text-[#8c76f0] font-semibold">Sign Up</Text>
           </TouchableOpacity>
         </View>

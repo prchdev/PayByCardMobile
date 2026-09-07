@@ -179,7 +179,7 @@ export default function MobileRegister() {
                 placeholder="********" maxLength={20}
                 secureTextEntry={!showPassword} autoCapitalize="none"
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="absolute right-3" activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="absolute right-3" activeOpacity={0.7} delayPressIn={0}>
                 {showPassword ? <EyeOff size={16} color="#9ca3af" /> : <Eye size={16} color="#9ca3af" />}
               </TouchableOpacity>
             </View>
@@ -196,7 +196,7 @@ export default function MobileRegister() {
                 placeholder="********" maxLength={20}
                 secureTextEntry={!showConfirm} autoCapitalize="none"
               />
-              <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} className="absolute right-3" activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} className="absolute right-3" activeOpacity={0.7} delayPressIn={0}>
                 {showConfirm ? <EyeOff size={16} color="#9ca3af" /> : <Eye size={16} color="#9ca3af" />}
               </TouchableOpacity>
             </View>
@@ -223,11 +223,11 @@ export default function MobileRegister() {
             </View>
             <View className="flex-1 flex-row flex-wrap">
               <Text className="text-sm text-gray-700">I agree to the </Text>
-              <TouchableOpacity onPress={() => setActiveModal('terms')} activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => setActiveModal('terms')} activeOpacity={0.7} delayPressIn={0}>
                 <Text className="text-sm text-[#8c76f0] font-semibold">Terms</Text>
               </TouchableOpacity>
               <Text className="text-sm text-gray-700"> and </Text>
-              <TouchableOpacity onPress={() => setActiveModal('privacy')} activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => setActiveModal('privacy')} activeOpacity={0.7} delayPressIn={0}>
                 <Text className="text-sm text-[#8c76f0] font-semibold">Privacy Policy</Text>
               </TouchableOpacity>
             </View>
@@ -248,7 +248,7 @@ export default function MobileRegister() {
 
         <View className="flex-row justify-center mt-3 pb-4">
           <Text className="text-sm text-gray-600">Already have an account? </Text>
-          <TouchableOpacity onPress={() => navigate('/mobile/login')} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => navigate('/mobile/login')} activeOpacity={0.7} delayPressIn={0}>
             <Text className="text-sm text-[#8c76f0] font-semibold">Sign In</Text>
           </TouchableOpacity>
         </View>
@@ -264,7 +264,7 @@ export default function MobileRegister() {
                   {activeModal === 'terms' ? 'Terms of Service' : 'Privacy Policy'}
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => setActiveModal(null)} className="p-1.5" activeOpacity={0.7}>
+              <TouchableOpacity onPress={() => setActiveModal(null)} className="p-1.5" activeOpacity={0.7} delayPressIn={0}>
                 <X size={20} color="#6b7280" />
               </TouchableOpacity>
             </View>

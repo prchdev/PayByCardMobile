@@ -86,7 +86,7 @@ export default function MobileMyTransactions() {
                 key={f.value}
                 onPress={() => { setFilter(f.value); setLoading(true); fetchTransactions(f.value); }}
                 className={`px-3 py-1.5 rounded-full ${filter === f.value ? 'bg-[#8c76f0]' : 'bg-gray-100'}`}
-                activeOpacity={0.7}
+                activeOpacity={0.7} delayPressIn={0}
               >
                 <Text className={`text-xs font-semibold ${filter === f.value ? 'text-white' : 'text-gray-600'}`}>{f.label}</Text>
               </TouchableOpacity>
@@ -105,7 +105,7 @@ export default function MobileMyTransactions() {
               <History size={32} color="#d1d5db" />
             </View>
             <Text className="text-sm font-semibold text-gray-700">No transactions found</Text>
-            <TouchableOpacity onPress={() => navigate('/mobile/make-payment', { state: { userId, userEmail } })} activeOpacity={0.7}>
+            <TouchableOpacity onPress={() => navigate('/mobile/make-payment', { state: { userId, userEmail } })} activeOpacity={0.7} delayPressIn={0}>
               <View className="mt-3 px-4 py-2 bg-[#8c76f0] rounded-lg">
                 <Text className="text-white text-sm font-semibold">Make Payment</Text>
               </View>

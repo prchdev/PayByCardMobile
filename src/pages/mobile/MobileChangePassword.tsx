@@ -96,7 +96,7 @@ export default function MobileChangePassword() {
                   <TouchableOpacity
                     onPress={toggle}
                     className="absolute right-3"
-                    activeOpacity={0.7}
+                    activeOpacity={0.7} delayPressIn={0}
                   >
                     {show ? <EyeOff size={18} color="#9ca3af" /> : <Eye size={18} color="#9ca3af" />}
                   </TouchableOpacity>
@@ -120,7 +120,7 @@ export default function MobileChangePassword() {
               onPress={() => navigate('/mobile/dashboard', { state: { userId, userEmail } })}
               disabled={loading || success}
               className="flex-1 px-4 py-3.5 border border-gray-300 rounded-xl"
-              activeOpacity={0.7}
+              activeOpacity={0.7} delayPressIn={0}
             >
               <Text className="text-gray-700 text-base font-medium text-center">Cancel</Text>
             </TouchableOpacity>

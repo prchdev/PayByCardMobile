@@ -54,7 +54,7 @@ export default function BottomNavigation({ userId, userEmail }: BottomNavProps) 
               key={item.route}
               onPress={() => handleNav(item.route)}
               className="flex-1 items-center justify-center h-full"
-              activeOpacity={0.7}
+              activeOpacity={0.7} delayPressIn={0}
             >
               <item.icon
                 size={24}

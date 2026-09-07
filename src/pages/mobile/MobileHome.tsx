@@ -119,7 +119,7 @@ export default function MobileHome() {
               <TouchableOpacity
                 onPress={handleSwitchAccount}
                 className="w-full flex-row items-center justify-center gap-2 mt-2 py-2"
-                activeOpacity={0.7}
+                activeOpacity={0.7} delayPressIn={0}
               >
                 <LogOut size={16} color="#4b5563" />
                 <Text className="text-xs text-gray-600 font-medium">Switch Account</Text>

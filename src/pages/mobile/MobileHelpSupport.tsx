@@ -131,7 +131,7 @@ export default function MobileHelpSupport() {
           <TouchableOpacity
             onPress={openCreateModal}
             className="flex-row items-center gap-2 px-4 py-2.5 bg-[#8c76f0] rounded-xl"
-            activeOpacity={0.7}
+            activeOpacity={0.7} delayPressIn={0}
           >
             <Plus size={18} color="white" />
             <Text className="text-white text-sm font-semibold">New Ticket</Text>
@@ -150,7 +150,7 @@ export default function MobileHelpSupport() {
             </View>
             <Text className="text-sm font-semibold text-gray-700">No support tickets yet</Text>
             <Text className="text-xs text-gray-400 mt-1">Create a ticket if you need help.</Text>
-            <TouchableOpacity onPress={openCreateModal} className="mt-3 flex-row items-center gap-2 px-4 py-2.5 bg-[#8c76f0] rounded-xl" activeOpacity={0.7}>
+            <TouchableOpacity onPress={openCreateModal} className="mt-3 flex-row items-center gap-2 px-4 py-2.5 bg-[#8c76f0] rounded-xl" activeOpacity={0.7} delayPressIn={0}>
               <Plus size={18} color="white" />
               <Text className="text-white text-sm font-semibold">Create Ticket</Text>
             </TouchableOpacity>
@@ -190,7 +190,7 @@ export default function MobileHelpSupport() {
               <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
               <View className="flex-row items-center justify-between">
                 <Text className="text-base font-bold text-gray-900">New Support Ticket</Text>
-                <TouchableOpacity onPress={() => setShowCreate(false)} className="p-1.5" activeOpacity={0.7}>
+                <TouchableOpacity onPress={() => setShowCreate(false)} className="p-1.5" activeOpacity={0.7} delayPressIn={0}>
                   <X size={20} color="#6b7280" />
                 </TouchableOpacity>
               </View>
@@ -206,7 +206,7 @@ export default function MobileHelpSupport() {
                 <TouchableOpacity
                   onPress={() => { setShowCategoryList(!showCategoryList); setShowSubCategoryList(false); }}
                   className="flex-row items-center justify-between w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
-                  activeOpacity={0.7}
+                  activeOpacity={0.7} delayPressIn={0}
                 >
                   <Text className={`text-base ${selectedCategory ? 'text-gray-900' : 'text-gray-400'}`}>
                     {selectedCategory || 'Select category...'}
@@ -221,7 +221,7 @@ export default function MobileHelpSupport() {
                           key={cat}
                           onPress={() => { setSelectedCategory(cat); setSelectedSubCategory(''); setShowCategoryList(false); }}
                           className={`p-3.5 border-b border-gray-100 ${selectedCategory === cat ? 'bg-[#f3f0fe]' : ''}`}
-                          activeOpacity={0.7}
+                          activeOpacity={0.7} delayPressIn={0}
                         >
                           <Text className="text-base font-medium text-gray-900">{cat}</Text>
                         </TouchableOpacity>
@@ -236,7 +236,7 @@ export default function MobileHelpSupport() {
                 <TouchableOpacity
                   onPress={() => { if (selectedCategory) setShowSubCategoryList(!showSubCategoryList); setShowCategoryList(false); }}
                   className="flex-row items-center justify-between w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
-                  activeOpacity={0.7}
+                  activeOpacity={0.7} delayPressIn={0}
                   style={{ opacity: selectedCategory ? 1 : 0.5 }}
                 >
                   <Text className={`text-base ${selectedSubCategory ? 'text-gray-900' : 'text-gray-400'}`}>
@@ -252,7 +252,7 @@ export default function MobileHelpSupport() {
                           key={sub}
                           onPress={() => { setSelectedSubCategory(sub); setShowSubCategoryList(false); }}
                           className={`p-3.5 border-b border-gray-100 ${selectedSubCategory === sub ? 'bg-[#f3f0fe]' : ''}`}
-                          activeOpacity={0.7}
+                          activeOpacity={0.7} delayPressIn={0}
                         >
                           <Text className="text-base font-medium text-gray-900">{sub}</Text>
                         </TouchableOpacity>
@@ -277,7 +277,7 @@ export default function MobileHelpSupport() {
                 <TouchableOpacity
                   onPress={() => setShowCreate(false)}
                   className="flex-1 px-4 py-3 border border-gray-300 rounded-xl"
-                  activeOpacity={0.7}
+                  activeOpacity={0.7} delayPressIn={0}
                 >
                   <Text className="text-base text-gray-700 font-medium text-center">Cancel</Text>
                 </TouchableOpacity>
