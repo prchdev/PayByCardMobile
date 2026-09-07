@@ -170,11 +170,11 @@ export default function MobileDashboard() {
               <View className="bg-yellow-50 border border-yellow-400 rounded-xl p-3 flex-row items-start gap-2.5">
                 <AlertCircle size={20} color="#ca8a04" />
                 <View className="flex-1">
-                  <Text className="text-base font-semibold text-yellow-900">Complete KYC Verification</Text>
+                  <Text className="text-base font-semibold text-yellow-900">KYC Verification Pending</Text>
                   <Text className="text-sm text-yellow-700 mt-1">Required to access payment features.</Text>
                   <TouchableOpacity onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })} activeOpacity={0.7}>
                     <View className="mt-2 px-4 py-2 bg-yellow-600 rounded-lg">
-                      <Text className="text-white text-sm font-medium">Complete KYC</Text>
+                      <Text className="text-white text-sm font-medium">Submit KYC</Text>
                     </View>
                   </TouchableOpacity>
                 </View>
