@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { impact } from '../../utils/haptics';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { registerPushToken } from '../../utils/pushNotifications';
 
 interface RecentTxn {
   id: string; payment_reference: string; amount: string; total_amount: string;
@@ -46,6 +47,7 @@ export default function MobileDashboard() {
   useEffect(() => {
     if (!userId) { navigate('/mobile/login'); return; }
     checkKycStatus(); fetchRecentTransactions(); fetchStats(); fetchUnreadNotifs(); fetchDashboardNotifs();
+    registerPushToken(userId);
   }, [userId]);
 
   const fetchUnreadNotifs = async () => {

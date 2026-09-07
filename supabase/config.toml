@@ -138,6 +138,8 @@ verify_jwt = false
 verify_jwt = false
 [functions.get-kyc-method-settings]
 verify_jwt = false
+[functions.get-user-kyc-settings]
+verify_jwt = false
 [functions.get-kyc-provider]
 verify_jwt = false
 [functions.get-merchant-onboarding]

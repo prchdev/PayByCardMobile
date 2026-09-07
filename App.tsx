@@ -1,11 +1,12 @@
 /// <reference types="nativewind/types" />
 import 'src/native-styles.css';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { setNativeNavigationRef } from './src/utils/navigation';
 import { setupNotifications, requestNotificationPermission } from './src/utils/notifications';
@@ -31,13 +32,31 @@ export type { RootStackParamList };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function App() {
   const navRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
+  const [appReady, setAppReady] = useState(false);
 
   useEffect(() => {
-    setupNotifications();
-    requestNotificationPermission();
+    (async () => {
+      try {
+        await setupNotifications();
+        await requestNotificationPermission();
+      } catch {}
+      setAppReady(true);
+    })();
   }, []);
+
+  useEffect(() => {
+    if (appReady) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [appReady]);
+
+  if (!appReady) {
+    return null;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

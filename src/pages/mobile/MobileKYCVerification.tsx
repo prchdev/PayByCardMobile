@@ -44,6 +44,7 @@ export default function MobileKYCVerification() {
   const [error, setError] = useState('');
   const [digilockerLoading, setDigilockerLoading] = useState(false);
   const [digilockerUrl, setDigilockerUrl] = useState('');
+  const [kycSettings, setKycSettings] = useState<{ digilocker_enabled: boolean; manual_enabled: boolean }>({ digilocker_enabled: false, manual_enabled: true });
 
   const [panForm, setPanForm] = useState({ pan_number: '', pan_photo_url: '' });
   const [addressForm, setAddressForm] = useState({ proof_type: 'aadhaar', id_number: '', address_proof_url_1: '' });
@@ -54,6 +55,7 @@ export default function MobileKYCVerification() {
   useEffect(() => {
     if (!userId) { navigate('/mobile/login'); return; }
     fetchKycStatus();
+    fetchKycSettings();
   }, [userId]);
 
   const fetchKycStatus = async () => {
@@ -68,6 +70,18 @@ export default function MobileKYCVerification() {
       else setKycStatus('not_started');
     } catch { setKycStatus('not_started'); }
     finally { setLoading(false); }
+  };
+
+  const fetchKycSettings = async () => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-kyc-settings`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (res.ok) setKycSettings(data);
+    } catch {}
   };
 
   const fetchKycData = async () => {
@@ -285,6 +299,7 @@ export default function MobileKYCVerification() {
         {kycMethod === 'select' ? (
           <View className="gap-3">
             <Text className="text-base font-bold text-gray-900">Choose KYC Method</Text>
+            {kycSettings.digilocker_enabled && (
             <TouchableOpacity
               onPress={() => { setError(''); setKycMethod('digilocker'); }}
               className="flex-row items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200"
@@ -299,6 +314,8 @@ export default function MobileKYCVerification() {
               </View>
               <ChevronRight size={20} color="#9ca3af" />
             </TouchableOpacity>
+            )}
+            {kycSettings.manual_enabled && (
             <TouchableOpacity
               onPress={() => { setError(''); setKycMethod('manual'); }}
               className="flex-row items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200"
@@ -313,6 +330,12 @@ export default function MobileKYCVerification() {
               </View>
               <ChevronRight size={20} color="#9ca3af" />
             </TouchableOpacity>
+            )}
+            {!kycSettings.digilocker_enabled && !kycSettings.manual_enabled && (
+              <View className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <Text className="text-sm text-amber-700">KYC methods are currently unavailable. Please contact support.</Text>
+              </View>
+            )}
           </View>
         ) : kycMethod === 'digilocker' ? (
           <View className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 gap-4">
@@ -359,12 +382,14 @@ export default function MobileKYCVerification() {
                 {digilockerLoading ? 'Starting...' : 'Start DigiLocker KYC'}
               </Text>
             </TouchableOpacity>
+            {kycSettings.manual_enabled && (
             <TouchableOpacity
               onPress={() => { setKycMethod('manual'); setError(''); setDigilockerUrl(''); }}
               activeOpacity={0.7}
             >
               <Text className="text-sm text-gray-500 text-center">Prefer manual upload? Tap here</Text>
             </TouchableOpacity>
+            )}
           </View>
         ) : null}
       </View>

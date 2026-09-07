@@ -16,6 +16,8 @@ export async function setupNotifications(): Promise<void> {
       shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
   });
 }

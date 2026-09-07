@@ -169,7 +169,6 @@ export default function MobileMakePayment() {
     if (!selectedCategory) return 'Please select a payment category';
     if (!selectedOption) return 'Please select a payment option';
     if (!selectedOpt?.gateway_id) return 'This payment option does not have a gateway configured';
-    if (!selectedOpt?.card_type) return 'This payment option does not have a card type configured';
     const amt = parseFloat(amount);
     if (!amt || isNaN(amt)) return 'Enter a valid amount';
     if (paymentLimits) {
@@ -319,7 +318,7 @@ export default function MobileMakePayment() {
                 </TouchableOpacity>
                 {showBeneficiaryList && (
                   <View className="mt-1 bg-white border border-gray-200 rounded-xl shadow-sm">
-                    <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                    <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                       {beneficiaries.length === 0 ? (
                         <View className="p-4 items-center">
                           <Text className="text-base text-gray-500">No active beneficiaries yet</Text>
@@ -392,7 +391,7 @@ export default function MobileMakePayment() {
                 </TouchableOpacity>
                 {showCategoryList && (
                   <View className="mt-1 bg-white border border-gray-200 rounded-xl shadow-sm">
-                    <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                    <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                       {categories.length === 0 ? (
                         <View className="p-4 items-center">
                           <Text className="text-base text-gray-500">No categories available</Text>
@@ -433,7 +432,7 @@ export default function MobileMakePayment() {
                 </TouchableOpacity>
                 {showOptionList && (
                   <View className="mt-1 bg-white border border-gray-200 rounded-xl shadow-sm">
-                    <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                    <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
                       {paymentOptions.length === 0 ? (
                         <View className="p-4 items-center">
                           <Text className="text-base text-gray-500">No payment options available</Text>
@@ -463,7 +462,7 @@ export default function MobileMakePayment() {
               <View>
                 <Text className="text-sm font-semibold text-gray-700 mb-2">4. Amount *</Text>
                 <View className="flex-row items-center w-full px-4 py-3 border border-gray-300 rounded-xl bg-white">
-                  <Text className="text-base text-gray-600 mr-1.5">{`\u20B9`}</Text>
+                  <Text className="text-base text-gray-500 mr-2">{`\u20B9`}</Text>
                   <TextInput
                     value={amount}
                     onChangeText={(v) => setAmount(v.replace(/[^\d.]/g, ''))}

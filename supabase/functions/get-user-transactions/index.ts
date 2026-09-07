@@ -122,8 +122,12 @@ Deno.serve(async (req: Request) => {
           // Includes both failed and cancelled
           dbStatuses = ["failed", "cancelled"];
           break;
+        case "processing":
+          // "processing" display includes both "processing" and "pending" DB statuses
+          dbStatuses = ["processing", "pending"];
+          break;
         default:
-          // 1:1 mapping (processing, refunded, refund_pending, etc.)
+          // 1:1 mapping (refunded, refund_pending, etc.)
           dbStatuses = [status];
           break;
       }
