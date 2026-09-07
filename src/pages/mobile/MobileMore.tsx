@@ -27,22 +27,22 @@ export default function MobileMore() {
 
   return (
     <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout}>
-      <View className="px-4 py-3 gap-4">
+      <View className="px-4 py-4 gap-4">
         <View>
-          <Text className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Account</Text>
+          <Text className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Account</Text>
           <View className="bg-white rounded-2xl border border-gray-200 shadow-sm">
             {menuItems.map((item, idx) => (
               <TouchableOpacity
                 key={item.label}
                 onPress={() => navigate(item.path, { state: { userId, userEmail } })}
-                className={`flex-row items-center gap-3 p-3 ${idx > 0 ? 'border-t border-gray-100' : ''}`}
+                className={`flex-row items-center gap-3 p-4 ${idx > 0 ? 'border-t border-gray-100' : ''}`}
                 activeOpacity={0.7}
               >
-                <View className={`w-8 h-8 rounded-lg items-center justify-center ${item.color}`}>
-                  <item.icon size={16} color={item.iconColor} />
+                <View className={`w-10 h-10 rounded-xl items-center justify-center ${item.color}`}>
+                  <item.icon size={20} color={item.iconColor} />
                 </View>
-                <Text className="flex-1 text-sm font-medium text-gray-900">{item.label}</Text>
-                <ChevronRight size={16} color="#9ca3af" />
+                <Text className="flex-1 text-base font-medium text-gray-900">{item.label}</Text>
+                <ChevronRight size={18} color="#9ca3af" />
               </TouchableOpacity>
             ))}
           </View>
@@ -50,15 +50,15 @@ export default function MobileMore() {
 
         <TouchableOpacity
           onPress={handleLogout}
-          className="flex-row items-center justify-center gap-2 p-3 bg-white rounded-2xl border border-red-200"
+          className="flex-row items-center justify-center gap-2 p-4 bg-white rounded-2xl border border-red-200"
           activeOpacity={0.7}
         >
-          <LogOut size={16} color="#dc2626" />
-          <Text className="text-red-600 font-semibold text-sm">Log Out</Text>
+          <LogOut size={20} color="#dc2626" />
+          <Text className="text-red-600 font-semibold text-base">Log Out</Text>
         </TouchableOpacity>
 
         <View className="items-center pb-2">
-          <Text className="text-xs text-gray-400">PayByCard Mobile v1.0.0</Text>
+          <Text className="text-sm text-gray-400">PayByCard Mobile v1.0.0</Text>
         </View>
       </View>
     </MobileLayout>

@@ -1,8 +1,7 @@
-import { View, ScrollView } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, Pressable } from 'react-native';
 import MobileHeader from './MobileHeader';
 import BottomNavigation from './BottomNavigation';
 import { useNav } from '../../hooks/useNav';
-import { impact } from '../../utils/haptics';
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -37,13 +36,24 @@ export default function MobileLayout({
         title={title}
       />
 
-      {scroll ? (
-        <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1, paddingBottom: showBottomNav ? 80 : 0 }}>
-          {children}
-        </ScrollView>
-      ) : (
-        <View className="flex-1">{children}</View>
-      )}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1"
+      >
+        {scroll ? (
+          <ScrollView
+            className="flex-1"
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: showBottomNav ? 90 : 0 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Pressable onPress={() => {}}>
+              {children}
+            </Pressable>
+          </ScrollView>
+        ) : (
+          <View className="flex-1">{children}</View>
+        )}
+      </KeyboardAvoidingView>
 
       {showBottomNav && <BottomNavigation userId={userId} userEmail={userEmail} />}
     </View>

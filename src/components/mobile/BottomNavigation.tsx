@@ -1,7 +1,7 @@
 import { View, TouchableOpacity, Text } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Hop as Home, CreditCard, Clock, Users, MoreHorizontal } from 'lucide-react-native';
+import { Home, CreditCard, Clock, Users, MoreHorizontal } from 'lucide-react-native';
 import type { RootStackParamList } from '../../types/navigation';
 import type { RouteProp } from '@react-navigation/core';
 import { selection } from '../../utils/haptics';
@@ -46,7 +46,7 @@ export default function BottomNavigation({ userId, userEmail }: BottomNavProps) 
       className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50"
       style={{ paddingBottom: insets.bottom }}
     >
-      <View className="flex-row items-center justify-around h-16 px-1">
+      <View className="flex-row items-center justify-around h-[60px] px-1">
         {items.map((item) => {
           const active = isActive(item.route);
           return (
@@ -57,12 +57,12 @@ export default function BottomNavigation({ userId, userEmail }: BottomNavProps) 
               activeOpacity={0.7}
             >
               <item.icon
-                size={22}
+                size={24}
                 color={active ? '#8c76f0' : '#374151'}
                 strokeWidth={active ? 2.5 : 2}
               />
               <Text
-                className={`text-[10px] mt-0.5 ${active ? 'font-bold text-[#8c76f0]' : 'font-semibold text-gray-700'}`}
+                className={`text-[11px] mt-1 ${active ? 'font-bold text-[#8c76f0]' : 'font-semibold text-gray-700'}`}
               >
                 {item.label}
               </Text>

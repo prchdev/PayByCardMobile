@@ -49,8 +49,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function MobileNotifications() {
-  const { navigate } = useNav();
-  const { route } = useNav();
+  const { navigate, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);

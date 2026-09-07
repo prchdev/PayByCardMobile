@@ -30,8 +30,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function MobileHelpSupport() {
-  const { navigate } = useNav();
-  const { route } = useNav();
+  const { navigate, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);

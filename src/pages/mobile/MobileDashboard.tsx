@@ -117,18 +117,18 @@ export default function MobileDashboard() {
       <View className="px-4 py-3 gap-3">
         <View className="flex-row items-center justify-between">
           <View>
-            <Text className="text-xl font-bold text-gray-900">Welcome back!</Text>
-            <Text className="text-sm text-gray-500 mt-0.5">Here's your account overview</Text>
+            <Text className="text-2xl font-bold text-gray-900">Welcome back!</Text>
+            <Text className="text-base text-gray-500 mt-1">Here's your account overview</Text>
           </View>
           <TouchableOpacity
             onPress={() => { impact('light'); navigate('/mobile/notifications', { state: { userId, userEmail } }); }}
             className="relative p-2 rounded-xl bg-white border border-gray-200"
             activeOpacity={0.7}
           >
-            <Bell size={20} color="#374151" />
+            <Bell size={24} color="#374151" />
             {unreadNotifs > 0 && (
               <View className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 items-center justify-center">
-                <Text className="text-white text-[10px] font-bold">{unreadNotifs > 9 ? '9+' : String(unreadNotifs)}</Text>
+                <Text className="text-white text-xs font-bold">{unreadNotifs > 9 ? '9+' : String(unreadNotifs)}</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -140,18 +140,18 @@ export default function MobileDashboard() {
               <View className="bg-green-50 border border-green-400 rounded-xl p-3 flex-row items-start gap-2.5">
                 <CheckCircle size={20} color="#16a34a" />
                 <View>
-                  <Text className="text-sm font-semibold text-green-900">Account Verified</Text>
-                  <Text className="text-xs text-green-700 mt-0.5">KYC complete. All features unlocked.</Text>
+                  <Text className="text-base font-semibold text-green-900">Account Verified</Text>
+                  <Text className="text-sm text-green-700 mt-1">KYC complete. All features unlocked.</Text>
                 </View>
               </View>
             ) : kycStatus.status === 'pending' ? (
               <View className="bg-blue-50 border border-blue-400 rounded-xl p-3 flex-row items-start gap-2.5">
                 <Clock size={20} color="#2563eb" />
                 <View className="flex-1">
-                  <Text className="text-sm font-semibold text-blue-900">KYC Under Review</Text>
-                  <Text className="text-xs text-blue-700 mt-0.5">Your documents are being reviewed.</Text>
+                  <Text className="text-base font-semibold text-blue-900">KYC Under Review</Text>
+                  <Text className="text-sm text-blue-700 mt-1">Your documents are being reviewed.</Text>
                   <TouchableOpacity onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })} activeOpacity={0.7}>
-                    <Text className="mt-1.5 text-xs font-semibold text-blue-700 underline">View Status</Text>
+                    <Text className="mt-1.5 text-sm font-semibold text-blue-700 underline">View Status</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -159,10 +159,10 @@ export default function MobileDashboard() {
               <View className="bg-red-50 border border-red-400 rounded-xl p-3 flex-row items-start gap-2.5">
                 <AlertCircle size={20} color="#dc2626" />
                 <View className="flex-1">
-                  <Text className="text-sm font-semibold text-red-900">KYC Rejected</Text>
-                  <Text className="text-xs text-red-700 mt-0.5">Please review and resubmit.</Text>
+                  <Text className="text-base font-semibold text-red-900">KYC Rejected</Text>
+                  <Text className="text-sm text-red-700 mt-1">Please review and resubmit.</Text>
                   <TouchableOpacity onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })} activeOpacity={0.7}>
-                    <Text className="mt-1.5 text-xs font-semibold text-red-700 underline">Review & Resubmit</Text>
+                    <Text className="mt-1.5 text-sm font-semibold text-red-700 underline">Review & Resubmit</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -170,11 +170,11 @@ export default function MobileDashboard() {
               <View className="bg-yellow-50 border border-yellow-400 rounded-xl p-3 flex-row items-start gap-2.5">
                 <AlertCircle size={20} color="#ca8a04" />
                 <View className="flex-1">
-                  <Text className="text-sm font-semibold text-yellow-900">Complete KYC Verification</Text>
-                  <Text className="text-xs text-yellow-700 mt-0.5">Required to access payment features.</Text>
+                  <Text className="text-base font-semibold text-yellow-900">Complete KYC Verification</Text>
+                  <Text className="text-sm text-yellow-700 mt-1">Required to access payment features.</Text>
                   <TouchableOpacity onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })} activeOpacity={0.7}>
-                    <View className="mt-1.5 px-3 py-1.5 bg-yellow-600 rounded-lg">
-                      <Text className="text-white text-xs font-medium">Complete KYC</Text>
+                    <View className="mt-2 px-4 py-2 bg-yellow-600 rounded-lg">
+                      <Text className="text-white text-sm font-medium">Complete KYC</Text>
                     </View>
                   </TouchableOpacity>
                 </View>
@@ -217,17 +217,17 @@ export default function MobileDashboard() {
                 <s.icon size={14} color={s.color} />
               </View>
               {s.value !== null ? (
-                <Text className="text-base font-bold text-gray-900">{s.value}</Text>
+                <Text className="text-lg font-bold text-gray-900">{s.value}</Text>
               ) : (
                 <View className="h-5 w-16 bg-gray-100 rounded" />
               )}
-              <Text className="text-[10px] text-gray-500 mt-0.5">{s.label}</Text>
+              <Text className="text-xs text-gray-500 mt-0.5">{s.label}</Text>
             </View>
           ))}
         </View>
 
         <View>
-          <Text className="text-sm font-bold text-gray-900 mb-1.5">Quick Actions</Text>
+          <Text className="text-base font-bold text-gray-900 mb-2">Quick Actions</Text>
           <View className="flex-row flex-wrap gap-2">
             {quickActions.map((a) => (
               <TouchableOpacity
@@ -237,8 +237,8 @@ export default function MobileDashboard() {
                 style={{ width: '48%' }}
                 activeOpacity={0.7}
               >
-                <a.icon size={16} color="#374151" />
-                <Text className="text-sm font-medium text-gray-700">{a.label}</Text>
+                <a.icon size={20} color="#374151" />
+                <Text className="text-base font-medium text-gray-700">{a.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -256,15 +256,15 @@ export default function MobileDashboard() {
           {loadingTxns ? (
             <View className="bg-white rounded-xl border border-gray-200 p-4 items-center">
               <ActivityIndicator size="small" color="#8c76f0" />
-              <Text className="text-xs text-gray-500 mt-1.5">Loading transactions...</Text>
+              <Text className="text-sm text-gray-500 mt-1.5">Loading transactions...</Text>
             </View>
           ) : recentTxns.length === 0 ? (
             <View className="bg-white rounded-xl border border-gray-200 p-4 items-center">
               <Clock size={28} color="#d1d5db" />
-              <Text className="text-sm text-gray-700 font-medium mt-1.5">No transactions yet</Text>
+              <Text className="text-base text-gray-700 font-medium mt-1.5">No transactions yet</Text>
               <TouchableOpacity onPress={() => navigate('/mobile/make-payment', { state: { userId, userEmail } })} activeOpacity={0.7}>
-                <View className="mt-2 px-4 py-1.5 bg-[#8c76f0] rounded-lg">
-                  <Text className="text-white text-xs font-medium">Make First Payment</Text>
+                <View className="mt-2 px-4 py-2 bg-[#8c76f0] rounded-lg">
+                  <Text className="text-white text-sm font-medium">Make First Payment</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -286,14 +286,14 @@ export default function MobileDashboard() {
                       <View className="w-2 h-2 rounded-full" style={{ backgroundColor: cfg.dot }} />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold text-gray-900" numberOfLines={1}>
+                      <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>
                         {txn.beneficiary_details?.full_name || 'Unknown'}
                       </Text>
-                      <Text className="text-[10px] text-blue-600" numberOfLines={1}>{txn.payment_reference}</Text>
+                      <Text className="text-xs text-blue-600" numberOfLines={1}>{txn.payment_reference}</Text>
                     </View>
                     <View>
-                      <Text className="text-sm font-bold text-gray-900">{`\u20B9${fmtAmt(txn.total_amount)}`}</Text>
-                      <Text className="text-[10px] font-medium text-right" style={{ color: cfg.color }}>{cfg.label}</Text>
+                      <Text className="text-base font-bold text-gray-900">{`\u20B9${fmtAmt(txn.total_amount)}`}</Text>
+                      <Text className="text-xs font-medium text-right" style={{ color: cfg.color }}>{cfg.label}</Text>
                     </View>
                   </TouchableOpacity>
                 );

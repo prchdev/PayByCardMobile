@@ -8,8 +8,7 @@ import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
 
 export default function MobileChangePassword() {
-  const { navigate } = useNav();
-  const { route } = useNav();
+  const { navigate, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
   const [formData, setFormData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
