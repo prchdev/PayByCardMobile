@@ -38,7 +38,7 @@ export default function MobileLayout({
       />
 
       {scroll ? (
-        <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1, paddingBottom: showBottomNav ? 64 : 0 }}>
+        <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1, paddingBottom: showBottomNav ? 80 : 0 }}>
           {children}
         </ScrollView>
       ) : (

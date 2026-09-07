@@ -125,7 +125,7 @@ export default function MobileMakePayment() {
                 activeOpacity={0.7}
               >
                 <Text className={`text-sm ${selectedBen ? 'text-gray-900' : 'text-gray-400'}`}>
-                  {selectedBen ? `${selectedBen.full_name} (${selectedBen.account_number.slice(-4)})` : 'Choose beneficiary...'}
+                  {selectedBen ? `${selectedBen.full_name} (${(selectedBen.account_number || '').slice(-4)})` : 'Choose beneficiary...'}
                 </Text>
                 {showBeneficiaryList ? <ChevronUp size={16} color="#6b7280" /> : <ChevronDown size={16} color="#6b7280" />}
               </TouchableOpacity>
@@ -147,7 +147,7 @@ export default function MobileMakePayment() {
                         activeOpacity={0.7}
                       >
                         <Text className="text-sm font-medium text-gray-900">{b.full_name}</Text>
-                        <Text className="text-xs text-gray-500">{b.bank_name} - {b.account_number.slice(-4)}</Text>
+                        <Text className="text-xs text-gray-500">{b.bank_name} - {(b.account_number || '').slice(-4)}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>

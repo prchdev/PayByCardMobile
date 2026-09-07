@@ -1,5 +1,6 @@
 import { View, TouchableOpacity, Text } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Hop as Home, CreditCard, Clock, Users, MoveHorizontal as MoreHorizontal } from 'lucide-react-native';
 import type { RootStackParamList } from '../../types/navigation';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -16,6 +17,7 @@ interface BottomNavProps {
 export default function BottomNavigation({ userId, userEmail }: BottomNavProps) {
   const navigation = useNavigation<NavProp>();
   const route = useRoute<RouteProp<RootStackParamList, keyof RootStackParamList>>();
+  const insets = useSafeAreaInsets();
 
   const items = [
     { icon: Home, label: 'Home', route: 'Dashboard' as const },
@@ -33,7 +35,10 @@ export default function BottomNavigation({ userId, userEmail }: BottomNavProps) 
   };
 
   return (
-    <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+    <View
+      className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50"
+      style={{ paddingBottom: insets.bottom }}
+    >
       <View className="flex-row items-center justify-around h-16 px-1">
         {items.map((item) => {
           const active = isActive(item.route);
@@ -45,12 +50,12 @@ export default function BottomNavigation({ userId, userEmail }: BottomNavProps) 
               activeOpacity={0.7}
             >
               <item.icon
-                size={20}
-                color={active ? '#8c76f0' : '#6b7280'}
+                size={22}
+                color={active ? '#8c76f0' : '#374151'}
                 strokeWidth={active ? 2.5 : 2}
               />
               <Text
-                className={`text-[10px] mt-0.5 ${active ? 'font-bold text-[#8c76f0]' : 'text-gray-500'}`}
+                className={`text-[10px] mt-0.5 ${active ? 'font-bold text-[#8c76f0]' : 'font-semibold text-gray-700'}`}
               >
                 {item.label}
               </Text>

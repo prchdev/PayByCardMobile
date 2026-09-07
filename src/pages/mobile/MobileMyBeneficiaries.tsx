@@ -153,7 +153,7 @@ export default function MobileMyBeneficiaries() {
                     </View>
                     <View className="flex-1">
                       <Text className="text-sm font-semibold text-gray-900">{b.full_name}</Text>
-                      <Text className="text-xs text-gray-500">{b.bank_name} - {b.account_number.slice(-4)}</Text>
+                      <Text className="text-xs text-gray-500">{b.bank_name} - {(b.account_number || '').slice(-4)}</Text>
                     </View>
                     {!b.is_active && <View className="px-2 py-0.5 bg-gray-100 rounded-md"><Text className="text-[10px] text-gray-500">Inactive</Text></View>}
                     {isExpanded ? <ChevronUp size={14} color="#9ca3af" /> : <ChevronDown size={14} color="#9ca3af" />}

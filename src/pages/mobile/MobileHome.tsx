@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { Shield, Landmark, Zap, BadgeIndianRupee, Building2, Lock, FingerprintPattern as Fingerprint, LogOut, CircleAlert as AlertCircle, Loader as Loader2 } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { authenticateBiometric, isBiometricSupported } from '../../utils/biometric';
@@ -35,8 +35,12 @@ export default function MobileHome() {
       const success = await authenticateBiometric();
       if (success) {
         await notification('success');
-        biometricUnlock();
-        navigate('/mobile/dashboard');
+        const session = await biometricUnlock();
+        if (session) {
+          navigate('/mobile/dashboard', { state: { userId: session.userId, userEmail: session.email } });
+        } else {
+          navigate('/mobile/login');
+        }
       } else {
         await notification('error');
         setUnlockError('Biometric authentication failed. Please try again or login manually.');
@@ -58,9 +62,8 @@ export default function MobileHome() {
   const canUseBiometric = isRemembered && hasBiometric && biometricAvailable;
 
   return (
-    <View className="flex-1 bg-white">
-      {/* Hero */}
-      <View className="px-4 pt-12 pb-3">
+    <ScrollView className="flex-1 bg-white" contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
+      <View className="px-4 py-6 items-center">
         <Image
           source={require('../../../public/PayByCard-Logo.png')}
           className="w-28 h-14 self-center"
@@ -74,7 +77,7 @@ export default function MobileHome() {
         </Text>
 
         {isRemembered ? (
-          <View className="mt-4">
+          <View className="mt-4 w-full max-w-sm">
             <View className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
               <View className="items-center gap-1">
                 <View className="w-14 h-14 rounded-full items-center justify-center bg-[#8c76f0]">
@@ -124,7 +127,7 @@ export default function MobileHome() {
             </View>
           </View>
         ) : (
-          <View className="mt-4 gap-2">
+          <View className="mt-4 gap-2 w-full max-w-sm">
             <TouchableOpacity
               onPress={() => navigate('/mobile/register')}
               className="w-full bg-[#8c76f0] rounded-xl py-3"
@@ -141,37 +144,35 @@ export default function MobileHome() {
             </TouchableOpacity>
           </View>
         )}
-      </View>
 
-      {/* Highlights */}
-      <View className="px-4 mt-2">
-        <View className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3">
-          <View className="flex-row flex-wrap gap-2">
-            {highlights.map((h) => (
-              <View
-                key={h.label}
-                className="flex-row items-center gap-2 bg-[#f3f0fe] rounded-xl px-2.5 py-2 border border-[#e0d5fb] mb-2"
-                style={{ width: '48%' }}
-              >
-                <View className="w-7 h-7 bg-white rounded-lg items-center justify-center">
-                  <h.icon size={16} color="#8c76f0" />
+        <View className="mt-4 w-full max-w-sm">
+          <View className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3">
+            <View className="flex-row flex-wrap gap-2">
+              {highlights.map((h) => (
+                <View
+                  key={h.label}
+                  className="flex-row items-center gap-2 bg-[#f3f0fe] rounded-xl px-2.5 py-2 border border-[#e0d5fb] mb-2"
+                  style={{ width: '48%' }}
+                >
+                  <View className="w-7 h-7 bg-white rounded-lg items-center justify-center">
+                    <h.icon size={16} color="#8c76f0" />
+                  </View>
+                  <Text className="text-xs font-semibold text-gray-800 flex-1">{h.label}</Text>
                 </View>
-                <Text className="text-xs font-semibold text-gray-800 flex-1">{h.label}</Text>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
         </View>
-      </View>
 
-      {/* Footer */}
-      <View className="px-4 pb-4 pt-3 items-center">
-        <Text className="text-xs text-gray-500 text-center">
-          {'\u00A9'} 2026 PayByCard Technologies Pvt. Ltd. All rights reserved.
-        </Text>
-        <Text className="text-xs text-gray-500 text-center mt-1">
-          CIN: U62099MH2025PTC462923
-        </Text>
+        <View className="items-center mt-4">
+          <Text className="text-xs text-gray-500 text-center">
+            {'\u00A9'} 2026 PayByCard Technologies Pvt. Ltd. All rights reserved.
+          </Text>
+          <Text className="text-xs text-gray-500 text-center mt-1">
+            CIN: U62099MH2025PTC462923
+          </Text>
+        </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }

@@ -15,7 +15,7 @@ interface AuthContextType {
   rememberedEmail: string | null;
   hasBiometric: boolean;
   login: (userId: string, email: string) => void;
-  biometricUnlock: () => void;
+  biometricUnlock: () => Promise<{ userId: string; email: string } | null>;
   logout: () => void;
   clearRememberedSession: () => void;
 }
@@ -83,23 +83,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => {});
   };
 
-  const biometricUnlock = () => {
-    (async () => {
-      try {
-        const remembered = await getItem(REMEMBERED_KEY);
-        if (!remembered) return;
-        const parsed = JSON.parse(remembered);
-        await setSessionItem(SESSION_USER_ID, parsed.userId);
-        await setSessionItem(SESSION_USER_EMAIL, parsed.email);
-        setIsAuthenticated(true);
-        setUserId(parsed.userId);
-        setUserEmail(parsed.email);
-      } catch {
-        await removeItem(REMEMBERED_KEY);
-        setIsRemembered(false);
-        setRememberedEmail(null);
-      }
-    })();
+  const biometricUnlock = async (): Promise<{ userId: string; email: string } | null> => {
+    try {
+      const remembered = await getItem(REMEMBERED_KEY);
+      if (!remembered) return null;
+      const parsed = JSON.parse(remembered);
+      await setSessionItem(SESSION_USER_ID, parsed.userId);
+      await setSessionItem(SESSION_USER_EMAIL, parsed.email);
+      setIsAuthenticated(true);
+      setUserId(parsed.userId);
+      setUserEmail(parsed.email);
+      return { userId: parsed.userId, email: parsed.email };
+    } catch {
+      await removeItem(REMEMBERED_KEY);
+      setIsRemembered(false);
+      setRememberedEmail(null);
+      return null;
+    }
   };
 
   const logout = () => {
