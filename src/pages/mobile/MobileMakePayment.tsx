@@ -57,7 +57,7 @@ function fmtAmt(v: string | number) {
 }
 
 export default function MobileMakePayment() {
-  const { navigate, route } = useNav();
+  const { navigate, reset, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
@@ -159,7 +159,7 @@ export default function MobileMakePayment() {
     return () => clearTimeout(timeout);
   }, [amount, selectedOption, selectedOpt, calculateCharges]);
 
-  const handleLogout = () => { logout(); navigate('/mobile/login'); };
+  const handleLogout = () => { logout(); reset('/mobile/login'); };
 
   const selectedBen = beneficiaries.find(b => b.id === selectedBeneficiary);
   const selectedCat = categories.find(c => c.id === selectedCategory);

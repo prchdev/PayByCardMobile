@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Pressable } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
 import { MessageCircle, Plus, ChevronRight, Clock, CircleCheck as CheckCircle, Circle as XCircle, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Send, X } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -30,7 +30,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function MobileHelpSupport() {
-  const { navigate, route } = useNav();
+  const { navigate, reset, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -77,7 +77,7 @@ export default function MobileHelpSupport() {
     } finally { setSubmitting(false); }
   };
 
-  const handleLogout = () => { logout(); navigate('/mobile/login'); };
+  const handleLogout = () => { logout(); reset('/mobile/login'); };
 
   return (
     <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout} showBack>
@@ -134,8 +134,9 @@ export default function MobileHelpSupport() {
       </View>
 
       <Modal visible={showCreate} animationType="slide" transparent>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-white rounded-t-2xl p-4 gap-3">
+        <View className="bg-white rounded-t-2xl p-4 gap-3">
             <View className="flex-row items-center justify-between">
               <Text className="text-base font-bold text-gray-900">New Support Ticket</Text>
               <TouchableOpacity onPress={() => setShowCreate(false)} className="p-1.5" activeOpacity={0.7}>
@@ -186,6 +187,7 @@ export default function MobileHelpSupport() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </MobileLayout>
   );

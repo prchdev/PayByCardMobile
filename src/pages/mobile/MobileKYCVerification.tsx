@@ -32,7 +32,7 @@ const ADDRESS_PROOF_TYPES = [
 ];
 
 export default function MobileKYCVerification() {
-  const { navigate, route } = useNav();
+  const { navigate, reset, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
   const [kycStatus, setKycStatus] = useState<string>('loading');
@@ -103,7 +103,7 @@ export default function MobileKYCVerification() {
     }
   }, [userId, kycStatus]);
 
-  const handleLogout = () => { logout(); navigate('/mobile/login'); };
+  const handleLogout = () => { logout(); reset('/mobile/login'); };
 
   // ── DigiLocker KYC ──────────────────────────────────────────────────────────
   const handleDigiLocker = async () => {

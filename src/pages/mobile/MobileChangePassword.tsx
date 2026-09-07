@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Pressable, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Lock, Eye, EyeOff, CircleAlert as AlertCircle, CircleCheck as CheckCircle } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,7 +8,7 @@ import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
 
 export default function MobileChangePassword() {
-  const { navigate, route } = useNav();
+  const { navigate, reset, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
   const [formData, setFormData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -25,7 +25,7 @@ export default function MobileChangePassword() {
 
   if (!userId) return null;
 
-  const handleLogout = () => { logout(); navigate('/mobile/login'); };
+  const handleLogout = () => { logout(); reset('/mobile/login'); };
 
   const handleSubmit = async () => {
     setError(''); setSuccess(false);
@@ -56,7 +56,8 @@ export default function MobileChangePassword() {
 
   return (
     <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout} showBack>
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always">
         <View className="px-4 py-4 gap-4">
           <Text className="text-xl font-bold text-gray-900">Change Password</Text>
 
@@ -131,6 +132,7 @@ export default function MobileChangePassword() {
           </View>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </MobileLayout>
   );
 }

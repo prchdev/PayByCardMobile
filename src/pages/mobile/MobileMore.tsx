@@ -1,4 +1,5 @@
 import { View, Text, TouchableOpacity } from 'react-native';
+import Constants from 'expo-constants';
 import {
   ShieldCheck, Lock, MessageCircle, Landmark, CreditCard, Clock, Users,
   LogOut, ChevronRight, Bell,
@@ -8,11 +9,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 
 export default function MobileMore() {
-  const { navigate, route } = useNav();
+  const { navigate, reset, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
 
-  const handleLogout = () => { logout(); navigate('/mobile/login'); };
+  const handleLogout = () => { logout(); reset('/mobile/login'); };
+  const appVersion = Constants.expoConfig?.version || '1.0.0';
 
   const menuItems = [
     { icon: Bell, label: 'Notifications', path: '/mobile/notifications', color: 'bg-violet-50', iconColor: '#8c76f0' },
@@ -58,7 +60,7 @@ export default function MobileMore() {
         </TouchableOpacity>
 
         <View className="items-center pb-2">
-          <Text className="text-sm text-gray-400">PayByCard Mobile v1.0.0</Text>
+          <Text className="text-sm text-gray-400">PayByCard Mobile v{appVersion}</Text>
         </View>
       </View>
     </MobileLayout>

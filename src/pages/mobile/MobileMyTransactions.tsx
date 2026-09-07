@@ -34,7 +34,7 @@ function fmtDate(dateStr: string) {
 }
 
 export default function MobileMyTransactions() {
-  const { navigate, route } = useNav();
+  const { navigate, reset, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -63,7 +63,7 @@ export default function MobileMyTransactions() {
 
   const onRefresh = () => { setRefreshing(true); fetchTransactions(); };
 
-  const handleLogout = () => { logout(); navigate('/mobile/login'); };
+  const handleLogout = () => { logout(); reset('/mobile/login'); };
 
   const filters = [
     { label: 'All', value: 'all' },

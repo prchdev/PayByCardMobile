@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, Pressable } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, Pressable, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Eye, EyeOff, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { impact, notification } from '../../utils/haptics';
@@ -74,7 +74,11 @@ export default function MobileLogin() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50 px-4 pt-12 pb-6">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
+    >
+    <ScrollView className="flex-1 bg-gray-50 px-4 pt-12 pb-6" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" showsVerticalScrollIndicator={false}>
       <View className="flex-1 max-w-sm w-full self-center">
         <View className="items-center mb-4">
           <Image
@@ -107,11 +111,11 @@ export default function MobileLogin() {
 
         <View className="gap-3 bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
           <View>
-            <Text className="text-xs font-semibold text-gray-700 mb-1.5">Email Address</Text>
+            <Text className="text-sm font-semibold text-gray-700 mb-1.5">Email Address</Text>
             <TextInput
               value={formData.email}
               onChangeText={(v) => setFormData({ ...formData, email: v.replace(/[^A-Za-z0-9@_.\-]/g, '') })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base"
               placeholder="amit.jha@example.com"
               maxLength={100}
               keyboardType="email-address"
@@ -121,12 +125,12 @@ export default function MobileLogin() {
           </View>
 
           <View>
-            <Text className="text-xs font-semibold text-gray-700 mb-1.5">Password</Text>
+            <Text className="text-sm font-semibold text-gray-700 mb-1.5">Password</Text>
             <View className="flex-row items-center">
               <TextInput
                 value={formData.password}
                 onChangeText={(v) => setFormData({ ...formData, password: v })}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm pr-10"
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-base pr-10"
                 placeholder="********"
                 maxLength={20}
                 secureTextEntry={!showPassword}
@@ -152,7 +156,7 @@ export default function MobileLogin() {
           <Pressable
             onPress={handleSubmit}
             disabled={isSubmitting}
-            className="w-full bg-[#8c76f0] rounded-xl py-2.5"
+            className="w-full bg-[#8c76f0] rounded-xl py-3.5"
             style={{ opacity: isSubmitting ? 0.5 : 1 }}
           >
             <Text className="text-white font-semibold text-center">
@@ -168,6 +172,7 @@ export default function MobileLogin() {
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

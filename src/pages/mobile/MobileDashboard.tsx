@@ -32,7 +32,7 @@ function fmtAmt(v: string | number) {
 }
 
 export default function MobileDashboard() {
-  const { navigate, route } = useNav();
+  const { navigate, reset, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
   const [kycStatus, setKycStatus] = useState<{ isVerified: boolean; status: string } | null>(null);
@@ -102,7 +102,7 @@ export default function MobileDashboard() {
     } catch {}
   };
 
-  const handleLogout = () => { impact('medium'); logout(); navigate('/mobile/login'); };
+  const handleLogout = () => { impact('medium'); logout(); reset('/mobile/login'); };
   if (!userId) return null;
 
   const quickActions = [

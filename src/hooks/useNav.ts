@@ -55,5 +55,18 @@ export function useNav() {
     [navigation]
   );
 
-  return { navigate, goBack, replace, route };
+  const reset = useCallback(
+    (path: string, options?: { state?: Record<string, unknown> }) => {
+      const routeName = routeMap[path];
+      if (routeName) {
+        (navigation.reset as any)({
+          index: 0,
+          routes: [{ name: routeName, params: options?.state }],
+        });
+      }
+    },
+    [navigation]
+  );
+
+  return { navigate, goBack, replace, reset, route };
 }

@@ -49,7 +49,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function MobileNotifications() {
-  const { navigate, route } = useNav();
+  const { navigate, reset, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -132,7 +132,7 @@ export default function MobileNotifications() {
     }
   };
 
-  const handleLogout = () => { logout(); navigate('/mobile/login'); };
+  const handleLogout = () => { logout(); reset('/mobile/login'); };
   const filteredNotifs = filter === 'unread' ? notifications.filter(n => !n.is_read) : notifications;
 
   return (

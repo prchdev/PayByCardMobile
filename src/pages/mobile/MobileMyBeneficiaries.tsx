@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Pressable, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Pressable, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Users, Plus, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Trash2, X, User, Landmark, Search } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,7 +21,7 @@ interface Beneficiary {
 }
 
 export default function MobileMyBeneficiaries() {
-  const { navigate, route } = useNav();
+  const { navigate, reset, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
@@ -164,7 +164,7 @@ export default function MobileMyBeneficiaries() {
     } catch {}
   };
 
-  const handleLogout = () => { logout(); navigate('/mobile/login'); };
+  const handleLogout = () => { logout(); reset('/mobile/login'); };
 
   const openModal = () => {
     setFormData({ full_name: '', bank_account: '', ifsc: '', bank_name: '', branch_name: '', account_type: 'Saving', email: '', mobile: '' });
@@ -274,7 +274,12 @@ export default function MobileMyBeneficiaries() {
                 <X size={22} color="#6b7280" />
               </TouchableOpacity>
             </View>
-            <ScrollView className="px-4 pt-3" keyboardShouldPersistTaps="handled">
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+              style={{ flex: 1 }}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+            >
+            <ScrollView className="px-4 pt-3" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always">
               {error ? (
                 <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-center gap-2 mb-3">
                   <AlertCircle size={18} color="#dc2626" />
@@ -399,12 +404,13 @@ export default function MobileMyBeneficiaries() {
               <Pressable
                 onPress={handleSubmit}
                 disabled={submitting}
-                className="w-full bg-[#8c76f0] rounded-xl py-3.5 mb-6"
+                className="w-full bg-[#8c76f0] rounded-xl py-3.5 mb-10"
                 style={{ opacity: submitting ? 0.5 : 1 }}
               >
                 <Text className="text-white font-semibold text-center text-base">{submitting ? 'Saving...' : 'Save Payee'}</Text>
               </Pressable>
             </ScrollView>
+            </KeyboardAvoidingView>
           </View>
         </View>
       </Modal>
