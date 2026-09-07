@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal } from 'react-native';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Linking, Platform } from 'react-native';
 import {
   CreditCard, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Info, ArrowUpRight,
-  Landmark, FileText, Wallet, Calculator, CheckCircle, Search,
+  Landmark, FileText, Wallet, Calculator, CheckCircle, Search, Clock,
 } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -79,7 +79,9 @@ export default function MobileMakePayment() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [chargeBreakdown, setChargeBreakdown] = useState<ChargeBreakdown | null>(null);
   const [calculating, setCalculating] = useState(false);
-  const [paymentResult, setPaymentResult] = useState<{ success: boolean; reference: string; totalAmount: string } | null>(null);
+  const [paymentResult, setPaymentResult] = useState<{ success: boolean; reference: string; totalAmount: string; message: string } | null>(null);
+  const [gatewayLoading, setGatewayLoading] = useState(false);
+  const webViewRef = useRef<any>(null);
 
   useEffect(() => {
     if (!userId) { navigate('/mobile/login'); return; }
@@ -188,9 +190,140 @@ export default function MobileMakePayment() {
     setShowConfirm(true);
   };
 
+  // ── Payment Gateway Checkout ─────────────────────────────────────────────────
+  // After initiate-payment returns gatewayConfig, open the gateway's checkout page.
+  // For Razorpay: load checkout.js SDK and open the checkout modal (web only).
+  // For PhonePe: redirect to the checkoutUrl returned by the server.
+  // For other gateways on mobile: redirect to the checkoutUrl if available.
+  const openGatewayCheckout = async (gatewayConfig: any, paymentInfo: any) => {
+    const gatewayName = (gatewayConfig.gateway || '').toLowerCase();
+    setGatewayLoading(false);
+
+    try {
+      if (gatewayName === 'phonepe') {
+        const checkoutUrl = gatewayConfig.options?.checkoutUrl;
+        if (checkoutUrl) {
+          if (Platform.OS === 'web') {
+            window.location.href = checkoutUrl;
+          } else {
+            await Linking.openURL(checkoutUrl);
+          }
+          return;
+        }
+      }
+
+      if (gatewayName === 'razorpay') {
+        if (Platform.OS === 'web') {
+          // Load Razorpay checkout.js and open checkout
+          const sdkUrl = gatewayConfig.sdkUrl || 'https://checkout.razorpay.com/v1/checkout.js';
+          await loadScript(sdkUrl);
+          const RazorpayClass = (window as any).Razorpay;
+          if (!RazorpayClass) throw new Error('Razorpay SDK failed to load');
+
+          const options = {
+            ...gatewayConfig.options,
+            handler: (response: any) => {
+              handlePaymentSuccess(response, paymentInfo);
+            },
+            modal: {
+              ondismiss: () => {
+                handlePaymentDismiss(paymentInfo);
+              },
+            },
+          };
+          const rzp = new RazorpayClass(options);
+          rzp.open();
+          return;
+        } else {
+          // On native, open the Razorpay checkout URL in browser
+          const checkoutUrl = gatewayConfig.options?.checkoutUrl;
+          if (checkoutUrl) {
+            await Linking.openURL(checkoutUrl);
+            return;
+          }
+        }
+      }
+
+      // For other gateways, try to redirect to a checkout URL
+      const checkoutUrl = gatewayConfig.options?.checkoutUrl || gatewayConfig.sdkUrl;
+      if (checkoutUrl) {
+        if (Platform.OS === 'web') {
+          window.location.href = checkoutUrl;
+        } else {
+          await Linking.openURL(checkoutUrl);
+        }
+      } else {
+        // No SDK/redirect available on mobile - show pending status
+        setPaymentResult({
+          success: true,
+          reference: paymentInfo.reference || '',
+          totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
+          message: 'Payment initiated. Please complete the payment on the gateway page.',
+        });
+      }
+    } catch (err) {
+      setPaymentResult({
+        success: false,
+        reference: paymentInfo?.reference || '',
+        totalAmount: String(paymentInfo?.totalAmount || chargeBreakdown?.totalAmount || amount),
+        message: err instanceof Error ? err.message : 'Failed to open payment gateway',
+      });
+    }
+  };
+
+  const loadScript = (src: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      if (Platform.OS !== 'web') { reject(new Error('SDK only available on web')); return; }
+      const existing = document.querySelector(`script[src="${src}"]`);
+      if (existing) { resolve(); return; }
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error('Failed to load payment SDK'));
+      document.body.appendChild(script);
+    });
+  };
+
+  const handlePaymentSuccess = async (response: any, payment: any) => {
+    try {
+      await fetch(`${SUPABASE_URL}/functions/v1/save-transaction-status`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          paymentId: payment.id,
+          transactionReference: payment.reference,
+          status: 'success',
+          amount: String(payment.totalAmount || chargeBreakdown?.totalAmount || amount),
+          gatewayResponse: response || {},
+          paymentMethod: 'card',
+          cardType: selectedOpt?.card_type || null,
+          gatewayName: selectedOpt?.gateway_name || null,
+        }),
+      });
+    } catch {}
+
+    setPaymentResult({
+      success: true,
+      reference: payment.reference || '',
+      totalAmount: String(payment.totalAmount || chargeBreakdown?.totalAmount || amount),
+      message: 'Your payment has been processed successfully!',
+    });
+  };
+
+  const handlePaymentDismiss = (payment: any) => {
+    setPaymentResult({
+      success: false,
+      reference: payment?.reference || '',
+      totalAmount: String(payment?.totalAmount || chargeBreakdown?.totalAmount || amount),
+      message: 'Payment was cancelled. You can retry the payment from your transaction history.',
+    });
+  };
+
   const handleSubmit = async () => {
     setShowConfirm(false);
     setSubmitting(true);
+    setGatewayLoading(true);
     setError('');
     try {
       const amt = parseFloat(amount);
@@ -230,13 +363,22 @@ export default function MobileMakePayment() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to initiate payment');
-      setPaymentResult({
-        success: true,
-        reference: data.payment?.reference || '',
-        totalAmount: data.payment?.totalAmount ? String(data.payment.totalAmount) : (chargeBreakdown?.totalAmount || amount),
-      });
+
+      // If gateway config is returned, open the gateway checkout before showing result
+      if (data.gatewayConfig) {
+        await openGatewayCheckout(data.gatewayConfig, data.payment);
+      } else {
+        // No gateway config - payment is pending/offline
+        setPaymentResult({
+          success: true,
+          reference: data.payment?.reference || '',
+          totalAmount: data.payment?.totalAmount ? String(data.payment.totalAmount) : (chargeBreakdown?.totalAmount || amount),
+          message: 'Payment initiated successfully.',
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to initiate payment');
+      setGatewayLoading(false);
     } finally { setSubmitting(false); }
   };
 
@@ -254,12 +396,12 @@ export default function MobileMakePayment() {
     return (
       <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout}>
         <View className="px-4 py-6 items-center">
-          <View className="w-20 h-20 rounded-full bg-green-50 items-center justify-center mb-4">
-            <CheckCircle size={48} color="#16a34a" />
+          <View className={`w-20 h-20 rounded-full items-center justify-center mb-4 ${paymentResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
+            <CheckCircle size={48} color={paymentResult.success ? '#16a34a' : '#dc2626'} />
           </View>
-          <Text className="text-xl font-bold text-gray-900">Payment Initiated!</Text>
+          <Text className="text-xl font-bold text-gray-900">{paymentResult.success ? 'Payment Successful!' : 'Payment Failed'}</Text>
           <Text className="text-base text-gray-500 mt-1.5 text-center">
-            Your payment of {`\u20B9${fmtAmt(paymentResult.totalAmount)}`} has been initiated successfully.
+            {paymentResult.message}
           </Text>
           <View className="bg-white rounded-xl border border-gray-200 p-4 w-full mt-4 gap-2">
             <View className="flex-row justify-between">
@@ -297,7 +439,13 @@ export default function MobileMakePayment() {
             </View>
           ) : null}
 
-          {loading ? (
+          {gatewayLoading ? (
+            <View className="items-center py-12 gap-3">
+              <ActivityIndicator size="large" color="#8c76f0" />
+              <Text className="text-base text-gray-600 font-medium">Loading payment gateway...</Text>
+              <Text className="text-sm text-gray-400">Please wait while we connect to the payment gateway.</Text>
+            </View>
+          ) : loading ? (
             <View className="items-center py-12">
               <ActivityIndicator size="large" color="#8c76f0" />
               <Text className="text-base text-gray-500 mt-2">Loading payment details...</Text>
@@ -450,8 +598,14 @@ export default function MobileMakePayment() {
                             <Text className="text-base font-medium text-gray-900">{o.category_name}</Text>
                           </View>
                           <Text className="text-xs text-gray-500 mt-0.5 ml-6">
-                            Charges: {o.charges_percentage}%{o.show_discount ? ` (Discount: ${o.discounted_charges_percentage}%)` : ''}
+                            Charges: {o.charges_percentage}% + GST{o.show_discount ? ` (Discount: ${o.discounted_charges_percentage}%)` : ''}
                           </Text>
+                          {o.settlement_time ? (
+                            <View className="flex-row items-center gap-1 mt-0.5 ml-6">
+                              <Clock size={11} color="#9ca3af" />
+                              <Text className="text-xs text-gray-400">Settlement: {o.settlement_time}</Text>
+                            </View>
+                          ) : null}
                         </TouchableOpacity>
                       ))}
                     </ScrollView>
@@ -533,7 +687,7 @@ export default function MobileMakePayment() {
               <View className="flex-row items-start gap-2 bg-blue-50 rounded-xl p-3">
                 <Info size={16} color="#2563eb" />
                 <Text className="text-sm text-blue-700 flex-1">
-                  Charges are calculated server-side. After payment, track status in Transaction History.
+                  You will be redirected to the payment gateway to complete your payment securely.
                 </Text>
               </View>
             </View>
@@ -583,12 +737,15 @@ export default function MobileMakePayment() {
                 </>
               )}
             </View>
+            <Text className="text-sm text-gray-500 text-center">
+              You will be redirected to {selectedOpt?.gateway_name || 'the payment gateway'} to complete the payment.
+            </Text>
             <View className="flex-row gap-3">
               <TouchableOpacity onPress={() => setShowConfirm(false)} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl" activeOpacity={0.7}>
                 <Text className="text-base text-gray-700 font-medium text-center">Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleSubmit} className="flex-1 px-4 py-3 bg-[#8c76f0] rounded-xl" activeOpacity={0.7}>
-                <Text className="text-base text-white font-semibold text-center">Confirm & Pay</Text>
+              <TouchableOpacity onPress={handleSubmit} disabled={submitting} className="flex-1 px-4 py-3 bg-[#8c76f0] rounded-xl" activeOpacity={0.7} style={{ opacity: submitting ? 0.5 : 1 }}>
+                <Text className="text-base text-white font-semibold text-center">{submitting ? 'Processing...' : 'Confirm & Pay'}</Text>
               </TouchableOpacity>
             </View>
           </View>

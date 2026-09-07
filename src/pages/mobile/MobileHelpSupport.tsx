@@ -130,11 +130,11 @@ export default function MobileHelpSupport() {
           <Text className="text-lg font-bold text-gray-900">Help & Support</Text>
           <TouchableOpacity
             onPress={openCreateModal}
-            className="flex-row items-center gap-1.5 px-3 py-1.5 bg-[#8c76f0] rounded-lg"
+            className="flex-row items-center gap-2 px-4 py-2.5 bg-[#8c76f0] rounded-xl"
             activeOpacity={0.7}
           >
-            <Plus size={14} color="white" />
-            <Text className="text-white text-xs font-semibold">New Ticket</Text>
+            <Plus size={18} color="white" />
+            <Text className="text-white text-sm font-semibold">New Ticket</Text>
           </TouchableOpacity>
         </View>
 
@@ -150,7 +150,8 @@ export default function MobileHelpSupport() {
             </View>
             <Text className="text-sm font-semibold text-gray-700">No support tickets yet</Text>
             <Text className="text-xs text-gray-400 mt-1">Create a ticket if you need help.</Text>
-            <TouchableOpacity onPress={openCreateModal} className="mt-3 px-4 py-2 bg-[#8c76f0] rounded-lg" activeOpacity={0.7}>
+            <TouchableOpacity onPress={openCreateModal} className="mt-3 flex-row items-center gap-2 px-4 py-2.5 bg-[#8c76f0] rounded-xl" activeOpacity={0.7}>
+              <Plus size={18} color="white" />
               <Text className="text-white text-sm font-semibold">Create Ticket</Text>
             </TouchableOpacity>
           </View>
@@ -185,7 +186,8 @@ export default function MobileHelpSupport() {
       <Modal visible={showCreate} animationType="slide" transparent>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <View className="flex-1 bg-black/60 justify-end">
-            <View className="bg-white rounded-t-2xl p-4 gap-3 pb-6">
+            <View className="bg-white rounded-t-2xl p-4 gap-3">
+              <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
               <View className="flex-row items-center justify-between">
                 <Text className="text-base font-bold text-gray-900">New Support Ticket</Text>
                 <TouchableOpacity onPress={() => setShowCreate(false)} className="p-1.5" activeOpacity={0.7}>
@@ -268,15 +270,16 @@ export default function MobileHelpSupport() {
                   placeholder="Provide more details..." multiline
                   numberOfLines={4} maxLength={1000}
                   textAlignVertical="top"
+                  style={{ minHeight: 100 }}
                 />
               </View>
               <View className="flex-row gap-3">
                 <TouchableOpacity
                   onPress={() => setShowCreate(false)}
-                  className="px-4 py-3 border border-gray-300 rounded-xl"
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-xl"
                   activeOpacity={0.7}
                 >
-                  <Text className="text-base text-gray-700 font-medium">Cancel</Text>
+                  <Text className="text-base text-gray-700 font-medium text-center">Cancel</Text>
                 </TouchableOpacity>
                 <Pressable
                   onPress={handleCreateTicket}
@@ -288,6 +291,7 @@ export default function MobileHelpSupport() {
                   <Text className="text-white text-base font-semibold">{submitting ? 'Submitting...' : 'Submit Ticket'}</Text>
                 </Pressable>
               </View>
+            </ScrollView>
             </View>
           </View>
         </KeyboardAvoidingView>
