@@ -12,14 +12,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "in.paybycard.app",
-      "buildNumber": "10",
+      "buildNumber": "11",
       "infoPlist": {
         "NSFaceIDUsageDescription": "PayByCard uses Face ID to securely unlock your account.",
         "NSCameraUsageDescription": "PayByCard needs camera access to capture KYC documents."
       }
     },
     "android": {
-      "versionCode": 10,
+      "versionCode": 11,
       "adaptiveIcon": {
         "foregroundImage": "./public/app-icon-padded.png",
         "backgroundColor": "#ffffff"
