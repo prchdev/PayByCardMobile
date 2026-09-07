@@ -4,7 +4,7 @@
     "slug": "paybycard",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./public/app-icon.png",
+    "icon": "./public/app-icon-padded.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./public/splash-icon.png",
@@ -22,7 +22,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./public/app-icon.png",
+        "foregroundImage": "./public/app-icon-padded.png",
         "backgroundColor": "#ffffff"
       },
       "package": "in.paybycard.app",
