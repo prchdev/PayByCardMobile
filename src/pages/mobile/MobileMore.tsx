@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import {
   ShieldCheck, Lock, MessageCircle, Landmark, CreditCard, Clock, Users,
   LogOut, ChevronRight, Bell,
@@ -8,8 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 
 export default function MobileMore() {
-  const { navigate } = useNav();
-  const { route } = useNav();
+  const { navigate, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
 

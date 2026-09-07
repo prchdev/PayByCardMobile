@@ -1,21 +1,27 @@
 import { View, TouchableOpacity, Text } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Hop as Home, CreditCard, Clock, Users, MoveHorizontal as MoreHorizontal } from 'lucide-react-native';
+import { Hop as Home, CreditCard, Clock, Users, MoreHorizontal } from 'lucide-react-native';
 import type { RootStackParamList } from '../../types/navigation';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/core';
 import { selection } from '../../utils/haptics';
-
-type NavProp = NativeStackNavigationProp<RootStackParamList>;
+import { useNav } from '../../hooks/useNav';
 
 interface BottomNavProps {
   userId?: string;
   userEmail?: string;
 }
 
+const routePaths: Record<string, string> = {
+  Dashboard: '/mobile/dashboard',
+  MakePayment: '/mobile/make-payment',
+  MyTransactions: '/mobile/my-transactions',
+  MyBeneficiaries: '/mobile/my-beneficiaries',
+  More: '/mobile/more',
+};
+
 export default function BottomNavigation({ userId, userEmail }: BottomNavProps) {
-  const navigation = useNavigation<NavProp>();
+  const { navigate } = useNav();
   const route = useRoute<RouteProp<RootStackParamList, keyof RootStackParamList>>();
   const insets = useSafeAreaInsets();
 
@@ -31,7 +37,8 @@ export default function BottomNavigation({ userId, userEmail }: BottomNavProps) 
 
   const handleNav = (routeName: string) => {
     selection();
-    (navigation.navigate as any)(routeName, { userId, userEmail });
+    const path = routePaths[routeName];
+    if (path) navigate(path, { state: { userId, userEmail } });
   };
 
   return (

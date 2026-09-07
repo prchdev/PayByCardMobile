@@ -20,8 +20,7 @@ function fmtAmt(v: string | number) {
 }
 
 export default function MobileMakePayment() {
-  const { navigate } = useNav();
-  const { route } = useNav();
+  const { navigate, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
