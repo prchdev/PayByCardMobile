@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Linking } from 'react-native';
 import {
   ShieldCheck, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Clock, Circle as XCircle,
-  FileText, MapPin, Building2, User, Upload, ChevronRight, Smartphone, FileCheck, Loader2,
+  FileText, MapPin, Building2, User, Upload, ChevronRight, Smartphone, FileCheck, Loader2, Save, Lock,
 } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -45,6 +45,9 @@ export default function MobileKYCVerification() {
   const [digilockerLoading, setDigilockerLoading] = useState(false);
   const [digilockerUrl, setDigilockerUrl] = useState('');
   const [kycSettings, setKycSettings] = useState<{ digilocker_enabled: boolean; manual_enabled: boolean }>({ digilocker_enabled: false, manual_enabled: true });
+  const [personalForm, setPersonalForm] = useState({ first_name: '', middle_name: '', last_name: '' });
+  const [personalSaving, setPersonalSaving] = useState(false);
+  const [personalSuccess, setPersonalSuccess] = useState(false);
 
   const [panForm, setPanForm] = useState({ pan_number: '', pan_photo_url: '' });
   const [addressForm, setAddressForm] = useState({ proof_type: 'aadhaar', id_number: '', address_proof_url_1: '' });
@@ -94,6 +97,11 @@ export default function MobileKYCVerification() {
       const data = await res.json();
       if (res.ok) {
         setKycData(data);
+        if (data.userProfile) setPersonalForm({
+          first_name: data.userProfile.first_name || '',
+          middle_name: data.userProfile.middle_name || '',
+          last_name: data.userProfile.last_name || '',
+        });
         if (data.pan) setPanForm({ pan_number: data.pan.pan_number || '', pan_photo_url: data.pan.pan_photo_url || '' });
         if (data.address) setAddressForm({
           proof_type: data.address.proof_type || 'aadhaar',
@@ -212,20 +220,109 @@ export default function MobileKYCVerification() {
     </View>
   );
 
-  // ── User Profile Info ───────────────────────────────────────────────────────
+  // ── Personal Details Save ──────────────────────────────────────────────────
+  const handlePersonalSave = async () => {
+    setError('');
+    if (!personalForm.first_name.trim()) { setError('First name is required'); return; }
+    if (!personalForm.last_name.trim()) { setError('Last name is required'); return; }
+    setPersonalSaving(true);
+    setPersonalSuccess(false);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/update-user-profile`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          first_name: personalForm.first_name.trim(),
+          middle_name: personalForm.middle_name.trim(),
+          last_name: personalForm.last_name.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || 'Failed to save'); return; }
+      setPersonalSuccess(true);
+      setTimeout(() => setPersonalSuccess(false), 3000);
+      fetchKycData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save');
+    } finally { setPersonalSaving(false); }
+  };
+
+  // ── User Profile Info (Editable) ───────────────────────────────────────────
   const renderUserProfile = () => {
     if (!kycData?.userProfile) return null;
     const p = kycData.userProfile;
-    const fullName = [p.first_name, p.middle_name, p.last_name].filter(Boolean).join(' ') || '-';
+    const kycLocked = kycStatus === 'verified' || kycStatus === 'pending';
     return (
-      <View className="bg-white rounded-2xl border border-gray-200 p-4">
-        <View className="flex-row items-center gap-2 mb-3">
+      <View className="bg-white rounded-2xl border border-gray-200 p-4 gap-3">
+        <View className="flex-row items-center gap-2">
           <User size={18} color="#8c76f0" />
-          <Text className="text-base font-semibold text-gray-900">User Information</Text>
+          <Text className="text-base font-semibold text-gray-900">Personal Details</Text>
+          {kycLocked && (
+            <View className="flex-row items-center ml-auto bg-gray-100 px-2 py-0.5 rounded-md">
+              <Lock size={12} color="#6b7280" />
+              <Text className="text-xs text-gray-500 font-medium ml-1">Locked</Text>
+            </View>
+          )}
         </View>
-        {renderDataRow('Full Name', fullName)}
-        {renderDataRow('Email', p.email)}
-        {renderDataRow('Mobile', p.mobile_number)}
+        {personalSuccess && (
+          <View className="bg-green-50 border border-green-300 rounded-xl p-2.5 flex-row items-center gap-2">
+            <CheckCircle size={16} color="#16a34a" />
+            <Text className="text-sm text-green-700 flex-1">Personal details saved successfully!</Text>
+          </View>
+        )}
+        <View>
+          <Text className="text-sm font-semibold text-gray-700 mb-1.5">First Name *</Text>
+          <TextInput
+            value={personalForm.first_name}
+            onChangeText={(v) => setPersonalForm({ ...personalForm, first_name: v })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base"
+            placeholder="First name"
+            placeholderTextColor="#9ca3af"
+            editable={!kycLocked && !personalSaving}
+            autoCapitalize="words"
+          />
+        </View>
+        <View>
+          <Text className="text-sm font-semibold text-gray-700 mb-1.5">Middle Name</Text>
+          <TextInput
+            value={personalForm.middle_name}
+            onChangeText={(v) => setPersonalForm({ ...personalForm, middle_name: v })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base"
+            placeholder="Middle name (optional)"
+            placeholderTextColor="#9ca3af"
+            editable={!kycLocked && !personalSaving}
+            autoCapitalize="words"
+          />
+        </View>
+        <View>
+          <Text className="text-sm font-semibold text-gray-700 mb-1.5">Last Name *</Text>
+          <TextInput
+            value={personalForm.last_name}
+            onChangeText={(v) => setPersonalForm({ ...personalForm, last_name: v })}
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base"
+            placeholder="Last name"
+            placeholderTextColor="#9ca3af"
+            editable={!kycLocked && !personalSaving}
+            autoCapitalize="words"
+          />
+        </View>
+        <View className="gap-1.5 pt-2 border-t border-gray-100">
+          {renderDataRow('Email', p.email)}
+          {renderDataRow('Mobile', p.mobile_number)}
+        </View>
+        {!kycLocked && (
+          <TouchableOpacity
+            onPress={handlePersonalSave}
+            disabled={personalSaving}
+            className="w-full flex-row items-center justify-center gap-2 bg-[#8c76f0] rounded-xl py-3"
+            style={{ opacity: personalSaving ? 0.5 : 1 }}
+            activeOpacity={0.7}
+          >
+            <Save size={18} color="white" />
+            <Text className="text-white font-semibold text-base">{personalSaving ? 'Saving...' : 'Save Personal Details'}</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };

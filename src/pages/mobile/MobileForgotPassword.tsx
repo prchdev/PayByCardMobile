@@ -125,7 +125,7 @@ export default function MobileForgotPassword() {
   );
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 px-4 pt-12 pb-6">
+    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} className="flex-1 bg-gray-50 px-4 py-6">
       <View className="max-w-sm w-full self-center">
         <TouchableOpacity onPress={() => navigate('/mobile/login')} className="mb-3 flex-row items-center" activeOpacity={0.7}>
           <ArrowLeft size={16} color="#4b5563" />

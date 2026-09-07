@@ -29,15 +29,17 @@ interface PaymentCategory {
 
 interface PaymentOption {
   id: string;
+  gateway_id: string;
   category_name: string;
-  description: string;
-  normal_charges: number;
-  discount_charges: number;
-  discount_applicable: boolean;
+  card_type: string;
+  charges_percentage: number;
+  discounted_charges_percentage: number;
+  show_discount: boolean;
   gst_percentage: number;
-  status: string;
-  gateway_id: string | null;
-  card_type: string | null;
+  gateway_name: string;
+  gateway_registered_name: string;
+  payout_mode: string;
+  settlement_time: string;
 }
 
 interface ChargeBreakdown {
@@ -110,13 +112,12 @@ export default function MobileMakePayment() {
 
   const fetchPaymentOptions = async () => {
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-payment-options`, {
-        method: 'POST',
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-gateway-charges`, {
+        method: 'GET',
         headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
       });
       const data = await res.json();
-      if (res.ok) setPaymentOptions(data.categories || []);
+      if (res.ok) setPaymentOptions(data.paymentOptions || []);
     } catch {}
   };
 
@@ -202,7 +203,7 @@ export default function MobileMakePayment() {
           businessCategoryId: selectedCategory,
           paymentOptionId: selectedOption,
           gatewayId: selectedOpt?.gateway_id,
-          cardType: selectedOpt?.card_type,
+          cardType: selectedOpt?.card_type || selectedOpt?.category_name,
           amount: amt,
           charges: chargeBreakdown ? parseFloat(chargeBreakdown.charges) : 0,
           gst: chargeBreakdown ? parseFloat(chargeBreakdown.gst) : 0,
@@ -222,7 +223,7 @@ export default function MobileMakePayment() {
           } : {},
           paymentOptionDetails: selectedOpt ? {
             category_name: selectedOpt.category_name,
-            normal_charges: selectedOpt.normal_charges,
+            normal_charges: selectedOpt.charges_percentage,
             gst_percentage: selectedOpt.gst_percentage,
           } : {},
         }),
@@ -449,7 +450,7 @@ export default function MobileMakePayment() {
                             <Text className="text-base font-medium text-gray-900">{o.category_name}</Text>
                           </View>
                           <Text className="text-xs text-gray-500 mt-0.5 ml-6">
-                            Charges: {o.normal_charges}%{o.discount_applicable ? ` (Discount: ${o.discount_charges}%)` : ''}
+                            Charges: {o.charges_percentage}%{o.show_discount ? ` (Discount: ${o.discounted_charges_percentage}%)` : ''}
                           </Text>
                         </TouchableOpacity>
                       ))}

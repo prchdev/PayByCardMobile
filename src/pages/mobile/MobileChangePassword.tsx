@@ -82,18 +82,22 @@ export default function MobileChangePassword() {
             ] as const).map(({ key, label, show, toggle, placeholder }) => (
               <View key={key}>
                 <Text className="text-sm font-semibold text-gray-700 mb-1.5">{label}</Text>
-                <View className="flex-row items-center w-full px-4 py-3 border border-gray-300 rounded-xl bg-white">
+                <View className="flex-row items-center">
                   <TextInput
                     value={formData[key]}
                     onChangeText={(v) => setFormData({ ...formData, [key]: v })}
-                    className="flex-1 text-base text-gray-900"
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-base text-gray-900 pr-10"
                     placeholder={placeholder}
                     placeholderTextColor="#9ca3af"
                     secureTextEntry={!show}
                     autoCapitalize="none"
                     editable={!loading && !success}
                   />
-                  <TouchableOpacity onPress={toggle} activeOpacity={0.7}>
+                  <TouchableOpacity
+                    onPress={toggle}
+                    className="absolute right-3"
+                    activeOpacity={0.7}
+                  >
                     {show ? <EyeOff size={18} color="#9ca3af" /> : <Eye size={18} color="#9ca3af" />}
                   </TouchableOpacity>
                 </View>

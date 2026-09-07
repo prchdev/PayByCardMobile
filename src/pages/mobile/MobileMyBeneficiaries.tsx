@@ -270,7 +270,7 @@ export default function MobileMyBeneficiaries() {
 
       <Modal visible={showModal} animationType="slide" transparent>
         <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-white rounded-t-2xl max-h-[90%]">
+          <View className="bg-white rounded-t-2xl max-h-[90%] pb-6">
             <View className="flex-row items-center justify-between p-4 border-b border-gray-100">
               <Text className="text-lg font-bold text-gray-900">Add New Payee</Text>
               <TouchableOpacity onPress={() => setShowModal(false)} className="p-2" activeOpacity={0.7}>
@@ -282,7 +282,7 @@ export default function MobileMyBeneficiaries() {
               style={{ flex: 1 }}
               keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
-            <ScrollView className="px-4 pt-3" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always">
+            <ScrollView className="px-4 pt-3 pb-4" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always">
               {error ? (
                 <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-center gap-2 mb-3">
                   <AlertCircle size={18} color="#dc2626" />

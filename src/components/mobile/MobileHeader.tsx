@@ -85,13 +85,13 @@ export default function MobileHeader({ userEmail, userId, onLogout, showBack, ti
               <ChevronLeft size={22} color="#374151" />
             </TouchableOpacity>
           )}
-          <TouchableOpacity onPress={() => navigate('/mobile/dashboard')} activeOpacity={0.8}>
+          <View>
             <Image
               source={require('../../../public/PayByCard.png')}
               className="w-52 h-14"
               resizeMode="contain"
             />
-          </TouchableOpacity>
+          </View>
           {title && <Text className="text-lg font-bold text-gray-900">{title}</Text>}
         </View>
 

@@ -78,7 +78,7 @@ export default function MobileLogin() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
     >
-    <ScrollView className="flex-1 bg-gray-50 px-4 pt-12 pb-6" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" showsVerticalScrollIndicator={false}>
+    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} className="flex-1 bg-gray-50 px-4 py-6" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" showsVerticalScrollIndicator={false}>
       <View className="flex-1 max-w-sm w-full self-center">
         <View className="items-center mb-4">
           <Image
