@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator,
 import * as WebBrowser from 'expo-web-browser';
 import {
   CreditCard, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Info, ArrowUpRight,
-  Landmark, FileText, Wallet, Calculator, CheckCircle, Search, Clock,
+  Landmark, FileText, Wallet, Calculator, CheckCircle, Search, Clock, Circle as XCircle,
 } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -202,21 +202,28 @@ export default function MobileMakePayment() {
 
     try {
       if (gatewayName === 'razorpay' && Platform.OS === 'web') {
-        const sdkUrl = gatewayConfig.sdkUrl || 'https://checkout.razorpay.com/v1/checkout.js';
-        await loadScript(sdkUrl);
-        const RazorpayClass = (window as any).Razorpay;
-        if (!RazorpayClass) throw new Error('Razorpay SDK failed to load');
-        const options = {
-          ...gatewayConfig.options,
-          handler: (response: any) => handlePaymentSuccess(response, paymentInfo),
-          modal: { ondismiss: () => handlePaymentDismiss(paymentInfo) },
-        };
-        const rzp = new RazorpayClass(options);
-        rzp.open();
-        return;
+        try {
+          const sdkUrl = gatewayConfig.sdkUrl || 'https://checkout.razorpay.com/v1/checkout.js';
+          await loadScript(sdkUrl);
+          const RazorpayClass = (window as any).Razorpay;
+          if (!RazorpayClass) throw new Error('Razorpay SDK failed to load');
+          const options = {
+            ...gatewayConfig.options,
+            handler: () => {
+              // Don't trust client-side response - verify with server
+              checkPaymentStatus(paymentInfo);
+            },
+            modal: { ondismiss: () => handlePaymentDismiss(paymentInfo) },
+          };
+          const rzp = new RazorpayClass(options);
+          rzp.open();
+          return;
+        } catch (sdkErr) {
+          // SDK failed to load - fall through to WebBrowser checkout
+        }
       }
 
-      // For all gateways on native (and non-Razorpay on web), open checkout URL in browser
+      // For all gateways on native (and non-Razorpay/failed-SDK on web), open checkout URL in browser
       const checkoutUrl = gatewayConfig.options?.checkoutUrl || gatewayConfig.sdkUrl;
       if (checkoutUrl) {
         await WebBrowser.openBrowserAsync(checkoutUrl, {
@@ -226,11 +233,12 @@ export default function MobileMakePayment() {
         // After browser closes, check payment status
         await checkPaymentStatus(paymentInfo);
       } else {
+        // No checkout URL - can't proceed
         setPaymentResult({
-          success: true,
+          success: false,
           reference: paymentInfo.reference || '',
           totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
-          message: 'Payment initiated. Please complete the payment on the gateway page.',
+          message: 'Unable to open payment gateway. Please try again or contact support.',
         });
       }
     } catch (err) {
@@ -244,39 +252,46 @@ export default function MobileMakePayment() {
   };
 
   const checkPaymentStatus = async (paymentInfo: any) => {
-    try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/check-payment-status`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId: paymentInfo.id }),
-      });
-      const data = await res.json();
-      if (res.ok && data.status === 'success') {
-        handlePaymentSuccess(data.gatewayResponse || {}, paymentInfo);
-      } else if (res.ok && data.status === 'failed') {
-        setPaymentResult({
-          success: false,
-          reference: paymentInfo.reference || '',
-          totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
-          message: data.message || 'Payment failed. Please try again.',
+    // Poll a few times in case the gateway webhook hasn't fired yet
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/check-payment-status`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId: paymentInfo.id, userId }),
         });
-      } else {
-        // Still pending - show pending result
-        setPaymentResult({
-          success: true,
-          reference: paymentInfo.reference || '',
-          totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
-          message: 'Payment is being processed. You can check the status in your transaction history.',
-        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.error || 'Status check failed');
+
+        const paymentStatus = data.payment?.status || 'pending';
+
+        if (paymentStatus === 'completed') {
+          handlePaymentSuccess(data.payment, paymentInfo);
+          return;
+        }
+        if (paymentStatus === 'failed') {
+          setPaymentResult({
+            success: false,
+            reference: paymentInfo.reference || '',
+            totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
+            message: data.payment?.failure_reason || 'Payment failed. Please try again.',
+          });
+          return;
+        }
+        // Still pending/processing - wait and retry
+        if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+      } catch {
+        if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
       }
-    } catch {
-      setPaymentResult({
-        success: true,
-        reference: paymentInfo.reference || '',
-        totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
-        message: 'Payment is being processed. You can check the status in your transaction history.',
-      });
     }
+
+    // After 3 attempts, show as pending (not success)
+    setPaymentResult({
+      success: false,
+      reference: paymentInfo.reference || '',
+      totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
+      message: 'Payment is still being processed. Please check your transaction history for the final status.',
+    });
   };
 
   const loadScript = (src: string): Promise<void> => {
@@ -293,16 +308,19 @@ export default function MobileMakePayment() {
   };
 
   const handlePaymentSuccess = async (response: any, payment: any) => {
+    const payId = payment?.id || '';
+    const payRef = payment?.reference || payment?.payment_reference || '';
+    const payAmt = String(payment?.totalAmount || payment?.total_amount || chargeBreakdown?.totalAmount || amount);
     try {
       await fetch(`${SUPABASE_URL}/functions/v1/save-transaction-status`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          paymentId: payment.id,
-          transactionReference: payment.reference,
+          paymentId: payId,
+          transactionReference: payRef,
           status: 'success',
-          amount: String(payment.totalAmount || chargeBreakdown?.totalAmount || amount),
+          amount: payAmt,
           gatewayResponse: response || {},
           paymentMethod: 'card',
           cardType: selectedOpt?.card_type || null,
@@ -313,8 +331,8 @@ export default function MobileMakePayment() {
 
     setPaymentResult({
       success: true,
-      reference: payment.reference || '',
-      totalAmount: String(payment.totalAmount || chargeBreakdown?.totalAmount || amount),
+      reference: payRef,
+      totalAmount: payAmt,
       message: 'Your payment has been processed successfully!',
     });
   };
@@ -378,10 +396,10 @@ export default function MobileMakePayment() {
       } else {
         // No gateway config - payment is pending/offline
         setPaymentResult({
-          success: true,
-          reference: data.payment?.reference || '',
+          success: false,
+          reference: data.payment?.reference || data.payment?.payment_reference || '',
           totalAmount: data.payment?.totalAmount ? String(data.payment.totalAmount) : (chargeBreakdown?.totalAmount || amount),
-          message: 'Payment initiated successfully.',
+          message: 'Payment initiated but no gateway configured. Please contact support.',
         });
       }
     } catch (err) {
@@ -401,13 +419,15 @@ export default function MobileMakePayment() {
   };
 
   if (paymentResult) {
+    const isSuccess = paymentResult.success;
+    const isPending = !isSuccess && paymentResult.message.includes('being processed');
     return (
       <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout}>
         <View className="px-4 py-6 items-center">
-          <View className={`w-20 h-20 rounded-full items-center justify-center mb-4 ${paymentResult.success ? 'bg-green-50' : 'bg-red-50'}`}>
-            <CheckCircle size={48} color={paymentResult.success ? '#16a34a' : '#dc2626'} />
+          <View className={`w-20 h-20 rounded-full items-center justify-center mb-4 ${isSuccess ? 'bg-green-50' : isPending ? 'bg-amber-50' : 'bg-red-50'}`}>
+            {isSuccess ? <CheckCircle size={48} color="#16a34a" /> : isPending ? <Clock size={48} color="#d97706" /> : <XCircle size={48} color="#dc2626" />}
           </View>
-          <Text className="text-xl font-bold text-gray-900">{paymentResult.success ? 'Payment Successful!' : 'Payment Failed'}</Text>
+          <Text className="text-xl font-bold text-gray-900">{isSuccess ? 'Payment Successful!' : isPending ? 'Payment Pending' : 'Payment Failed'}</Text>
           <Text className="text-base text-gray-500 mt-1.5 text-center">
             {paymentResult.message}
           </Text>
