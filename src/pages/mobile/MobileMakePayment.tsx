@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CreditCard, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Info, ArrowUpRight,
   Landmark, FileText, Wallet, Calculator, CheckCircle, Search, Clock, Circle as XCircle,
@@ -192,39 +193,15 @@ export default function MobileMakePayment() {
   };
 
   // ── Payment Gateway Checkout ─────────────────────────────────────────────────
-  // After initiate-payment returns gatewayConfig, open the gateway's checkout page
-  // in a mini web browser (expo-web-browser). For Razorpay on web, load the SDK
-  // and open the checkout modal. For all other gateways, open the checkout URL
-  // in the in-app browser. After the browser closes, check payment status.
+  // For ALL gateways, create a self-contained HTML page as a blob URL that loads
+  // the gateway SDK and opens checkout. Open this blob URL in expo-web-browser.
+  // This avoids script injection issues and works on both web and native.
   const openGatewayCheckout = async (gatewayConfig: any, paymentInfo: any) => {
     const gatewayName = (gatewayConfig.gateway || '').toLowerCase();
     setGatewayLoading(false);
 
     try {
-      if (gatewayName === 'razorpay' && Platform.OS === 'web') {
-        try {
-          const sdkUrl = gatewayConfig.sdkUrl || 'https://checkout.razorpay.com/v1/checkout.js';
-          await loadScript(sdkUrl);
-          const RazorpayClass = (window as any).Razorpay;
-          if (!RazorpayClass) throw new Error('Razorpay SDK failed to load');
-          const options = {
-            ...gatewayConfig.options,
-            handler: () => {
-              // Don't trust client-side response - verify with server
-              checkPaymentStatus(paymentInfo);
-            },
-            modal: { ondismiss: () => handlePaymentDismiss(paymentInfo) },
-          };
-          const rzp = new RazorpayClass(options);
-          rzp.open();
-          return;
-        } catch (sdkErr) {
-          // SDK failed to load - fall through to WebBrowser checkout
-        }
-      }
-
-      // For all gateways on native (and non-Razorpay/failed-SDK on web), open checkout URL in browser
-      const checkoutUrl = gatewayConfig.options?.checkoutUrl || gatewayConfig.sdkUrl;
+      const checkoutUrl = buildCheckoutUrl(gatewayConfig, paymentInfo);
       if (checkoutUrl) {
         await WebBrowser.openBrowserAsync(checkoutUrl, {
           toolbarColor: '#8c76f0',
@@ -233,7 +210,6 @@ export default function MobileMakePayment() {
         // After browser closes, check payment status
         await checkPaymentStatus(paymentInfo);
       } else {
-        // No checkout URL - can't proceed
         setPaymentResult({
           success: false,
           reference: paymentInfo.reference || '',
@@ -249,6 +225,101 @@ export default function MobileMakePayment() {
         message: err instanceof Error ? err.message : 'Failed to open payment gateway',
       });
     }
+  };
+
+  // Build a checkout URL for the gateway. For Razorpay, create a blob URL with
+  // an HTML page that loads the SDK and opens checkout automatically.
+  // For other gateways that provide a checkoutUrl or sdkUrl, use that directly.
+  const buildCheckoutUrl = (gatewayConfig: any, paymentInfo: any): string | null => {
+    const gatewayName = (gatewayConfig.gateway || '').toLowerCase();
+    const options = gatewayConfig.options || {};
+
+    // If the gateway provides a direct checkout URL, use it
+    if (options.checkoutUrl) return options.checkoutUrl;
+
+    if (gatewayName === 'razorpay') {
+      // Create a self-contained HTML page that loads Razorpay SDK and opens checkout
+      const sdkUrl = gatewayConfig.sdkUrl || 'https://checkout.razorpay.com/v1/checkout.js';
+      const razorpayKey = options.key || gatewayConfig.keyId;
+      const orderId = options.order_id;
+      const amount = options.amount;
+      const currency = options.currency || 'INR';
+      const name = options.name || 'PayByCard';
+      const description = options.description || `Payment: ${paymentInfo.reference || ''}`;
+      const prefill = options.prefill || {};
+      const theme = options.theme || { color: '#2563eb' };
+
+      const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Payment</title>
+  <style>
+    body { margin:0; padding:0; background:#f9fafb; font-family:-apple-system,system-ui,sans-serif; }
+    .loading { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; gap:16px; }
+    .spinner { width:40px; height:40px; border:4px solid #e5e7eb; border-top-color:#8c76f0; border-radius:50%; animation:spin 0.8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .text { color:#6b7280; font-size:14px; }
+  </style>
+</head>
+<body>
+  <div class="loading">
+    <div class="spinner"></div>
+    <div class="text">Opening payment gateway...</div>
+  </div>
+  <script src="${sdkUrl}"></script>
+  <script>
+    (function() {
+      function openCheckout() {
+        var options = {
+          key: ${JSON.stringify(razorpayKey)},
+          amount: ${JSON.stringify(amount)},
+          currency: ${JSON.stringify(currency)},
+          name: ${JSON.stringify(name)},
+          description: ${JSON.stringify(description)},
+          order_id: ${JSON.stringify(orderId)},
+          prefill: ${JSON.stringify(prefill)},
+          theme: ${JSON.stringify(theme)},
+          handler: function(response) {
+            document.title = 'PAYMENT_SUCCESS';
+            document.body.innerHTML = '<div class="loading"><div class="text">Payment successful! You can close this window.</div></div>';
+          },
+          modal: {
+            ondismiss: function() {
+              document.title = 'PAYMENT_DISMISSED';
+              document.body.innerHTML = '<div class="loading"><div class="text">Payment cancelled. You can close this window.</div></div>';
+            }
+          }
+        };
+        var rzp = new Razorpay(options);
+        rzp.on('payment.failed', function(response) {
+          document.title = 'PAYMENT_FAILED';
+          document.body.innerHTML = '<div class="loading"><div class="text">Payment failed. You can close this window.</div></div>';
+        });
+        rzp.open();
+      }
+      if (typeof Razorpay !== 'undefined') {
+        openCheckout();
+      } else {
+        // Wait for SDK to load
+        var checkInterval = setInterval(function() {
+          if (typeof Razorpay !== 'undefined') {
+            clearInterval(checkInterval);
+            openCheckout();
+          }
+        }, 100);
+        setTimeout(function() { clearInterval(checkInterval); }, 10000);
+      }
+    })();
+  </script>
+</body>
+</html>`;
+      return URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+    }
+
+    // For other gateways with an SDK URL, use it directly
+    return gatewayConfig.sdkUrl || null;
   };
 
   const checkPaymentStatus = async (paymentInfo: any) => {
@@ -291,19 +362,6 @@ export default function MobileMakePayment() {
       reference: paymentInfo.reference || '',
       totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
       message: 'Payment is still being processed. Please check your transaction history for the final status.',
-    });
-  };
-
-  const loadScript = (src: string): Promise<void> => {
-    return new Promise((resolve, reject) => {
-      if (Platform.OS !== 'web') { reject(new Error('SDK only available on web')); return; }
-      const existing = document.querySelector(`script[src="${src}"]`);
-      if (existing) { resolve(); return; }
-      const script = document.createElement('script');
-      script.src = src;
-      script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Failed to load payment SDK'));
-      document.body.appendChild(script);
     });
   };
 

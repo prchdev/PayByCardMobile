@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Pressable, Alert, KeyboardAvoidingView, Platform, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Pressable, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Users, Plus, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Power, X, User, Landmark, Search } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -24,6 +25,7 @@ export default function MobileMyBeneficiaries() {
   const { navigate, reset, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
+  const insets = useSafeAreaInsets();
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -269,7 +271,7 @@ export default function MobileMyBeneficiaries() {
       </View>
 
       <Modal visible={showModal} animationType="slide" transparent={false}>
-        <SafeAreaView className="flex-1 bg-gray-50">
+        <View className="flex-1 bg-gray-50" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
           <View className="flex-row items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
             <Text className="text-lg font-bold text-gray-900">Add New Payee</Text>
             <TouchableOpacity onPress={() => setShowModal(false)} className="p-2" activeOpacity={0.7} delayPressIn={0}>
@@ -412,7 +414,7 @@ export default function MobileMyBeneficiaries() {
               </Pressable>
             </ScrollView>
           </KeyboardAvoidingView>
-        </SafeAreaView>
+        </View>
       </Modal>
 
       <Modal visible={toggleTarget !== null} animationType="fade" transparent>
