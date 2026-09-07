@@ -2,7 +2,7 @@
   "expo": {
     "name": "PayByCard",
     "slug": "paybycard",
-    "version": "1.0.2",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./public/app-icon-padded.png",
     "userInterfaceStyle": "light",
@@ -15,14 +15,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "in.paybycard.app",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "infoPlist": {
         "NSFaceIDUsageDescription": "PayByCard uses Face ID to securely unlock your account.",
         "NSCameraUsageDescription": "PayByCard needs camera access to capture KYC documents."
       }
     },
     "android": {
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./public/app-icon-padded.png",
         "backgroundColor": "#ffffff"
