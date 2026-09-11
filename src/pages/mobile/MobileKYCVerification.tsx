@@ -7,6 +7,8 @@ import {
 } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Crypto from 'expo-crypto';
+import { Platform } from 'react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
@@ -136,19 +138,28 @@ interface NameMismatch {
   lastName: string;
 }
 
-// ── PKCE helpers (web crypto) ──────────────────────────────────────────────────
+// ── PKCE helpers ──────────────────────────────────────────────────────────────
 function generateCodeVerifier(): string {
   const array = new Uint8Array(48);
-  crypto.getRandomValues(array);
+  if (Platform.OS === 'web' && typeof crypto !== 'undefined') {
+    crypto.getRandomValues(array);
+  } else {
+    const random = Crypto.getRandomBytes(48);
+    for (let i = 0; i < 48; i++) array[i] = random[i];
+  }
   return btoa(String.fromCharCode(...array))
     .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 async function generateCodeChallenge(verifier: string): Promise<string> {
-  const data = new TextEncoder().encode(verifier);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  return btoa(String.fromCharCode(...new Uint8Array(digest)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  if (Platform.OS === 'web' && typeof crypto !== 'undefined' && crypto.subtle) {
+    const data = new TextEncoder().encode(verifier);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
+  const digest = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, verifier);
+  return digest.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 // ── Event logger ───────────────────────────────────────────────────────────────
@@ -1231,10 +1242,10 @@ export default function MobileKYCVerification() {
   };
 
   // ── Section Card Header ──────────────────────────────────────────────────
-  const renderSectionHeader = (icon: typeof FileText, iconColor: string, iconBg: string, title: string, desc: string, status?: string, extra?: React.ReactNode) => (
+  const renderSectionHeader = (Icon: typeof FileText, iconColor: string, iconBg: string, title: string, desc: string, status?: string, extra?: React.ReactNode) => (
     <View className="flex-row items-center gap-3 pb-4 border-b border-gray-100">
       <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: iconBg }}>
-        <icon size={20} color={iconColor} />
+        <Icon size={20} color={iconColor} />
       </View>
       <View className="flex-1">
         <Text className="text-base font-semibold text-gray-900">{title}</Text>
