@@ -154,6 +154,16 @@ function generateCodeVerifier(): string {
 }
 
 async function generateCodeChallenge(verifier: string): Promise<string> {
+  if (Platform.OS === 'web') {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(verifier);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    let binary = '';
+    for (let i = 0; i < hashArray.length; i++) binary += String.fromCharCode(hashArray[i]);
+    const base64 = btoa(binary);
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
   const digest = await Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
     verifier,
@@ -378,28 +388,40 @@ export default function MobileKYCVerification() {
         return null;
       }
 
-      const formData = new FormData();
       const mimeType = file.mimeType || 'image/jpeg';
+      const uploadUrl = `${SUPABASE_URL}/functions/v1/upload-kyc-file`;
+      const headers: Record<string, string> = {
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'x-pbc-session': sessionToken || '',
+      };
+
       if (Platform.OS === 'web') {
         const blob = await (await fetch(file.uri)).blob();
-        formData.append('file', blob, file.name);
+        const fileObj = new File([blob], file.name, { type: mimeType });
+        const res = await fetch(uploadUrl, {
+          method: 'POST',
+          headers,
+          body: (() => {
+            const fd = new FormData();
+            fd.append('file', fileObj);
+            fd.append('fileKey', fileKey);
+            fd.append('userId', userId || '');
+            return fd;
+          })(),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        return data.url;
       } else {
+        const formData = new FormData();
         formData.append('file', { uri: file.uri, name: file.name, type: mimeType } as any);
+        formData.append('fileKey', fileKey);
+        formData.append('userId', userId || '');
+        const res = await fetch(uploadUrl, { method: 'POST', headers, body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        return data.url;
       }
-      formData.append('fileKey', fileKey);
-      formData.append('userId', userId || '');
-
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/upload-kyc-file`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          'x-pbc-session': sessionToken || '',
-        },
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
-      return data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload file');
       return null;

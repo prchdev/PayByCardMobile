@@ -100,7 +100,7 @@ export default function MobileMakePayment() {
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
-      if (res.ok) setKycVerified(data.isVerified || false);
+      if (res.ok) setKycVerified(data.isVerified === true || data.status === 'verified');
     } catch {}
   };
 
