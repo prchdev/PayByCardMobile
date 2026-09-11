@@ -313,7 +313,7 @@ export default function MobileKYCVerification() {
   }, [userId, userEmail]);
 
   useEffect(() => {
-    if (userId && (kycStatus === 'not_started' || kycStatus === 'rejected' || kycStatus === 'pending')) {
+    if (userId && (kycStatus === 'not_started' || kycStatus === 'rejected' || kycStatus === 'pending' || kycStatus === 'incomplete')) {
       fetchKycData();
     }
   }, [userId, kycStatus]);
@@ -934,7 +934,7 @@ export default function MobileKYCVerification() {
   const cfg = statusConfig[kycStatus] || statusConfig.not_started;
   const StatusIcon = cfg.icon;
 
-  const kycLocked = kycStatus === 'verified' || kycStatus === 'pending';
+  const kycLocked = kycStatus === 'verified';
 
   const renderDataRow = (label: string, value: string) => (
     <View className="flex-row justify-between py-1.5">
@@ -1074,7 +1074,7 @@ export default function MobileKYCVerification() {
 
   // ── DigiLocker flow UI ──────────────────────────────────────────────────────
   const renderDigiLockerFlow = () => {
-    if (kycStatus === 'verified' || kycStatus === 'pending' || kycMethod !== 'digilocker') return null;
+    if (kycStatus === 'verified' || kycMethod !== 'digilocker') return null;
     const providerName = kycProvider?.provider_name || 'DigiLocker';
     const isCashFree = providerName === 'CashFree DigiLocker';
 
@@ -1305,7 +1305,7 @@ export default function MobileKYCVerification() {
 
   // ── KYC Method Selection ───────────────────────────────────────────────────
   const renderKycMethodSelection = () => {
-    if (kycStatus === 'verified' || kycStatus === 'pending') return null;
+    if (kycStatus === 'verified') return null;
     return (
       <View className="gap-4">
         {kycMethod === 'select' ? (
@@ -1371,7 +1371,7 @@ export default function MobileKYCVerification() {
 
   // ── Manual KYC Forms ────────────────────────────────────────────────────────
   const renderManualKyc = () => {
-    if (kycStatus === 'verified' || kycStatus === 'pending' || kycMethod !== 'manual') return null;
+    if (kycStatus === 'verified' || kycMethod !== 'manual') return null;
 
     return (
       <View className="gap-4">
