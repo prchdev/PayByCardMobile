@@ -10,10 +10,11 @@ interface MobileHeaderProps {
   userId?: string;
   onLogout?: () => void;
   showBack?: boolean;
+  onBack?: () => void;
   title?: string;
 }
 
-export default function MobileHeader({ userEmail, userId, onLogout, showBack, title }: MobileHeaderProps) {
+export default function MobileHeader({ userEmail, userId, onLogout, showBack, onBack, title }: MobileHeaderProps) {
   const { navigate, goBack } = useNav();
   const insets = useSafeAreaInsets();
   const [kycStatus, setKycStatus] = useState<string>('loading');
@@ -81,7 +82,7 @@ export default function MobileHeader({ userEmail, userId, onLogout, showBack, ti
       <View className="flex-row items-center justify-between h-11">
         <View className="flex-row items-center gap-2">
           {showBack && (
-            <TouchableOpacity onPress={goBack} className="p-2 -ml-2" activeOpacity={0.7} delayPressIn={0}>
+            <TouchableOpacity onPress={onBack || goBack} className="p-2 -ml-2" activeOpacity={0.7} delayPressIn={0}>
               <ChevronLeft size={22} color="#374151" />
             </TouchableOpacity>
           )}

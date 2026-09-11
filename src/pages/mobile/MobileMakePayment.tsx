@@ -217,10 +217,12 @@ export default function MobileMakePayment() {
     try {
       const checkoutUrl = buildCheckoutUrl(gatewayConfig, paymentInfo);
       if (checkoutUrl) {
+        await WebBrowser.warmUpAsync();
         await WebBrowser.openBrowserAsync(checkoutUrl, {
           toolbarColor: '#8c76f0',
           controlsColor: '#8c76f0',
         });
+        WebBrowser.coolDownAsync();
         // After browser closes, check payment status
         await checkPaymentStatus(paymentInfo);
       } else {

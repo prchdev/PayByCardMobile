@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, BackHandler } from 'react-native';
 import {
   ShieldCheck, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Clock, Circle as XCircle,
   FileText, MapPin, Building2, User, Upload, ChevronRight, Smartphone, FileCheck, Save, Lock,
@@ -8,6 +8,7 @@ import {
 import * as WebBrowser from 'expo-web-browser';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Crypto from 'expo-crypto';
+import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -303,6 +304,15 @@ export default function MobileKYCVerification() {
     fetchKycProvider();
   }, [userId]);
 
+  // Handle Android hardware back button — go to Dashboard, not Login
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      navigate('/mobile/dashboard', { state: { userId, userEmail } });
+      return true;
+    });
+    return () => backHandler.remove();
+  }, [userId, userEmail]);
+
   useEffect(() => {
     if (userId && (kycStatus === 'not_started' || kycStatus === 'rejected' || kycStatus === 'pending')) {
       fetchKycData();
@@ -399,14 +409,8 @@ export default function MobileKYCVerification() {
     try {
       setUploadingField(fileKey);
       const uploadUrl = `${SUPABASE_URL}/functions/v1/upload-kyc-file`;
-      const headers: Record<string, string> = {
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        'x-pbc-session': sessionToken || '',
-      };
 
       if (Platform.OS === 'web') {
-        // On web, use a hidden HTML <input type="file"> to get a native File object.
-        // expo-document-picker returns a blob URI that FormData can't handle properly.
         const fileObj = await pickFileViaInput(acceptTypes);
         if (!fileObj) return null;
         if (fileObj.size > 5 * 1024 * 1024) {
@@ -416,13 +420,21 @@ export default function MobileKYCVerification() {
         const fd = new FormData();
         fd.append('file', fileObj);
         fd.append('fileKey', fileKey);
-        fd.append('userId', userId || '');
-        const res = await fetch(uploadUrl, { method: 'POST', headers, body: fd });
+        const res = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+            'x-pbc-session': sessionToken || '',
+          },
+          body: fd,
+        });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Upload failed');
         return data.url;
       } else {
-        // On native, use expo-document-picker which returns a file URI
+        // On native, use expo-document-picker then read the file as base64
+        // and upload via XMLHttpRequest with a proper FormData — this avoids
+        // the "Unsupported FormDataPart" error from fetch.
         const result = await DocumentPicker.getDocumentAsync({
           type: acceptTypes,
           copyToCacheDirectory: true,
@@ -434,14 +446,47 @@ export default function MobileKYCVerification() {
           return null;
         }
         const mimeType = file.mimeType || 'image/jpeg';
-        const formData = new FormData();
-        formData.append('file', { uri: file.uri, name: file.name, type: mimeType } as any);
-        formData.append('fileKey', fileKey);
-        formData.append('userId', userId || '');
-        const res = await fetch(uploadUrl, { method: 'POST', headers, body: formData });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Upload failed');
-        return data.url;
+
+        // Read file content as base64 using expo-file-system
+        const base64 = await FileSystem.readAsStringAsync(file.uri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+
+        // Convert base64 to a Blob and then to a File-like object
+        const byteChars = atob(base64);
+        const byteNumbers = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) {
+          byteNumbers[i] = byteChars.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mimeType });
+
+        const uploadResult = await new Promise<string | null>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', uploadUrl);
+          xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON_KEY}`);
+          xhr.setRequestHeader('x-pbc-session', sessionToken || '');
+
+          xhr.onload = () => {
+            try {
+              const respData = JSON.parse(xhr.responseText);
+              if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(respData.url || null);
+              } else {
+                reject(new Error(respData.error || 'Upload failed'));
+              }
+            } catch {
+              reject(new Error('Upload failed — invalid response'));
+            }
+          };
+          xhr.onerror = () => reject(new Error('Network error during upload'));
+
+          const formData = new FormData();
+          formData.append('file', blob, file.name);
+          formData.append('fileKey', fileKey);
+          xhr.send(formData);
+        });
+        return uploadResult;
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload file');
@@ -478,14 +523,26 @@ export default function MobileKYCVerification() {
       redirectUriRef.current = rUri;
       codeReceivedRef.current = false;
 
-      // Use openAuthSessionAsync for both web and native — it intercepts the
-      // redirect to the callback URL and returns the full redirect URL with
-      // the authorization code, no manual paste needed.
-      const redirectUrl = rUri || (Platform.OS === 'web' ? `${window.location.origin}/digilocker-callback` : 'paybycard://digilocker-callback');
+      // Use openAuthSessionAsync — on Android this opens a Custom Chrome Tab,
+      // on iOS it opens SFAuthenticationSession/ASWebAuthenticationSession.
+      // Both intercept the redirect URL and return the full redirect URL with
+      // the authorization code — no manual paste needed.
+      const redirectUrl = rUri || (Platform.OS === 'web'
+        ? `${window.location.origin}/digilocker-callback`
+        : 'paybycard://digilocker-callback');
+
+      // Warm up the browser session for faster launch
+      await WebBrowser.warmUpAsync(redirectUrl);
+
       const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl, {
         toolbarColor: '#8c76f0',
         controlsColor: '#8c76f0',
+        showTitle: true,
+        enableBarCollapsing: true,
       });
+
+      // Cool down after the session is done
+      WebBrowser.coolDownAsync(redirectUrl);
 
       logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'popup_opened', true, { redirect_uri: rUri });
       setDigiStep('waiting_popup');
@@ -1840,7 +1897,13 @@ export default function MobileKYCVerification() {
   };
 
   return (
-    <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout} showBack>
+    <MobileLayout
+      userId={userId}
+      userEmail={userEmail}
+      onLogout={handleLogout}
+      showBack
+      onBack={() => navigate('/mobile/dashboard', { state: { userId, userEmail } })}
+    >
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View className="px-4 py-4 gap-4">
           <View className="flex-row items-center gap-3">

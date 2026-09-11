@@ -9,6 +9,7 @@ interface MobileLayoutProps {
   userEmail?: string;
   onLogout?: () => void;
   showBack?: boolean;
+  onBack?: () => void;
   title?: string;
   showBottomNav?: boolean;
   scroll?: boolean;
@@ -20,6 +21,7 @@ export default function MobileLayout({
   userEmail,
   onLogout,
   showBack,
+  onBack,
   title,
   showBottomNav = true,
   scroll = true,
@@ -33,6 +35,7 @@ export default function MobileLayout({
         userId={userId}
         onLogout={onLogout}
         showBack={showBack}
+        onBack={onBack}
         title={title}
       />
 
