@@ -5,6 +5,7 @@ import { Eye, EyeOff, CircleAlert as AlertCircle, X, FileText, Shield } from 'lu
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
 import { validatePassword, PASSWORD_REQUIREMENTS } from '../../utils/passwordValidation';
+import { capitalizeName } from '../../utils/nameFormat';
 
 interface FormData {
   firstName: string; middleName: string; lastName: string;
@@ -30,29 +31,33 @@ export default function MobileRegister() {
   const validateForm = (): boolean => {
     const e: Record<string, string> = {};
     if (!formData.firstName.trim()) e.firstName = 'First name is required';
-    else if (!/^[A-Za-z ]+$/.test(formData.firstName)) e.firstName = 'Letters and spaces only';
-    else if (formData.firstName.length > 30) e.firstName = 'Max 30 characters';
+    else if (!/^[A-Za-z ]+$/.test(formData.firstName)) e.firstName = 'First name must contain only letters and spaces';
+    else if (formData.firstName.length > 30) e.firstName = 'First name must not exceed 30 characters';
 
-    if (formData.middleName.trim() && (!/^[A-Za-z ]+$/.test(formData.middleName) || formData.middleName.length > 30))
-      e.middleName = 'Letters and spaces only, max 30';
+    if (formData.middleName.trim()) {
+      if (!/^[A-Za-z ]+$/.test(formData.middleName)) e.middleName = 'Middle name must contain only letters and spaces';
+      else if (formData.middleName.length > 30) e.middleName = 'Middle name must not exceed 30 characters';
+    }
 
     if (!formData.lastName.trim()) e.lastName = 'Last name is required';
-    else if (!/^[A-Za-z ]+$/.test(formData.lastName)) e.lastName = 'Letters and spaces only';
-    else if (formData.lastName.length > 30) e.lastName = 'Max 30 characters';
+    else if (!/^[A-Za-z ]+$/.test(formData.lastName)) e.lastName = 'Last name must contain only letters and spaces';
+    else if (formData.lastName.length > 30) e.lastName = 'Last name must not exceed 30 characters';
 
     if (!formData.mobileNumber.trim()) e.mobileNumber = 'Mobile number is required';
-    else if (!/^\d{10}$/.test(formData.mobileNumber)) e.mobileNumber = 'Enter a valid 10-digit number';
+    else if (!/^\d{10}$/.test(formData.mobileNumber)) e.mobileNumber = 'Please enter a valid 10-digit mobile number';
 
     if (!formData.email.trim()) e.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) e.email = 'Enter a valid email';
+    else if (formData.email.length > 100) e.email = 'Email must not exceed 100 characters';
+    else if (!/^[A-Za-z0-9@_.\-]+$/.test(formData.email)) e.email = 'Email may only contain letters, numbers, @, _, ., and -';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) e.email = 'Please enter a valid email address';
 
     const pv = validatePassword(formData.password);
     if (!pv.isValid) e.password = pv.error!;
 
-    if (!formData.confirmPassword) e.confirmPassword = 'Please confirm password';
+    if (!formData.confirmPassword) e.confirmPassword = 'Please confirm your password';
     else if (formData.password !== formData.confirmPassword) e.confirmPassword = 'Passwords do not match';
 
-    if (!formData.agreeToTerms) e.agreeToTerms = 'You must agree to the terms';
+    if (!formData.agreeToTerms) e.agreeToTerms = 'You must agree to the terms and conditions';
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -62,13 +67,16 @@ export default function MobileRegister() {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-      const fullName = [formData.firstName.trim(), formData.middleName.trim(), formData.lastName.trim()].filter(Boolean).join(' ');
+      const capFirst = capitalizeName(formData.firstName);
+      const capMiddle = capitalizeName(formData.middleName);
+      const capLast = capitalizeName(formData.lastName);
+      const fullName = [capFirst, capMiddle, capLast].filter(Boolean).join(' ');
       const res = await fetch(`${SUPABASE_URL}/functions/v1/register-user`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstName: formData.firstName.trim(), middleName: formData.middleName.trim() || undefined,
-          lastName: formData.lastName.trim(), fullName,
+          firstName: capFirst, middleName: capMiddle || undefined,
+          lastName: capLast, fullName,
           mobileNumber: `+91${formData.mobileNumber}`, email: formData.email, password: formData.password,
         }),
       });
@@ -226,7 +234,7 @@ export default function MobileRegister() {
             <View className="flex-1 flex-row flex-wrap">
               <Text className="text-sm text-gray-700">I agree to the </Text>
               <TouchableOpacity onPress={() => setActiveModal('terms')} activeOpacity={0.7} delayPressIn={0}>
-                <Text className="text-sm text-[#8c76f0] font-semibold">Terms</Text>
+                <Text className="text-sm text-[#8c76f0] font-semibold">Terms and Conditions</Text>
               </TouchableOpacity>
               <Text className="text-sm text-gray-700"> and </Text>
               <TouchableOpacity onPress={() => setActiveModal('privacy')} activeOpacity={0.7} delayPressIn={0}>
