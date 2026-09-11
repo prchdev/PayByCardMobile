@@ -15,14 +15,15 @@ const corsHeaders = {
  *
  * This edge function acts as a bridge:
  * 1. DigiLocker redirects to this function's URL with ?code=...&state=...
- * 2. This function returns an HTTP 302 redirect to
+ * 2. This function returns an HTML page that redirects to
  *    paybycard://digilocker-callback?code=...&state=...
  * 3. The mobile app's openAuthSessionAsync intercepts the custom scheme
  *    and extracts the authorization code.
  *
- * An HTTP 302 is used instead of JavaScript because Custom Chrome Tabs on
- * Android follow 302 redirects to custom schemes natively, triggering the
- * intent filter without relying on JavaScript execution.
+ * An HTML page with a JavaScript redirect is used because:
+ * - Custom Chrome Tabs on Android don't always follow 302 redirects to custom schemes
+ * - ASWebAuthenticationSession on iOS handles JavaScript-based redirects reliably
+ * - The page also calls window.close() as a fallback
  */
 
 Deno.serve(async (req: Request) => {
@@ -42,11 +43,37 @@ Deno.serve(async (req: Request) => {
 
   const appScheme = `paybycard://digilocker-callback?${params.toString()}`;
 
-  return new Response(null, {
-    status: 302,
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redirecting...</title>
+<style>
+  body { font-family: -apple-system, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9fafb; }
+  .container { text-align: center; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  p { color: #6b7280; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="spinner"></div>
+  <p>Completing DigiLocker authorization...</p>
+</div>
+<script>
+  window.location.replace("${appScheme}");
+  setTimeout(function() { window.close(); }, 1000);
+</script>
+</body>
+</html>`;
+
+  return new Response(html, {
+    status: 200,
     headers: {
       ...corsHeaders,
-      "Location": appScheme,
+      "Content-Type": "text/html; charset=utf-8",
     },
   });
 });
