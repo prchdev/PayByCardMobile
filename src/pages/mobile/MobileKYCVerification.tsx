@@ -1,13 +1,12 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Linking, Platform, Modal, Pressable } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal } from 'react-native';
 import {
   ShieldCheck, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Clock, Circle as XCircle,
   FileText, MapPin, Building2, User, Upload, ChevronRight, Smartphone, FileCheck, Save, Lock,
-  ScanFace, RefreshCw as RefreshCwIcon, X, ChevronDown, ChevronUp, Trash2, CreditCard, Tag,
+  ScanFace, RefreshCw as RefreshCwIcon, X, Trash2, CreditCard,
 } from 'lucide-react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as DocumentPicker from 'expo-document-picker';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
@@ -124,13 +123,6 @@ interface BusinessData {
   upload_ip: string | null;
 }
 
-interface PickedFile {
-  uri: string;
-  name: string;
-  size: number;
-  mimeType: string;
-}
-
 type DigiStep = 'idle' | 'loading_url' | 'waiting_popup' | 'polling' | 'verifying' | 'success' | 'error' | 'name_mismatch' | 'dl_unavailable';
 
 interface NameMismatch {
@@ -173,17 +165,11 @@ function logEvent(userId: string, provider: string, action: string, success: boo
   }).catch(() => {});
 }
 
-// ── File size validation ───────────────────────────────────────────────────────
-function validateFileSize(size: number, maxMB: number): boolean {
-  return size <= maxMB * 1024 * 1024;
-}
-
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function MobileKYCVerification() {
   const { navigate, reset, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
   const { logout } = useAuth();
-  const insets = useSafeAreaInsets();
 
   const [kycStatus, setKycStatus] = useState<string>('loading');
   const [loading, setLoading] = useState(true);
@@ -802,8 +788,8 @@ export default function MobileKYCVerification() {
     };
     const s = styles[status] || { bg: 'bg-gray-50', text: 'text-gray-600' };
     return (
-      <View className={`px-2.5 py-1 rounded-lg ${s.bg}`}>
-        <Text className={`text-xs font-medium ${s.text}`}>{(status || 'pending').replace(/_/g, ' ')}</Text>
+      <View className={`px-2.5 py-1 rounded-md ${s.bg}`}>
+        <Text className={`text-xs font-semibold ${s.text}`}>{(status || 'pending').replace(/_/g, ' ')}</Text>
       </View>
     );
   };
@@ -811,13 +797,13 @@ export default function MobileKYCVerification() {
   // ── File Upload Button ─────────────────────────────────────────────────────
   const renderFileUpload = (label: string, fieldKey: string, value: string, onUpload: (url: string) => void, acceptTypes: string[], required?: boolean) => (
     <View>
-      <Text className="text-sm font-semibold text-gray-700 mb-1.5">{label}{required ? ' *' : ''}</Text>
+      <Text className="text-sm font-medium text-gray-700 mb-1.5">{label}{required ? ' *' : ''}</Text>
       <TouchableOpacity
         onPress={async () => {
           const url = await uploadFile(fieldKey, acceptTypes);
           if (url) onUpload(url);
         }}
-        className="flex-row items-center justify-center gap-2 w-full px-4 py-3 border border-dashed border-gray-300 rounded-xl bg-gray-50"
+        className="flex-row items-center justify-center gap-2 w-full px-4 py-3.5 border border-dashed border-gray-300 rounded-xl bg-gray-50"
         activeOpacity={0.7} delayPressIn={0}
         disabled={uploadingField === fieldKey || kycLocked}
         style={{ opacity: kycLocked ? 0.5 : 1 }}
@@ -850,26 +836,26 @@ export default function MobileKYCVerification() {
             <Text className="text-sm text-gray-500">Your registration information</Text>
           </View>
           {kycLocked && (
-            <View className="flex-row items-center bg-gray-100 px-2 py-1 rounded-lg">
+            <View className="flex-row items-center bg-gray-100 px-2 py-1 rounded-md">
               <Lock size={12} color="#6b7280" />
               <Text className="text-xs text-gray-500 font-medium ml-1">Read Only</Text>
             </View>
           )}
         </View>
         {kycLocked && (
-          <View className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+          <View className="bg-amber-50 border border-amber-200 rounded-xl p-3">
             <Text className="text-sm text-amber-700">Personal details cannot be changed while KYC is under review or verified.</Text>
           </View>
         )}
         {personalSuccess && (
-          <View className="bg-green-50 border border-green-300 rounded-xl p-2.5 flex-row items-center gap-2">
-            <CheckCircle size={16} color="#16a34a" />
+          <View className="bg-green-50 border border-green-300 rounded-xl p-3 flex-row items-center gap-2">
+            <CheckCircle size={18} color="#16a34a" />
             <Text className="text-sm text-green-700 flex-1">Personal details saved successfully!</Text>
           </View>
         )}
         {personalError ? (
-          <View className="bg-red-50 border border-red-300 rounded-xl p-2.5 flex-row items-center gap-2">
-            <AlertCircle size={16} color="#dc2626" />
+          <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
+            <AlertCircle size={18} color="#dc2626" />
             <Text className="text-sm text-red-700 flex-1">{personalError}</Text>
           </View>
         ) : null}
@@ -917,12 +903,12 @@ export default function MobileKYCVerification() {
           <TouchableOpacity
             onPress={handlePersonalSave}
             disabled={personalSaving}
-            className="w-full flex-row items-center justify-center gap-2 bg-[#8c76f0] rounded-xl py-3"
+            className="w-full flex-row items-center justify-center gap-2 bg-[#8c76f0] rounded-xl py-3.5"
             style={{ opacity: personalSaving ? 0.5 : 1 }}
             activeOpacity={0.7} delayPressIn={0}
           >
             <Save size={18} color="white" />
-            <Text className="text-white font-semibold text-base">{personalSaving ? 'Saving...' : 'Save Details'}</Text>
+            <Text className="text-white font-semibold text-center text-base">{personalSaving ? 'Saving...' : 'Save Details'}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -1005,7 +991,7 @@ export default function MobileKYCVerification() {
               </View>
             ))}
           </View>
-          <View className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+          <View className="bg-amber-50 border border-amber-200 rounded-xl p-3">
             <Text className="text-sm font-medium text-amber-800">What to do next</Text>
             <Text className="text-xs text-amber-700 mt-1">The name in your DigiLocker / Aadhaar or PAN must match the name you registered with. If there is a genuine discrepancy, please submit your KYC manually with supporting documents, or contact support to update your account name.</Text>
           </View>
@@ -1069,7 +1055,7 @@ export default function MobileKYCVerification() {
                 <Text className="text-xs text-amber-600">Add this IP in your CashFree dashboard under Settings → IP Whitelist.</Text>
               </View>
             ) : digiStep === 'error' ? (
-              <View className="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 flex-row items-start gap-2">
+              <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
                 <AlertCircle size={18} color="#dc2626" />
                 <View className="flex-1">
                   <Text className="text-sm font-medium text-red-700">Verification Failed</Text>
@@ -1137,7 +1123,7 @@ export default function MobileKYCVerification() {
                 <TextInput
                   value={digiManualCode}
                   onChangeText={(v) => setDigiManualCode(v.trim())}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm font-mono"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base"
                   placeholder={isCashFree ? 'Paste verification ID' : 'Paste authorization code'}
                   placeholderTextColor="#9ca3af"
                   autoCapitalize="none"
@@ -1304,7 +1290,7 @@ export default function MobileKYCVerification() {
 
             {kycData?.pan?.digilocker_verified && (
               <View className="flex-row items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
-                <ShieldCheck size={16} color="#16a34a" />
+                <ShieldCheck size={18} color="#16a34a" />
                 <Text className="text-sm text-emerald-700">PAN verified electronically via DigiLocker{kycData.pan.digilocker_provider ? ` (${kycData.pan.digilocker_provider})` : ''}. Document photo is not required.</Text>
               </View>
             )}
@@ -1314,7 +1300,7 @@ export default function MobileKYCVerification() {
               <TextInput
                 value={panForm.pan_number}
                 onChangeText={(v) => setPanForm({ ...panForm, pan_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-widest ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
                 placeholder="ABCDE1234F"
                 placeholderTextColor="#9ca3af"
                 autoCapitalize="characters"
@@ -1328,8 +1314,8 @@ export default function MobileKYCVerification() {
             )}
 
             {panError ? (
-              <View className="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 flex-row items-start gap-2">
-                <AlertCircle size={16} color="#dc2626" />
+              <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
+                <AlertCircle size={18} color="#dc2626" />
                 <Text className="text-sm text-red-700 flex-1">{panError}</Text>
               </View>
             ) : null}
@@ -1343,7 +1329,7 @@ export default function MobileKYCVerification() {
                 activeOpacity={0.7} delayPressIn={0}
               >
                 <Save size={18} color="white" />
-                <Text className="text-white font-semibold text-base">{panSaving ? 'Saving...' : kycData?.pan?.status === 'rejected' ? 'Resubmit' : 'Save & Submit'}</Text>
+                <Text className="text-white font-semibold text-center text-base">{panSaving ? 'Saving...' : kycData?.pan?.status === 'rejected' ? 'Resubmit' : 'Save & Submit'}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1372,7 +1358,7 @@ export default function MobileKYCVerification() {
 
             {kycData?.address?.digilocker_verified && (
               <View className="flex-row items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
-                <ShieldCheck size={16} color="#16a34a" />
+                <ShieldCheck size={18} color="#16a34a" />
                 <Text className="text-sm text-emerald-700">Address proof verified electronically via DigiLocker{kycData.address.digilocker_provider ? ` (${kycData.address.digilocker_provider})` : ''}. Document photos are not required.</Text>
               </View>
             )}
@@ -1390,7 +1376,7 @@ export default function MobileKYCVerification() {
                     setAddressForm({ ...addressForm, id_number: v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) });
                   }
                 }}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
                 placeholder={ID_NUMBER_PLACEHOLDERS[addressForm.proof_type] ?? 'Enter document ID number'}
                 placeholderTextColor="#9ca3af"
                 maxLength={addressForm.proof_type === 'aadhar' ? 12 : 20}
@@ -1471,7 +1457,7 @@ export default function MobileKYCVerification() {
               <TextInput
                 value={addressForm.pincode}
                 onChangeText={(v) => setAddressForm({ ...addressForm, pincode: v.replace(/\D/g, '').slice(0, 6) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
                 placeholder="6-digit pincode"
                 placeholderTextColor="#9ca3af"
                 keyboardType="number-pad"
@@ -1488,8 +1474,8 @@ export default function MobileKYCVerification() {
             )}
 
             {addressError ? (
-              <View className="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 flex-row items-start gap-2">
-                <AlertCircle size={16} color="#dc2626" />
+              <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
+                <AlertCircle size={18} color="#dc2626" />
                 <Text className="text-sm text-red-700 flex-1">{addressError}</Text>
               </View>
             ) : null}
@@ -1503,7 +1489,7 @@ export default function MobileKYCVerification() {
                 activeOpacity={0.7} delayPressIn={0}
               >
                 <Save size={18} color="white" />
-                <Text className="text-white font-semibold text-base">{addressSaving ? 'Saving...' : kycData?.address?.status === 'rejected' ? 'Resubmit' : 'Save & Submit'}</Text>
+                <Text className="text-white font-semibold text-center text-base">{addressSaving ? 'Saving...' : kycData?.address?.status === 'rejected' ? 'Resubmit' : 'Save & Submit'}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1571,7 +1557,7 @@ export default function MobileKYCVerification() {
               <TextInput
                 value={businessForm.incorporation_number}
                 onChangeText={(v) => setBusinessForm({ ...businessForm, incorporation_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 21) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
                 placeholder="CIN / LLP / Firm Number"
                 placeholderTextColor="#9ca3af"
                 maxLength={21}
@@ -1584,7 +1570,7 @@ export default function MobileKYCVerification() {
               <TextInput
                 value={businessForm.business_pan}
                 onChangeText={(v) => setBusinessForm({ ...businessForm, business_pan: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-widest ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
                 placeholder="AAAAA9999A"
                 placeholderTextColor="#9ca3af"
                 autoCapitalize="characters"
@@ -1598,7 +1584,7 @@ export default function MobileKYCVerification() {
               <TextInput
                 value={businessForm.gst_number}
                 onChangeText={(v) => setBusinessForm({ ...businessForm, gst_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 15) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-wider ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
                 placeholder="15-character GSTIN"
                 placeholderTextColor="#9ca3af"
                 maxLength={15}
@@ -1642,7 +1628,7 @@ export default function MobileKYCVerification() {
               <TextInput
                 value={businessForm.business_phone}
                 onChangeText={(v) => setBusinessForm({ ...businessForm, business_phone: v.replace(/[^0-9]/g, '').slice(0, 10) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-wider ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
                 placeholder="10-digit number"
                 placeholderTextColor="#9ca3af"
                 keyboardType="number-pad"
@@ -1664,15 +1650,15 @@ export default function MobileKYCVerification() {
             )}
 
             {businessError ? (
-              <View className="bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 flex-row items-start gap-2">
-                <AlertCircle size={16} color="#dc2626" />
+              <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
+                <AlertCircle size={18} color="#dc2626" />
                 <Text className="text-sm text-red-700 flex-1">{businessError}</Text>
               </View>
             ) : null}
 
             {businessSuccess && (
-              <View className="bg-green-50 border border-green-200 rounded-xl px-3 py-2.5 flex-row items-center gap-2">
-                <CheckCircle size={16} color="#16a34a" />
+              <View className="bg-green-50 border border-green-300 rounded-xl p-3 flex-row items-center gap-2">
+                <CheckCircle size={18} color="#16a34a" />
                 <Text className="text-sm text-green-700 flex-1">Business information saved successfully.</Text>
               </View>
             )}
@@ -1687,19 +1673,19 @@ export default function MobileKYCVerification() {
                   activeOpacity={0.7} delayPressIn={0}
                 >
                   <Save size={18} color="white" />
-                  <Text className="text-white font-semibold text-base">{businessSaving ? 'Saving...' : kycData?.business?.status === 'rejected' ? 'Resubmit Business Info' : 'Save Business Info'}</Text>
+                  <Text className="text-white font-semibold text-center text-base">{businessSaving ? 'Saving...' : kycData?.business?.status === 'rejected' ? 'Resubmit Business Info' : 'Save Business Info'}</Text>
                 </TouchableOpacity>
 
                 {kycData?.business?.status === 'rejected' && (
                   <TouchableOpacity
                     onPress={() => setShowRemoveConfirm(true)}
                     disabled={businessSaving || removingBusiness}
-                    className="px-4 py-3.5 bg-red-600 rounded-xl flex-row items-center gap-2"
+                    className="px-4 py-3.5 bg-red-600 rounded-xl flex-row items-center justify-center gap-2"
                     style={{ opacity: businessSaving || removingBusiness ? 0.5 : 1 }}
                     activeOpacity={0.7} delayPressIn={0}
                   >
                     <Trash2 size={18} color="white" />
-                    <Text className="text-white font-semibold text-base">Remove</Text>
+                    <Text className="text-white font-semibold text-center text-base">Remove</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -1809,8 +1795,8 @@ export default function MobileKYCVerification() {
           </View>
 
           {error ? (
-            <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-center gap-2">
-              <AlertCircle size={16} color="#dc2626" />
+            <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
+              <AlertCircle size={18} color="#dc2626" />
               <Text className="text-sm text-red-700 flex-1">{error}</Text>
             </View>
           ) : null}
