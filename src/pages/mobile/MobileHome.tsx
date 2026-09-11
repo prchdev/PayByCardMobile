@@ -66,7 +66,7 @@ export default function MobileHome() {
       <View className="px-4 py-6 items-center">
         <Image
           source={require('../../../public/PayByCard-Logo.png')}
-          className="w-28 h-14 self-center"
+          className="w-56 h-28 self-center"
           resizeMode="contain"
         />
         <Text className="text-2xl font-bold text-gray-900 text-center mt-3 leading-tight">
