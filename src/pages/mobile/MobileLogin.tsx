@@ -21,9 +21,12 @@ export default function MobileLogin() {
   const validateForm = (): boolean => {
     const e = { email: '', password: '' };
     if (!formData.email.trim()) e.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) e.email = 'Enter a valid email';
+    else if (formData.email.length > 100) e.email = 'Email must not exceed 100 characters';
+    else if (!/^[A-Za-z0-9@_.\-]+$/.test(formData.email)) e.email = 'Email may only contain letters, numbers, @, _, ., and -';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) e.email = 'Please enter a valid email address';
     if (!formData.password) e.password = 'Password is required';
-    else if (formData.password.length < 8) e.password = 'Min 8 characters';
+    else if (formData.password.length < 8) e.password = 'Password must be at least 8 characters';
+    else if (formData.password.length > 20) e.password = 'Password must not exceed 20 characters';
     setErrors(e);
     return !e.email && !e.password;
   };
@@ -79,7 +82,7 @@ export default function MobileLogin() {
       style={{ flex: 1 }}
     >
     <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} className="flex-1 bg-gray-50 px-4 py-6" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" showsVerticalScrollIndicator={false}>
-      <View className="flex-1 max-w-sm w-full self-center">
+      <View className="max-w-sm w-full self-center">
         <View className="items-center mb-4">
           <Image
             source={require('../../../public/PayByCard-Logo.png')}
@@ -101,7 +104,7 @@ export default function MobileLogin() {
                 <Text className={`text-xs mt-0.5 ${isLocked ? 'text-orange-800' : 'text-red-800'}`}>{error}</Text>
                 {isLocked && (
                   <TouchableOpacity onPress={() => navigate('/mobile/forgot-password')} activeOpacity={0.7} delayPressIn={0}>
-                    <Text className="text-xs font-semibold text-orange-700 underline mt-1">Reset your password</Text>
+                    <Text className="text-xs font-semibold text-orange-700 underline mt-1">Reset your password now</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -111,7 +114,7 @@ export default function MobileLogin() {
 
         <View className="gap-3 bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
           <View>
-            <Text className="text-sm font-semibold text-gray-700 mb-1.5">Email Address</Text>
+            <Text className="text-sm font-semibold text-gray-700 mb-1.5">Email Address <Text className="text-red-600">*</Text></Text>
             <TextInput
               value={formData.email}
               onChangeText={(v) => setFormData({ ...formData, email: v.replace(/[^A-Za-z0-9@_.\-]/g, '') })}
@@ -125,7 +128,7 @@ export default function MobileLogin() {
           </View>
 
           <View>
-            <Text className="text-sm font-semibold text-gray-700 mb-1.5">Password</Text>
+            <Text className="text-sm font-semibold text-gray-700 mb-1.5">Password <Text className="text-red-600">*</Text></Text>
             <View className="flex-row items-center">
               <TextInput
                 value={formData.password}
@@ -134,6 +137,7 @@ export default function MobileLogin() {
                 placeholder="********"
                 maxLength={20}
                 secureTextEntry={!showPassword}
+                minLength={8}
                 autoCapitalize="none"
               />
               <TouchableOpacity
