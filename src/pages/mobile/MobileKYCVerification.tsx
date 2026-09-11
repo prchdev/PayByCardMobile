@@ -262,6 +262,8 @@ export default function MobileKYCVerification() {
   const [digiShowManualInput, setDigiShowManualInput] = useState(false);
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const popupRef = useRef<Window | null>(null);
+  const localStorageIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stepRef = useRef(digiStep);
   const verificationIdRef = useRef(digiVerificationId);
   const redirectUriRef = useRef(digiRedirectUri);
@@ -271,7 +273,61 @@ export default function MobileKYCVerification() {
   useEffect(() => { stepRef.current = digiStep; }, [digiStep]);
   useEffect(() => { verificationIdRef.current = digiVerificationId; }, [digiVerificationId]);
   useEffect(() => { redirectUriRef.current = digiRedirectUri; }, [digiRedirectUri]);
-  useEffect(() => () => { if (pollTimerRef.current) clearTimeout(pollTimerRef.current); }, []);
+  useEffect(() => () => {
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    if (localStorageIntervalRef.current) clearInterval(localStorageIntervalRef.current);
+  }, []);
+
+  // ── Web: localStorage + postMessage listener for DigiLocker redirect ────────
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const handleMessage = (event: MessageEvent) => {
+      const d = event.data;
+      if (!d || typeof d !== 'object') return;
+      const oauthCode = d.code || d.authCode || d.authorization_code;
+      if (oauthCode && typeof oauthCode === 'string' && stepRef.current === 'waiting_popup' && !codeReceivedRef.current) {
+        codeReceivedRef.current = true;
+        localStorage.removeItem('digilocker_code');
+        runAutoApprove(oauthCode);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'digilocker_code' && e.newValue && stepRef.current === 'waiting_popup' && !codeReceivedRef.current) {
+        codeReceivedRef.current = true;
+        localStorage.removeItem('digilocker_code');
+        runAutoApprove(e.newValue);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+
+  // ── Web: popup closed watcher ───────────────────────────────────────────────
+  useEffect(() => {
+    if (Platform.OS !== 'web' || digiStep !== 'waiting_popup') return;
+    const interval = setInterval(() => {
+      if (popupRef.current && popupRef.current.closed) {
+        clearInterval(interval);
+        setTimeout(() => {
+          if (codeReceivedRef.current) return;
+          const code = localStorage.getItem('digilocker_code');
+          if (code) {
+            codeReceivedRef.current = true;
+            localStorage.removeItem('digilocker_code');
+            runAutoApprove(code);
+          }
+        }, 500);
+      }
+    }, 600);
+    return () => clearInterval(interval);
+  }, [digiStep]);
 
   // ── Data fetching ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -397,18 +453,11 @@ export default function MobileKYCVerification() {
 
       if (Platform.OS === 'web') {
         const blob = await (await fetch(file.uri)).blob();
-        const fileObj = new File([blob], file.name, { type: mimeType });
-        const res = await fetch(uploadUrl, {
-          method: 'POST',
-          headers,
-          body: (() => {
-            const fd = new FormData();
-            fd.append('file', fileObj);
-            fd.append('fileKey', fileKey);
-            fd.append('userId', userId || '');
-            return fd;
-          })(),
-        });
+        const fd = new FormData();
+        fd.append('file', blob, file.name);
+        fd.append('fileKey', fileKey);
+        fd.append('userId', userId || '');
+        const res = await fetch(uploadUrl, { method: 'POST', headers, body: fd });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Upload failed');
         return data.url;
@@ -457,16 +506,34 @@ export default function MobileKYCVerification() {
       verificationIdRef.current = vid;
       setDigiRedirectUri(rUri);
       redirectUriRef.current = rUri;
+      codeReceivedRef.current = false;
 
-      // Open in WebBrowser (works on web build via iframe)
-      await WebBrowser.openBrowserAsync(url, {
-        toolbarColor: '#8c76f0',
-        controlsColor: '#8c76f0',
-      });
+      if (Platform.OS === 'web') {
+        // On web: open a popup window so the DigiLocker callback page can
+        // write the auth code to localStorage and close itself.
+        localStorage.removeItem('digilocker_code');
+        localStorage.removeItem('digilocker_error');
+        const w = 500, h = 700;
+        const left = Math.max(0, (window.screen.width - w) / 2);
+        const top = Math.max(0, (window.screen.height - h) / 2);
+        const popup = window.open(url, 'DigiLockerAuth', `width=${w},height=${h},left=${left},top=${top},scrollbars=yes,resizable=yes`);
+        if (popup && !popup.closed) {
+          popupRef.current = popup;
+        } else {
+          // Popup blocked — open as new tab
+          window.open(url, '_blank');
+        }
+      } else {
+        // On native: use WebBrowser and fall back to manual code entry
+        await WebBrowser.openBrowserAsync(url, {
+          toolbarColor: '#8c76f0',
+          controlsColor: '#8c76f0',
+        });
+        setDigiShowManualInput(true);
+      }
 
       logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'popup_opened', true, { redirect_uri: rUri });
       setDigiStep('waiting_popup');
-      setDigiShowManualInput(true);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to connect to DigiLocker';
       logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'get_auth_url_error', false, {
@@ -594,6 +661,12 @@ export default function MobileKYCVerification() {
 
   const retryDigiLocker = () => {
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    if (Platform.OS === 'web') {
+      if (popupRef.current && !popupRef.current.closed) popupRef.current.close();
+      popupRef.current = null;
+      localStorage.removeItem('digilocker_code');
+      localStorage.removeItem('digilocker_error');
+    }
     setDigiStep('idle');
     setDigiError('');
     setDigiAddrError(null);
@@ -1158,7 +1231,11 @@ export default function MobileKYCVerification() {
               <ActivityIndicator size="small" color="#8c76f0" />
               <View className="flex-1">
                 <Text className="text-sm font-medium text-gray-800">Waiting for DigiLocker authorization...</Text>
-                <Text className="text-xs text-gray-500 mt-0.5">Complete the authorization in the browser, then come back here.</Text>
+                <Text className="text-xs text-gray-500 mt-0.5">
+                  {Platform.OS === 'web'
+                    ? 'Complete the authorization in the popup. It will close automatically and your KYC will be verified.'
+                    : 'Complete the authorization in the browser, then come back here.'}
+                </Text>
               </View>
             </View>
 
