@@ -147,7 +147,7 @@ export default function MobileRegister() {
             <TextInput
               value={formData.middleName}
               onChangeText={(v) => setFormData({ ...formData, middleName: v.replace(/[^A-Za-z ]/g, '') })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base"
               placeholder="Kumar" maxLength={30}
             />
             {errors.middleName ? <Text className="text-red-600 text-xs mt-1">{errors.middleName}</Text> : null}
@@ -156,8 +156,8 @@ export default function MobileRegister() {
           <View>
             <Text className="text-sm font-semibold text-gray-700 mb-1.5">Mobile Number *</Text>
             <View className="flex-row">
-              <View className="px-3 py-2 bg-gray-100 border border-r-0 border-gray-300 rounded-l-xl justify-center">
-                <Text className="text-gray-700 font-semibold text-sm">+91</Text>
+              <View className="px-4 py-3 bg-gray-100 border border-r-0 border-gray-300 rounded-l-xl justify-center">
+                <Text className="text-gray-700 font-semibold text-base">+91</Text>
               </View>
               <TextInput
                 value={formData.mobileNumber}
@@ -174,7 +174,7 @@ export default function MobileRegister() {
             <TextInput
               value={formData.email}
               onChangeText={(v) => setFormData({ ...formData, email: v.replace(/[^A-Za-z0-9@_.\-]/g, '') })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base"
               placeholder="amit.jha@example.com" maxLength={100}
               keyboardType="email-address" autoCapitalize="none"
             />
