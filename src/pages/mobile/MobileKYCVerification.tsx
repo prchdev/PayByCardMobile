@@ -497,7 +497,7 @@ export default function MobileKYCVerification() {
           userId,
           action: 'get_auth_url',
           codeChallenge,
-          platform: Platform.OS === 'web' ? 'web' : 'mobile',
+          platform: 'web',
         }),
       });
       const data = await res.json();
@@ -661,7 +661,7 @@ export default function MobileKYCVerification() {
         body: JSON.stringify({
           userId, action: 'auto_approve', authCode: code,
           redirectUri: resolvedRedirectUri, codeVerifier: resolvedCodeVerifier,
-          platform: Platform.OS === 'web' ? 'web' : 'mobile',
+          platform: 'web',
         }),
       });
       const data = await res.json();
