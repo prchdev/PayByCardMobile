@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CreditCard, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Info, ArrowUpRight,
   Landmark, FileText, Wallet, Calculator, CheckCircle, Search, Clock, Circle as XCircle,
-  X, ShieldCheck,
+  X,
 } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -73,7 +73,7 @@ export default function MobileMakePayment() {
   const [selectedOption, setSelectedOption] = useState('');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(true);
-  const [kycVerified, setKycVerified] = useState(false);
+  const [kycStatus, setKycStatus] = useState<{ isVerified: boolean; status: string; isRestricted?: boolean } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showBeneficiaryList, setShowBeneficiaryList] = useState(false);
@@ -100,7 +100,7 @@ export default function MobileMakePayment() {
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
-      if (res.ok) setKycVerified(data.isVerified === true || data.status === 'verified');
+      if (res.ok) setKycStatus({ isVerified: data.isVerified === true || data.status === 'verified', status: data.status, isRestricted: data.isRestricted });
     } catch {}
   };
 
@@ -552,22 +552,27 @@ export default function MobileMakePayment() {
               <ActivityIndicator size="large" color="#8c76f0" />
               <Text className="text-base text-gray-500 mt-2">Loading payment details...</Text>
             </View>
-          ) : !kycVerified ? (
-            <View className="items-center py-8 gap-4">
-              <View className="w-16 h-16 rounded-full bg-amber-50 items-center justify-center">
-                <ShieldCheck size={36} color="#d97706" />
+          ) : kycStatus && !kycStatus.isVerified ? (
+            <View className="items-center justify-center py-8">
+              <View className="bg-white rounded-2xl border-2 border-yellow-300 p-6 items-center w-full max-w-sm">
+                <View className="w-16 h-16 bg-yellow-100 rounded-full items-center justify-center mb-4">
+                  <AlertCircle size={32} color="#ca8a04" />
+                </View>
+                <Text className="text-xl font-bold text-gray-900 mb-3 text-center">KYC Verification Required</Text>
+                <Text className="text-sm text-gray-700 mb-6 text-center">
+                  {kycStatus.status === 'not_submitted' && 'Please complete your KYC verification to make payments. You need to submit your PAN and Address details.'}
+                  {kycStatus.status === 'incomplete' && 'Your KYC submission is incomplete. Please complete all required sections to proceed.'}
+                  {kycStatus.status === 'pending' && 'Your KYC documents are under review. Please wait for admin approval before making payments.'}
+                  {kycStatus.status === 'rejected' && 'Your KYC verification was rejected. Please review the feedback and resubmit your documents.'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })}
+                  className="px-6 py-3 bg-[#8c76f0] rounded-xl"
+                  activeOpacity={0.8}
+                >
+                  <Text className="text-white font-semibold">Go to KYC Verification</Text>
+                </TouchableOpacity>
               </View>
-              <Text className="text-lg font-bold text-gray-900">KYC Verification Required</Text>
-              <Text className="text-sm text-gray-500 text-center px-4">
-                You need to complete your KYC verification before making payments. Please verify your identity to continue.
-              </Text>
-              <TouchableOpacity
-                onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })}
-                className="bg-[#8c76f0] rounded-xl px-6 py-3"
-                activeOpacity={0.7} delayPressIn={0}
-              >
-                <Text className="text-white font-semibold text-base">Complete KYC</Text>
-              </TouchableOpacity>
             </View>
           ) : (
             <View className="gap-4">
