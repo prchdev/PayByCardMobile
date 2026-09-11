@@ -6,6 +6,8 @@ import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
 import { validatePassword, PASSWORD_REQUIREMENTS } from '../../utils/passwordValidation';
 import { capitalizeName } from '../../utils/nameFormat';
+import TermsOfServiceContent from '../../components/mobile/TermsOfServiceContent';
+import PrivacyPolicyContent from '../../components/mobile/PrivacyPolicyContent';
 
 interface FormData {
   firstName: string; middleName: string; lastName: string;
@@ -278,12 +280,8 @@ export default function MobileRegister() {
                 <X size={20} color="#6b7280" />
               </TouchableOpacity>
             </View>
-            <ScrollView className="flex-1 p-4">
-              <Text className="text-sm text-gray-700">
-                {activeModal === 'terms'
-                  ? 'Terms of Service content. In the web version this renders the full TermsOfService component.'
-                  : 'Privacy Policy content. In the web version this renders the full Privacy component.'}
-              </Text>
+            <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
+              {activeModal === 'terms' ? <TermsOfServiceContent /> : <PrivacyPolicyContent />}
             </ScrollView>
             <View className="px-4 py-3 border-t border-gray-200">
               <Pressable onPress={() => setActiveModal(null)} className="bg-[#8c76f0] rounded-xl py-2.5">
