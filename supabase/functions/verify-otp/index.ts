@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
+import { issueSessionToken } from '../_shared/session.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -141,10 +142,13 @@ Deno.serve(async (req: Request) => {
       throw userUpdateError;
     }
 
+    const sessionToken = await issueSessionToken('user', userId);
+
     return new Response(
       JSON.stringify({
         success: true,
         message: 'OTP verification successful',
+        sessionToken,
       }),
       {
         status: 200,

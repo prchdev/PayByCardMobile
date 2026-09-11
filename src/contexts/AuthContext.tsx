@@ -11,10 +11,11 @@ interface AuthContextType {
   isAuthenticated: boolean;
   userId: string | null;
   userEmail: string | null;
+  sessionToken: string | null;
   isRemembered: boolean;
   rememberedEmail: string | null;
   hasBiometric: boolean;
-  login: (userId: string, email: string) => void;
+  login: (userId: string, email: string, sessionToken?: string) => void;
   biometricUnlock: () => Promise<{ userId: string; email: string } | null>;
   logout: () => void;
   clearRememberedSession: () => void;
@@ -25,11 +26,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const REMEMBERED_KEY = 'pbc_remembered_session';
 const SESSION_USER_ID = 'userId';
 const SESSION_USER_EMAIL = 'userEmail';
+const SESSION_TOKEN_KEY = 'pbc_session';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isRemembered, setIsRemembered] = useState(false);
   const [rememberedEmail, setRememberedEmail] = useState<string | null>(null);
   const [hasBiometric, setHasBiometric] = useState(false);
@@ -40,11 +43,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const storedUserId = await getSessionItem(SESSION_USER_ID);
       const storedEmail = await getSessionItem(SESSION_USER_EMAIL);
+      const storedToken = await getSessionItem(SESSION_TOKEN_KEY);
 
       if (mounted && storedUserId && storedEmail) {
         setIsAuthenticated(true);
         setUserId(storedUserId);
         setUserEmail(storedEmail);
+        if (storedToken) setSessionToken(storedToken);
       }
 
       try {
@@ -65,16 +70,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => { mounted = false; };
   }, []);
 
-  const login = (id: string, email: string) => {
+  const login = (id: string, email: string, token?: string) => {
     (async () => {
       await setSessionItem(SESSION_USER_ID, id);
       await setSessionItem(SESSION_USER_EMAIL, email);
-      await setItem(REMEMBERED_KEY, JSON.stringify({ userId: id, email }));
+      if (token) await setSessionItem(SESSION_TOKEN_KEY, token);
+      await setItem(REMEMBERED_KEY, JSON.stringify({ userId: id, email, sessionToken: token }));
     })();
 
     setIsAuthenticated(true);
     setUserId(id);
     setUserEmail(email);
+    if (token) setSessionToken(token);
     setIsRemembered(true);
     setRememberedEmail(email);
 
@@ -90,9 +97,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const parsed = JSON.parse(remembered);
       await setSessionItem(SESSION_USER_ID, parsed.userId);
       await setSessionItem(SESSION_USER_EMAIL, parsed.email);
+      if (parsed.sessionToken) await setSessionItem(SESSION_TOKEN_KEY, parsed.sessionToken);
       setIsAuthenticated(true);
       setUserId(parsed.userId);
       setUserEmail(parsed.email);
+      if (parsed.sessionToken) setSessionToken(parsed.sessionToken);
       return { userId: parsed.userId, email: parsed.email };
     } catch {
       await removeItem(REMEMBERED_KEY);
@@ -106,11 +115,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       await removeSessionItem(SESSION_USER_ID);
       await removeSessionItem(SESSION_USER_EMAIL);
+      await removeSessionItem(SESSION_TOKEN_KEY);
       await removeSessionItem('isRestricted');
     })();
     setIsAuthenticated(false);
     setUserId(null);
     setUserEmail(null);
+    setSessionToken(null);
   };
 
   const clearRememberedSession = () => {
@@ -124,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, userId, userEmail, isRemembered, rememberedEmail, hasBiometric, login, biometricUnlock, logout, clearRememberedSession }}>
+    <AuthContext.Provider value={{ isAuthenticated, userId, userEmail, sessionToken, isRemembered, rememberedEmail, hasBiometric, login, biometricUnlock, logout, clearRememberedSession }}>
       {children}
     </AuthContext.Provider>
   );

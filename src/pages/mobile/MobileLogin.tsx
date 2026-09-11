@@ -57,7 +57,7 @@ export default function MobileLogin() {
           state: { userId: data.userId, email: data.email, mobileNumber: data.mobileNumber, fromLogin: true },
         });
       } else {
-        login(data.userId, data.email);
+        login(data.userId, data.email, data.sessionToken);
         if (data.isRestricted) await setSessionItem('isRestricted', 'true');
         else await setSessionItem('isRestricted', 'false');
         await notification('success');

@@ -71,12 +71,10 @@ Deno.serve(async (req: Request) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      for (const urlField of ["front_photo_url", "back_photo_url"]) {
-        if (data[urlField] && String(data[urlField]).length > MAX_URL_LEN) {
-          return new Response(JSON.stringify({ error: `${urlField} is too long` }), {
-            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
+      if (data.address_proof_url_1 && String(data.address_proof_url_1).length > MAX_URL_LEN) {
+        return new Response(JSON.stringify({ error: "Address proof URL too long" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
@@ -86,15 +84,15 @@ Deno.serve(async (req: Request) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (data.business_pan && !PAN_REGEX.test(String(data.business_pan).trim().toUpperCase())) {
+      if (data.pan_number && !PAN_REGEX.test(String(data.pan_number).trim().toUpperCase())) {
         return new Response(JSON.stringify({ error: "Invalid business PAN number format" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (data.business_pan) {
-        data.business_pan = String(data.business_pan).trim().toUpperCase();
+      if (data.pan_number) {
+        data.pan_number = String(data.pan_number).trim().toUpperCase();
       }
-      for (const urlField of ["incorporation_certificate_url", "company_pan_photo_url", "gst_certificate_url", "loa_url", "moa_url", "aoa_url"]) {
+      for (const urlField of ["incorporation_certificate_url", "gst_certificate_url", "loa_url"]) {
         if (data[urlField] && String(data[urlField]).length > MAX_URL_LEN) {
           return new Response(JSON.stringify({ error: `${urlField} is too long` }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },

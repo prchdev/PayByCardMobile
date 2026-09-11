@@ -195,7 +195,7 @@ function logEvent(userId: string, provider: string, action: string, success: boo
 export default function MobileKYCVerification() {
   const { navigate, reset, route } = useNav();
   const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
-  const { logout } = useAuth();
+  const { logout, sessionToken } = useAuth();
 
   const [kycStatus, setKycStatus] = useState<string>('loading');
   const [loading, setLoading] = useState(true);
@@ -390,7 +390,10 @@ export default function MobileKYCVerification() {
 
       const res = await fetch(`${SUPABASE_URL}/functions/v1/upload-kyc-file`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+        headers: {
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          'x-pbc-session': sessionToken || '',
+        },
         body: formData,
       });
       const data = await res.json();
