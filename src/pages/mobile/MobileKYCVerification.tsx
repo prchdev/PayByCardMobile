@@ -523,16 +523,24 @@ export default function MobileKYCVerification() {
       redirectUriRef.current = rUri;
       codeReceivedRef.current = false;
 
+      // Set step to waiting_popup BEFORE opening the browser so the
+      // cancel handler can properly detect the state when the browser closes.
+      setDigiStep('waiting_popup');
+      stepRef.current = 'waiting_popup';
+
+      logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'popup_opened', true, { redirect_uri: rUri });
+
       // Use openAuthSessionAsync — on Android this opens a Custom Chrome Tab,
-      // on iOS it opens SFAuthenticationSession/ASWebAuthenticationSession.
+      // on iOS it opens ASWebAuthenticationSession.
       // Both intercept the redirect URL and return the full redirect URL with
       // the authorization code — no manual paste needed.
       const redirectUrl = rUri || (Platform.OS === 'web'
         ? `${window.location.origin}/digilocker-callback`
         : 'paybycard://digilocker-callback');
 
-      // Warm up the browser session for faster launch
-      await WebBrowser.warmUpAsync(redirectUrl);
+      try {
+        await WebBrowser.warmUpAsync(redirectUrl);
+      } catch {}
 
       const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl, {
         toolbarColor: '#8c76f0',
@@ -541,26 +549,38 @@ export default function MobileKYCVerification() {
         enableBarCollapsing: true,
       });
 
-      // Cool down after the session is done
-      WebBrowser.coolDownAsync(redirectUrl);
-
-      logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'popup_opened', true, { redirect_uri: rUri });
-      setDigiStep('waiting_popup');
+      try {
+        WebBrowser.coolDownAsync(redirectUrl);
+      } catch {}
 
       if (result.type === 'success' && result.url) {
-        const code = new URL(result.url).searchParams.get('code');
-        const errParam = new URL(result.url).searchParams.get('error');
-        if (code && !codeReceivedRef.current) {
-          codeReceivedRef.current = true;
-          runAutoApprove(code);
-        } else if (errParam) {
-          setDigiStep('error');
-          setDigiError(`DigiLocker authorization failed: ${errParam}`);
+        try {
+          const code = new URL(result.url).searchParams.get('code');
+          const errParam = new URL(result.url).searchParams.get('error');
+          if (code && !codeReceivedRef.current) {
+            codeReceivedRef.current = true;
+            runAutoApprove(code);
+          } else if (errParam) {
+            setDigiStep('error');
+            setDigiError(`DigiLocker authorization failed: ${errParam}`);
+          } else {
+            // Redirect URL matched but no code — treat as cancel
+            if (!codeReceivedRef.current) {
+              setDigiStep('error');
+              setDigiError('DigiLocker authorization did not return a code. Please try again.');
+            }
+          }
+        } catch {
+          if (!codeReceivedRef.current) {
+            setDigiStep('error');
+            setDigiError('DigiLocker authorization failed. Please try again.');
+          }
         }
       } else if (result.type === 'cancel' || result.type === 'dismiss') {
-        if (!codeReceivedRef.current && stepRef.current === 'waiting_popup') {
-          setDigiStep('error');
-          setDigiError('DigiLocker authorization was cancelled. Please try again.');
+        // Browser was closed by the user — reset to idle so they can retry
+        if (!codeReceivedRef.current) {
+          setDigiStep('idle');
+          setDigiError('');
         }
       }
     } catch (e) {
