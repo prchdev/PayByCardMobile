@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, Pressable, ScrollView } from 'react-native';
-import { ArrowLeft, Mail, Eye, EyeOff, Smartphone, RefreshCw, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { Mail, Eye, EyeOff, Smartphone, RefreshCw, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
 import { validatePassword, PASSWORD_REQUIREMENTS } from '../../utils/passwordValidation';
@@ -125,17 +125,16 @@ export default function MobileForgotPassword() {
   );
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} className="flex-1 bg-gray-50 px-4 py-6">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
+    >
+    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} className="flex-1 bg-gray-50 px-4 py-6" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" showsVerticalScrollIndicator={false}>
       <View className="max-w-sm w-full self-center">
-        <TouchableOpacity onPress={() => navigate('/mobile/login')} className="mb-3 flex-row items-center" activeOpacity={0.7} delayPressIn={0}>
-          <ArrowLeft size={16} color="#4b5563" />
-          <Text className="text-sm text-gray-600 ml-1">Back to Login</Text>
-        </TouchableOpacity>
-
         <View className="items-center mb-4">
           <Image
             source={require('../../../public/PayByCard-Logo.png')}
-            className="w-20 h-20"
+            className="w-28 h-14"
             resizeMode="contain"
           />
           <Text className="text-xl font-bold text-gray-900 mt-2">
@@ -167,14 +166,14 @@ export default function MobileForgotPassword() {
           {step === 'email' && (
             <View className="gap-3">
               <View>
-                <Text className="text-xs font-semibold text-gray-700 mb-1.5">Email Address</Text>
+                <Text className="text-sm font-semibold text-gray-700 mb-1.5">Email Address <Text className="text-red-600">*</Text></Text>
                 <TextInput
                   value={email} onChangeText={setEmail}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-xl text-sm"
-                  placeholder="john.doe@example.com" keyboardType="email-address" autoCapitalize="none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base"
+                  placeholder="john.doe@example.com" keyboardType="email-address" autoCapitalize="none" maxLength={100}
                 />
               </View>
-              <Pressable onPress={handleSendOTP} disabled={loading} className="w-full bg-[#8c76f0] rounded-xl py-2.5" style={{ opacity: loading ? 0.5 : 1 }}>
+              <Pressable onPress={handleSendOTP} disabled={loading} className="w-full bg-[#8c76f0] rounded-xl py-3.5" style={{ opacity: loading ? 0.5 : 1 }}>
                 <Text className="text-white font-semibold text-center">{loading ? 'Sending...' : 'Send OTPs'}</Text>
               </Pressable>
             </View>
@@ -185,7 +184,7 @@ export default function MobileForgotPassword() {
               <View>
                 <View className="flex-row items-center gap-2 mb-2">
                   <Mail size={16} color="#8c76f0" />
-                  <Text className="text-xs font-semibold text-gray-900">Email OTP</Text>
+                  <Text className="text-sm font-semibold text-gray-900">Email OTP</Text>
                 </View>
                 {otpRow(emailOtp, setEmailOtp, emailRefs)}
                 <View className="items-center mt-2">
@@ -200,7 +199,7 @@ export default function MobileForgotPassword() {
               <View>
                 <View className="flex-row items-center gap-2 mb-2">
                   <Smartphone size={16} color="#8c76f0" />
-                  <Text className="text-xs font-semibold text-gray-900">Mobile OTP</Text>
+                  <Text className="text-sm font-semibold text-gray-900">Mobile OTP</Text>
                 </View>
                 {otpRow(mobileOtp, setMobileOtp, mobileRefs)}
                 <View className="items-center mt-2">
@@ -211,7 +210,7 @@ export default function MobileForgotPassword() {
                     </TouchableOpacity>}
                 </View>
               </View>
-              <Pressable onPress={handleVerifyOTP} disabled={loading} className="w-full bg-[#8c76f0] rounded-xl py-2.5" style={{ opacity: loading ? 0.5 : 1 }}>
+              <Pressable onPress={handleVerifyOTP} disabled={loading} className="w-full bg-[#8c76f0] rounded-xl py-3.5" style={{ opacity: loading ? 0.5 : 1 }}>
                 <Text className="text-white font-semibold text-center">{loading ? 'Verifying...' : 'Verify OTPs'}</Text>
               </Pressable>
               <TouchableOpacity onPress={() => { setStep('email'); setSuccess(''); setError(''); }} activeOpacity={0.7} delayPressIn={0}>
@@ -223,12 +222,12 @@ export default function MobileForgotPassword() {
           {step === 'password' && (
             <View className="gap-3">
               <View>
-                <Text className="text-xs font-semibold text-gray-700 mb-1.5">New Password</Text>
+                <Text className="text-sm font-semibold text-gray-700 mb-1.5">New Password <Text className="text-red-600">*</Text></Text>
                 <View className="flex-row items-center">
                   <TextInput
                     value={newPassword} onChangeText={setNewPassword}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm pr-10"
-                    placeholder="********" secureTextEntry={!showPassword} autoCapitalize="none"
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-base pr-10"
+                    placeholder="********" secureTextEntry={!showPassword} autoCapitalize="none" maxLength={20}
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)} className="absolute right-3" activeOpacity={0.7} delayPressIn={0}>
                     {showPassword ? <EyeOff size={16} color="#9ca3af" /> : <Eye size={16} color="#9ca3af" />}
@@ -236,12 +235,12 @@ export default function MobileForgotPassword() {
                 </View>
               </View>
               <View>
-                <Text className="text-xs font-semibold text-gray-700 mb-1.5">Confirm Password</Text>
+                <Text className="text-sm font-semibold text-gray-700 mb-1.5">Confirm Password <Text className="text-red-600">*</Text></Text>
                 <View className="flex-row items-center">
                   <TextInput
                     value={confirmPassword} onChangeText={setConfirmPassword}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm pr-10"
-                    placeholder="********" secureTextEntry={!showConfirm} autoCapitalize="none"
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-base pr-10"
+                    placeholder="********" secureTextEntry={!showConfirm} autoCapitalize="none" maxLength={20}
                   />
                   <TouchableOpacity onPress={() => setShowConfirm(!showConfirm)} className="absolute right-3" activeOpacity={0.7} delayPressIn={0}>
                     {showConfirm ? <EyeOff size={16} color="#9ca3af" /> : <Eye size={16} color="#9ca3af" />}
@@ -256,7 +255,7 @@ export default function MobileForgotPassword() {
                   </View>
                 ))}
               </View>
-              <Pressable onPress={handleResetPassword} disabled={loading} className="w-full bg-[#8c76f0] rounded-xl py-2.5" style={{ opacity: loading ? 0.5 : 1 }}>
+              <Pressable onPress={handleResetPassword} disabled={loading} className="w-full bg-[#8c76f0] rounded-xl py-3.5" style={{ opacity: loading ? 0.5 : 1 }}>
                 <Text className="text-white font-semibold text-center">{loading ? 'Resetting...' : 'Reset Password'}</Text>
               </Pressable>
             </View>
@@ -264,5 +263,6 @@ export default function MobileForgotPassword() {
         </View>
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
