@@ -157,7 +157,7 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
   const digest = await Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
     verifier,
-    Crypto.CryptoEncoding.BASE64,
+    Crypto.CryptoEncoding.Base64,
   );
   return digest.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
@@ -237,6 +237,7 @@ export default function MobileKYCVerification() {
   const [businessSuccess, setBusinessSuccess] = useState(false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [removingBusiness, setRemovingBusiness] = useState(false);
+  const [showStatePicker, setShowStatePicker] = useState(false);
 
   // DigiLocker state
   const [digiStep, setDigiStep] = useState<DigiStep>('idle');
@@ -1449,22 +1450,44 @@ export default function MobileKYCVerification() {
 
           <View>
             <Text className="text-sm font-medium text-gray-700 mb-1.5">State *</Text>
-            <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
-              <View className="flex-row flex-wrap gap-2">
-                {INDIAN_STATES.map((s) => (
-                  <TouchableOpacity
-                    key={s}
-                    onPress={() => setAddressForm({ ...addressForm, state: s })}
-                    className={`px-3 py-2 rounded-lg border ${addressForm.state === s ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
-                    activeOpacity={0.7} delayPressIn={0}
-                    disabled={kycLocked}
-                  >
-                    <Text className={`text-xs font-medium ${addressForm.state === s ? 'text-white' : 'text-gray-700'}`}>{s}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+            <TouchableOpacity
+              onPress={() => !kycLocked && setShowStatePicker(true)}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl flex-row items-center justify-between ${kycLocked ? 'bg-gray-50' : 'bg-white'}`}
+              activeOpacity={0.7} delayPressIn={0}
+              disabled={kycLocked}
+            >
+              <Text className={`text-base ${addressForm.state ? 'text-gray-900' : 'text-gray-400'}`}>
+                {addressForm.state || 'Select your state'}
+              </Text>
+              <ChevronRight size={18} color="#9ca3af" style={{ transform: [{ rotate: '90deg' }] }} />
+            </TouchableOpacity>
           </View>
+
+          <Modal visible={showStatePicker} animationType="slide" transparent>
+            <View className="flex-1 bg-black/50 justify-end">
+              <View className="bg-white rounded-t-2xl max-h-[70%]">
+                <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
+                  <Text className="text-base font-semibold text-gray-900">Select State</Text>
+                  <TouchableOpacity onPress={() => setShowStatePicker(false)} activeOpacity={0.7} delayPressIn={0}>
+                    <X size={20} color="#6b7280" />
+                  </TouchableOpacity>
+                </View>
+                <ScrollView nestedScrollEnabled>
+                  {INDIAN_STATES.map((s) => (
+                    <TouchableOpacity
+                      key={s}
+                      onPress={() => { setAddressForm({ ...addressForm, state: s }); setShowStatePicker(false); }}
+                      className={`px-4 py-3 flex-row items-center justify-between ${addressForm.state === s ? 'bg-[#8c76f0]' : ''}`}
+                      activeOpacity={0.7} delayPressIn={0}
+                    >
+                      <Text className={`text-base ${addressForm.state === s ? 'text-white font-semibold' : 'text-gray-700'}`}>{s}</Text>
+                      {addressForm.state === s && <CheckCircle size={18} color="white" />}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
 
           <View>
             <Text className="text-sm font-medium text-gray-700 mb-1.5">Pincode *</Text>
