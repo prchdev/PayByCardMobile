@@ -19,7 +19,7 @@ export default function MobileHome() {
 
   const highlights = [
     { icon: BadgeIndianRupee, label: 'Lowest Fees' },
-    { icon: Shield, label: 'No Hidden MCC Charges' },
+    { icon: Shield, label: 'No Hidden Charges' },
     { icon: Zap, label: 'Fast Settlement' },
     { icon: Building2, label: 'RBI Compliant' },
     { icon: Landmark, label: 'Registered Company' },
