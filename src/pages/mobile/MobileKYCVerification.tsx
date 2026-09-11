@@ -17,10 +17,10 @@ import { capitalizeName } from '../../utils/nameFormat';
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
 
 const ADDRESS_PROOF_TYPES = [
-  { value: 'aadhar', label: 'Aadhar' },
-  { value: 'driving_license', label: 'Driving License' },
-  { value: 'voter_id', label: 'Voter ID' },
+  { value: 'aadhar', label: 'Aadhar Card' },
   { value: 'passport', label: 'Passport' },
+  { value: 'voter_id', label: 'Voter ID' },
+  { value: 'driving_license', label: 'Driving License' },
 ];
 
 const INDIAN_STATES = [
@@ -39,7 +39,7 @@ const COMPANY_TYPES = [
 ];
 
 const COMPANY_TYPES_REQUIRING_INC_CERT = [
-  'Partnership', 'Limited Liability Partnership (LLP)',
+  'Limited Liability Partnership (LLP)',
   'Private Limited Company', 'One Person Company (OPC)', 'Public Limited Company',
 ];
 
@@ -152,6 +152,21 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
 }
 
 // ── Event logger ───────────────────────────────────────────────────────────────
+const clientIpRef: { current: string | null } = { current: null };
+
+async function getClientIp(): Promise<string | null> {
+  if (clientIpRef.current) return clientIpRef.current;
+  try {
+    const res = await fetch('https://api.ipify.org?format=json');
+    if (!res.ok) return null;
+    const { ip } = await res.json();
+    if (ip) clientIpRef.current = ip;
+    return ip || null;
+  } catch {
+    return null;
+  }
+}
+
 function logEvent(userId: string, provider: string, action: string, success: boolean, extra?: Record<string, unknown>) {
   fetch(`${SUPABASE_URL}/functions/v1/log-digilocker-event`, {
     method: 'POST',
@@ -354,6 +369,7 @@ export default function MobileKYCVerification() {
       const formData = new FormData();
       formData.append('file', { uri: file.uri, name: file.name, type: file.mimeType || 'image/jpeg' } as any);
       formData.append('fileKey', fileKey);
+      formData.append('userId', userId || '');
 
       const res = await fetch(`${SUPABASE_URL}/functions/v1/upload-kyc-file`, {
         method: 'POST',
@@ -550,11 +566,11 @@ export default function MobileKYCVerification() {
   };
 
   // ── Save KYC sections ──────────────────────────────────────────────────────
-  const saveKycSection = async (section: 'pan' | 'address' | 'business', data: Record<string, unknown>): Promise<boolean> => {
+  const saveKycSection = async (section: 'pan' | 'address' | 'business', data: Record<string, unknown>, ipAddress?: string | null): Promise<boolean> => {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/save-kyc-data`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, section, data }),
+      body: JSON.stringify({ userId, section, data, ipAddress }),
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Save failed');
@@ -600,15 +616,16 @@ export default function MobileKYCVerification() {
     if (!PAN_REGEX.test(panClean)) { setPanError('Please enter a valid PAN number (e.g., ABCDE1234F).'); return; }
 
     const panChanged = panClean !== (kycData?.pan?.pan_number ?? '');
-    if (panChanged && !panForm.pan_photo_url) { setPanError('PAN card photo is required when updating PAN number.'); return; }
+    if (panChanged && !panForm.pan_photo_url && !kycData?.pan?.pan_photo_url) { setPanError('PAN card photo is required when updating PAN number.'); return; }
+    if (panChanged && !panForm.pan_photo_url) { setPanError('Please upload a new PAN card photo when changing the PAN number.'); return; }
 
     setPanSaving(true);
     try {
+      const ip = await getClientIp();
       await saveKycSection('pan', {
         pan_number: panClean,
-        pan_photo_url: panForm.pan_photo_url || null,
-      });
-      setActiveSection(null);
+        pan_photo_url: panForm.pan_photo_url || kycData?.pan?.pan_photo_url || null,
+      }, ip);
       fetchKycData();
       fetchKycStatus();
     } catch (e) {
@@ -646,6 +663,7 @@ export default function MobileKYCVerification() {
 
     setAddressSaving(true);
     try {
+      const ip = await getClientIp();
       await saveKycSection('address', {
         id_number: addressForm.id_number.trim(),
         address: addressForm.address,
@@ -655,8 +673,7 @@ export default function MobileKYCVerification() {
         proof_type: addressForm.proof_type,
         front_photo_url: addressForm.front_photo_url || kycData?.address?.front_photo_url || null,
         back_photo_url: addressForm.back_photo_url || kycData?.address?.back_photo_url || null,
-      });
-      setActiveSection(null);
+      }, ip);
       fetchKycData();
       fetchKycStatus();
     } catch (e) {
@@ -713,6 +730,7 @@ export default function MobileKYCVerification() {
 
     setBusinessSaving(true);
     try {
+      const ip = await getClientIp();
       await saveKycSection('business', {
         company_type: businessForm.company_type,
         business_name: businessForm.business_name,
@@ -728,9 +746,8 @@ export default function MobileKYCVerification() {
         loa_url: businessForm.loa_url || kycData?.business?.loa_url || null,
         moa_url: requiresMoaAoa ? (businessForm.moa_url || kycData?.business?.moa_url || null) : null,
         aoa_url: requiresMoaAoa ? (businessForm.aoa_url || kycData?.business?.aoa_url || null) : null,
-      });
+      }, ip);
       setBusinessSuccess(true);
-      setActiveSection(null);
       fetchKycData();
       fetchKycStatus();
     } catch (e) {
