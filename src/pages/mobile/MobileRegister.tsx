@@ -99,7 +99,7 @@ export default function MobileRegister() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
     >
-    <ScrollView className="flex-1 bg-gray-50 px-4" style={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }} keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" showsVerticalScrollIndicator={false}>
+    <ScrollView className="flex-1 bg-gray-50 px-4" contentContainerStyle={{ paddingBottom: 120 }} style={{ paddingTop: insets.top + 12 }} keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" showsVerticalScrollIndicator={false}>
       <View className="max-w-sm w-full self-center">
         <View className="items-center mb-4">
           <Image

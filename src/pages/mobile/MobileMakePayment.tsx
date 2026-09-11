@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CreditCard, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Info, ArrowUpRight,
   Landmark, FileText, Wallet, Calculator, CheckCircle, Search, Clock, Circle as XCircle,
+  X, ShieldCheck,
 } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -72,6 +73,7 @@ export default function MobileMakePayment() {
   const [selectedOption, setSelectedOption] = useState('');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(true);
+  const [kycVerified, setKycVerified] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showBeneficiaryList, setShowBeneficiaryList] = useState(false);
@@ -87,8 +89,20 @@ export default function MobileMakePayment() {
 
   useEffect(() => {
     if (!userId) { navigate('/mobile/login'); return; }
-    Promise.all([fetchBeneficiaries(), fetchCategories(), fetchPaymentOptions(), fetchPaymentLimits()]).finally(() => setLoading(false));
+    Promise.all([fetchBeneficiaries(), fetchCategories(), fetchPaymentOptions(), fetchPaymentLimits(), fetchKycStatus()]).finally(() => setLoading(false));
   }, [userId]);
+
+  const fetchKycStatus = async () => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/check-kyc-status`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (res.ok) setKycVerified(data.isVerified || false);
+    } catch {}
+  };
 
   const fetchBeneficiaries = async () => {
     try {
@@ -536,6 +550,23 @@ export default function MobileMakePayment() {
               <ActivityIndicator size="large" color="#8c76f0" />
               <Text className="text-base text-gray-500 mt-2">Loading payment details...</Text>
             </View>
+          ) : !kycVerified ? (
+            <View className="items-center py-8 gap-4">
+              <View className="w-16 h-16 rounded-full bg-amber-50 items-center justify-center">
+                <ShieldCheck size={36} color="#d97706" />
+              </View>
+              <Text className="text-lg font-bold text-gray-900">KYC Verification Required</Text>
+              <Text className="text-sm text-gray-500 text-center px-4">
+                You need to complete your KYC verification before making payments. Please verify your identity to continue.
+              </Text>
+              <TouchableOpacity
+                onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })}
+                className="bg-[#8c76f0] rounded-xl px-6 py-3"
+                activeOpacity={0.7} delayPressIn={0}
+              >
+                <Text className="text-white font-semibold text-base">Complete KYC</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <View className="gap-4">
               {/* Step 1: Beneficiary */}
@@ -551,34 +582,42 @@ export default function MobileMakePayment() {
                   </Text>
                   {showBeneficiaryList ? <ChevronUp size={18} color="#6b7280" /> : <ChevronDown size={18} color="#6b7280" />}
                 </TouchableOpacity>
-                {showBeneficiaryList && (
-                  <View className="mt-1 bg-white border border-gray-200 rounded-xl shadow-sm">
-                    <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                      {beneficiaries.length === 0 ? (
-                        <View className="p-4 items-center">
-                          <Text className="text-base text-gray-500">No active beneficiaries yet</Text>
-                          <TouchableOpacity onPress={() => navigate('/mobile/my-beneficiaries', { state: { userId, userEmail } })} activeOpacity={0.7} delayPressIn={0}>
-                            <Text className="text-sm text-[#8c76f0] font-semibold mt-1.5">Add Payee</Text>
-                          </TouchableOpacity>
-                        </View>
-                      ) : beneficiaries.map((b) => (
-                        <TouchableOpacity
-                          key={b.id}
-                          onPress={() => { selection(); setSelectedBeneficiary(b.id); setShowBeneficiaryList(false); }}
-                          className={`p-3.5 border-b border-gray-100 ${selectedBeneficiary === b.id ? 'bg-[#f3f0fe]' : ''}`}
-                          activeOpacity={0.7} delayPressIn={0}
-                        >
-                          <Text className="text-base font-medium text-gray-900">{b.full_name}</Text>
-                          <View className="flex-row items-center gap-2 mt-0.5">
-                            <Landmark size={12} color="#9ca3af" />
-                            <Text className="text-sm text-gray-500">{b.bank_name} - ****{(b.bank_account || '').slice(-4)}</Text>
-                          </View>
-                          <Text className="text-xs text-gray-400 mt-0.5">{b.ifsc} - {b.branch_name}</Text>
+                <Modal visible={showBeneficiaryList} animationType="slide" transparent>
+                  <View className="flex-1 bg-black/50 justify-end">
+                    <View className="bg-white rounded-t-2xl max-h-[70%]">
+                      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
+                        <Text className="text-base font-semibold text-gray-900">Select Beneficiary</Text>
+                        <TouchableOpacity onPress={() => setShowBeneficiaryList(false)} activeOpacity={0.7} delayPressIn={0}>
+                          <X size={20} color="#6b7280" />
                         </TouchableOpacity>
-                      ))}
-                    </ScrollView>
+                      </View>
+                      <ScrollView nestedScrollEnabled>
+                        {beneficiaries.length === 0 ? (
+                          <View className="p-4 items-center">
+                            <Text className="text-base text-gray-500">No active beneficiaries yet</Text>
+                            <TouchableOpacity onPress={() => { setShowBeneficiaryList(false); navigate('/mobile/my-beneficiaries', { state: { userId, userEmail } }); }} activeOpacity={0.7} delayPressIn={0}>
+                              <Text className="text-sm text-[#8c76f0] font-semibold mt-1.5">Add Payee</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ) : beneficiaries.map((b) => (
+                          <TouchableOpacity
+                            key={b.id}
+                            onPress={() => { selection(); setSelectedBeneficiary(b.id); setShowBeneficiaryList(false); }}
+                            className={`p-3.5 border-b border-gray-100 ${selectedBeneficiary === b.id ? 'bg-[#f3f0fe]' : ''}`}
+                            activeOpacity={0.7} delayPressIn={0}
+                          >
+                            <Text className="text-base font-medium text-gray-900">{b.full_name}</Text>
+                            <View className="flex-row items-center gap-2 mt-0.5">
+                              <Landmark size={12} color="#9ca3af" />
+                              <Text className="text-sm text-gray-500">{b.bank_name} - ****{(b.bank_account || '').slice(-4)}</Text>
+                            </View>
+                            <Text className="text-xs text-gray-400 mt-0.5">{b.ifsc} - {b.branch_name}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
                   </View>
-                )}
+                </Modal>
               </View>
 
               {/* Beneficiary details */}
@@ -624,32 +663,40 @@ export default function MobileMakePayment() {
                   </Text>
                   {showCategoryList ? <ChevronUp size={18} color="#6b7280" /> : <ChevronDown size={18} color="#6b7280" />}
                 </TouchableOpacity>
-                {showCategoryList && (
-                  <View className="mt-1 bg-white border border-gray-200 rounded-xl shadow-sm">
-                    <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                      {categories.length === 0 ? (
-                        <View className="p-4 items-center">
-                          <Text className="text-base text-gray-500">No categories available</Text>
-                        </View>
-                      ) : categories.map((c) => (
-                        <TouchableOpacity
-                          key={c.id}
-                          onPress={() => { selection(); setSelectedCategory(c.id); setShowCategoryList(false); }}
-                          className={`p-3.5 border-b border-gray-100 ${selectedCategory === c.id ? 'bg-[#f3f0fe]' : ''}`}
-                          activeOpacity={0.7} delayPressIn={0}
-                        >
-                          <View className="flex-row items-center gap-2">
-                            <FileText size={16} color="#8c76f0" />
-                            <Text className="text-base font-medium text-gray-900">{c.category_name}</Text>
-                          </View>
-                          {c.receiver_kyc_required && (
-                            <Text className="text-xs text-amber-600 mt-0.5 ml-6">KYC required</Text>
-                          )}
+                <Modal visible={showCategoryList} animationType="slide" transparent>
+                  <View className="flex-1 bg-black/50 justify-end">
+                    <View className="bg-white rounded-t-2xl max-h-[70%]">
+                      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
+                        <Text className="text-base font-semibold text-gray-900">Select Category</Text>
+                        <TouchableOpacity onPress={() => setShowCategoryList(false)} activeOpacity={0.7} delayPressIn={0}>
+                          <X size={20} color="#6b7280" />
                         </TouchableOpacity>
-                      ))}
-                    </ScrollView>
+                      </View>
+                      <ScrollView nestedScrollEnabled>
+                        {categories.length === 0 ? (
+                          <View className="p-4 items-center">
+                            <Text className="text-base text-gray-500">No categories available</Text>
+                          </View>
+                        ) : categories.map((c) => (
+                          <TouchableOpacity
+                            key={c.id}
+                            onPress={() => { selection(); setSelectedCategory(c.id); setShowCategoryList(false); }}
+                            className={`p-3.5 border-b border-gray-100 ${selectedCategory === c.id ? 'bg-[#f3f0fe]' : ''}`}
+                            activeOpacity={0.7} delayPressIn={0}
+                          >
+                            <View className="flex-row items-center gap-2">
+                              <FileText size={16} color="#8c76f0" />
+                              <Text className="text-base font-medium text-gray-900">{c.category_name}</Text>
+                            </View>
+                            {c.receiver_kyc_required && (
+                              <Text className="text-xs text-amber-600 mt-0.5 ml-6">KYC required</Text>
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
                   </View>
-                )}
+                </Modal>
               </View>
 
               {/* Step 3: Payment Option */}
@@ -665,38 +712,46 @@ export default function MobileMakePayment() {
                   </Text>
                   {showOptionList ? <ChevronUp size={18} color="#6b7280" /> : <ChevronDown size={18} color="#6b7280" />}
                 </TouchableOpacity>
-                {showOptionList && (
-                  <View className="mt-1 bg-white border border-gray-200 rounded-xl shadow-sm">
-                    <ScrollView style={{ maxHeight: 300 }} nestedScrollEnabled keyboardShouldPersistTaps="handled">
-                      {paymentOptions.length === 0 ? (
-                        <View className="p-4 items-center">
-                          <Text className="text-base text-gray-500">No payment options available</Text>
-                        </View>
-                      ) : paymentOptions.map((o) => (
-                        <TouchableOpacity
-                          key={o.id}
-                          onPress={() => { selection(); setSelectedOption(o.id); setShowOptionList(false); }}
-                          className={`p-3.5 border-b border-gray-100 ${selectedOption === o.id ? 'bg-[#f3f0fe]' : ''}`}
-                          activeOpacity={0.7} delayPressIn={0}
-                        >
-                          <View className="flex-row items-center gap-2">
-                            <Wallet size={16} color="#8c76f0" />
-                            <Text className="text-base font-medium text-gray-900">{o.category_name}</Text>
-                          </View>
-                          <Text className="text-xs text-gray-500 mt-0.5 ml-6">
-                            Charges: {o.charges_percentage}% + GST{o.show_discount ? ` (Discount: ${o.discounted_charges_percentage}%)` : ''}
-                          </Text>
-                          {o.settlement_time ? (
-                            <View className="flex-row items-center gap-1 mt-0.5 ml-6">
-                              <Clock size={11} color="#9ca3af" />
-                              <Text className="text-xs text-gray-400">Settlement: {o.settlement_time}</Text>
-                            </View>
-                          ) : null}
+                <Modal visible={showOptionList} animationType="slide" transparent>
+                  <View className="flex-1 bg-black/50 justify-end">
+                    <View className="bg-white rounded-t-2xl max-h-[70%]">
+                      <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
+                        <Text className="text-base font-semibold text-gray-900">Select Payment Option</Text>
+                        <TouchableOpacity onPress={() => setShowOptionList(false)} activeOpacity={0.7} delayPressIn={0}>
+                          <X size={20} color="#6b7280" />
                         </TouchableOpacity>
-                      ))}
-                    </ScrollView>
+                      </View>
+                      <ScrollView nestedScrollEnabled>
+                        {paymentOptions.length === 0 ? (
+                          <View className="p-4 items-center">
+                            <Text className="text-base text-gray-500">No payment options available</Text>
+                          </View>
+                        ) : paymentOptions.map((o) => (
+                          <TouchableOpacity
+                            key={o.id}
+                            onPress={() => { selection(); setSelectedOption(o.id); setShowOptionList(false); }}
+                            className={`p-3.5 border-b border-gray-100 ${selectedOption === o.id ? 'bg-[#f3f0fe]' : ''}`}
+                            activeOpacity={0.7} delayPressIn={0}
+                          >
+                            <View className="flex-row items-center gap-2">
+                              <Wallet size={16} color="#8c76f0" />
+                              <Text className="text-base font-medium text-gray-900">{o.category_name}</Text>
+                            </View>
+                            <Text className="text-xs text-gray-500 mt-0.5 ml-6">
+                              Charges: {o.charges_percentage}% + GST{o.show_discount ? ` (Discount: ${o.discounted_charges_percentage}%)` : ''}
+                            </Text>
+                            {o.settlement_time ? (
+                              <View className="flex-row items-center gap-1 mt-0.5 ml-6">
+                                <Clock size={11} color="#9ca3af" />
+                                <Text className="text-xs text-gray-400">Settlement: {o.settlement_time}</Text>
+                              </View>
+                            ) : null}
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
                   </View>
-                )}
+                </Modal>
               </View>
 
               {/* Step 4: Amount */}
