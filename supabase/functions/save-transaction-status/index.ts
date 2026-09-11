@@ -746,10 +746,13 @@ Deno.serve(async (req: Request) => {
           },
         });
 
-        await supabase.rpc("send_push_notification", {
-          p_user_id: userId, p_title: notifConfig.title, p_body: notifConfig.body,
-          p_data: { type: notifConfig.type, payment_id: paymentId, payment_reference: fullPayment.payment_reference, amount: fullPayment.amount, status: resolvedStatus },
-        });
+        try {
+          await fetch(`${SUPABASE_URL()}/functions/v1/send-push-notification`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+            body: JSON.stringify({ userId, title: notifConfig.title, body: notifConfig.body, data: { type: notifConfig.type, payment_id: paymentId, payment_reference: fullPayment.payment_reference, amount: fullPayment.amount, status: resolvedStatus } }),
+          });
+        } catch (e) { console.error("Push failed:", e); }
       }
 
       if (isGatewaySuccess && fullPayment) {

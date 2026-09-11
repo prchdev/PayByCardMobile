@@ -299,10 +299,13 @@ Deno.serve(async (req: Request) => {
         p_data: { document_type: documentType, action, rejection_reason: rejectionReason || null },
       });
 
-      await supabase.rpc("send_push_notification", {
-        p_user_id: userId, p_title: notifTitle, p_body: notifBody,
-        p_data: { type: notifType, document_type: documentType, action },
-      });
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+          body: JSON.stringify({ userId, title: notifTitle, body: notifBody, data: { type: notifType, document_type: documentType, action } }),
+        });
+      } catch (e) { console.error("Push failed:", e); }
 
       if (kycCompleted) {
         await supabase.rpc("create_mobile_notification", {
@@ -313,11 +316,13 @@ Deno.serve(async (req: Request) => {
           p_data: { kyc_completed: true },
         });
 
-        await supabase.rpc("send_push_notification", {
-          p_user_id: userId, p_title: "Account Fully Verified",
-          p_body: "Your KYC verification is complete. Your account is now active for all transactions.",
-          p_data: { type: "account_active", kyc_completed: true },
-        });
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseServiceKey}` },
+            body: JSON.stringify({ userId, title: "Account Fully Verified", body: "Your KYC verification is complete. Your account is now active for all transactions.", data: { type: "account_active", kyc_completed: true } }),
+          });
+        } catch (e) { console.error("Push failed:", e); }
       }
     })());
 

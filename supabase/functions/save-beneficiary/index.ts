@@ -347,11 +347,13 @@ Deno.serve(async (req: Request) => {
       p_data: { beneficiary_id: data.id, full_name, bank_name, account_last4: bank_account.slice(-4) },
     });
 
-    await supabase.rpc("send_push_notification", {
-      p_user_id: userId, p_title: "Beneficiary Added",
-      p_body: `${full_name} has been added as a beneficiary. Bank: ${bank_name}, Account: ****${bank_account.slice(-4)}.`,
-      p_data: { type: "beneficiary_added", beneficiary_id: data.id },
-    });
+    try {
+      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-push-notification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+        body: JSON.stringify({ userId, title: "Beneficiary Added", body: `${full_name} has been added as a beneficiary. Bank: ${bank_name}, Account: ****${bank_account.slice(-4)}.`, data: { type: "beneficiary_added", beneficiary_id: data.id } }),
+      });
+    } catch (e) { console.error("Push failed:", e); }
 
     return new Response(
       JSON.stringify({ success: true, beneficiary: data }),

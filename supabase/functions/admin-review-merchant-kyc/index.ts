@@ -435,11 +435,13 @@ Deno.serve(async (req: Request) => {
             p_body: `Beneficiary KYC verification was rejected. Please re-submit KYC to avoid automatic refund.`,
             p_data: { payment_id: record.payment_id, reason: "merchant_kyc_rejected" },
           });
-          await supabase.rpc("send_push_notification", {
-            p_user_id: pay.user_id, p_title: "Merchant KYC Rejected",
-            p_body: `Beneficiary KYC verification was rejected. Please re-submit KYC to avoid automatic refund.`,
-            p_data: { type: "merchant_kyc_rejected", payment_id: record.payment_id, reason: "merchant_kyc_rejected" },
-          });
+          try {
+            await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
+              body: JSON.stringify({ userId: pay.user_id, title: "Merchant KYC Rejected", body: `Beneficiary KYC verification was rejected. Please re-submit KYC to avoid automatic refund.`, data: { type: "merchant_kyc_rejected", payment_id: record.payment_id, reason: "merchant_kyc_rejected" } }),
+            });
+          } catch (e) { console.error("Push failed:", e); }
         }
       }
 
@@ -476,11 +478,13 @@ Deno.serve(async (req: Request) => {
           p_body: `Beneficiary KYC verification is complete. Settlement of ₹${Number(pay.amount).toFixed(2)} is now in progress.`,
           p_data: { payment_id: record.payment_id, beneficiary_name: record.full_name },
         });
-        await supabase.rpc("send_push_notification", {
-          p_user_id: pay.user_id, p_title: "Merchant KYC Completed",
-          p_body: `Beneficiary KYC verification is complete. Settlement of ₹${Number(pay.amount).toFixed(2)} is now in progress.`,
-          p_data: { type: "merchant_kyc_completed", payment_id: record.payment_id, beneficiary_name: record.full_name },
-        });
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
+            body: JSON.stringify({ userId: pay.user_id, title: "Merchant KYC Completed", body: `Beneficiary KYC verification is complete. Settlement of ₹${Number(pay.amount).toFixed(2)} is now in progress.`, data: { type: "merchant_kyc_completed", payment_id: record.payment_id, beneficiary_name: record.full_name } }),
+          });
+        } catch (e) { console.error("Push failed:", e); }
       }
     }
 

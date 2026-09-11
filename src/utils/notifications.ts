@@ -9,16 +9,31 @@ export async function setupNotifications(): Promise<void> {
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FF231F7C',
     });
+
+    // Additional channel for campaign notifications with images
+    await Notifications.setNotificationChannelAsync('campaigns', {
+      name: 'Campaign Notifications',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#3B82F6',
+    });
   }
 
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldShowAlert: true,
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-      shouldShowBanner: true,
-      shouldShowList: true,
-    }),
+    handleNotification: async (notification) => {
+      const data = notification.request.content.data || {};
+      const channelId = data.type === 'campaign' ? 'campaigns' : 'default';
+
+      return {
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        priority: Notifications.AndroidImportance.HIGH,
+        notificationChannel: channelId,
+      };
+    },
   });
 }
 

@@ -247,13 +247,24 @@ Deno.serve(async (req: Request) => {
 
         // Send push notification if enabled
         if (campaign.push_enabled) {
-          await supabase.rpc("send_push_notification", {
-            p_user_id: u.id,
-            p_title: campaign.title,
-            p_body: campaign.message,
-            p_data: { campaign_id: campaignId, action_url: campaign.action_url, type: "campaign" },
-            p_image_url: campaign.image_url || null,
-          });
+          try {
+            await fetch(`${supabaseUrl}/functions/v1/send-push-notification`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                userId: u.id,
+                title: campaign.title,
+                body: campaign.message,
+                data: { campaign_id: campaignId, action_url: campaign.action_url, type: "campaign" },
+                imageUrl: campaign.image_url || null,
+              }),
+            });
+          } catch (pushErr) {
+            console.error("Push failed for user", u.id, pushErr);
+          }
         }
 
         await supabase.from("mobile_notification_logs").insert({
