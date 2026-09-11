@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, Pressable, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Mail, Smartphone, RefreshCw, CircleAlert as AlertCircle, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { useNav } from '../../hooks/useNav';
 import { useAuth } from '../../contexts/AuthContext';
@@ -103,19 +103,23 @@ export default function MobileVerifyOTP() {
       value={digit}
       onChangeText={(v) => handleOTPChange(v, index, setter, otp, refs)}
       onKeyPress={(e) => handleKeyDown(e, index, otp, refs)}
-      className="w-9 h-11 text-center text-base font-bold border border-gray-300 rounded-lg"
+      className="w-10 h-12 text-center text-base font-bold border border-gray-300 rounded-xl"
       keyboardType="number-pad"
       maxLength={1}
     />
   );
 
   return (
-    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} className="flex-1 bg-gray-50 px-4 py-6" keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
+    >
+    <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }} className="flex-1 bg-gray-50 px-4 py-6" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" showsVerticalScrollIndicator={false}>
       <View className="max-w-sm w-full self-center">
         <View className="items-center mb-4">
           <Image
             source={require('../../../public/PayByCard-Logo.png')}
-            className="w-20 h-20"
+            className="w-28 h-14"
             resizeMode="contain"
           />
           <Text className="text-xl font-bold text-gray-900 mt-2">Verify Your Account</Text>
@@ -142,7 +146,7 @@ export default function MobileVerifyOTP() {
             <View className="flex-row items-center justify-between mb-3">
               <View className="flex-row items-center gap-2">
                 <Smartphone size={16} color="#8c76f0" />
-                <Text className="text-xs font-semibold text-gray-900">Mobile OTP</Text>
+                <Text className="text-sm font-semibold text-gray-900">Mobile OTP</Text>
               </View>
               <Text className="text-xs text-gray-500">{mobileNumber}</Text>
             </View>
@@ -168,7 +172,7 @@ export default function MobileVerifyOTP() {
             <View className="flex-row items-center justify-between mb-3">
               <View className="flex-row items-center gap-2">
                 <Mail size={16} color="#8c76f0" />
-                <Text className="text-xs font-semibold text-gray-900">Email OTP</Text>
+                <Text className="text-sm font-semibold text-gray-900">Email OTP</Text>
               </View>
               <Text className="text-xs text-gray-500" numberOfLines={1}>{email}</Text>
             </View>
@@ -191,7 +195,7 @@ export default function MobileVerifyOTP() {
           <Pressable
             onPress={handleVerify}
             disabled={isVerifying}
-            className="w-full bg-[#8c76f0] rounded-xl py-3"
+            className="w-full bg-[#8c76f0] rounded-xl py-3.5"
             style={{ opacity: isVerifying ? 0.5 : 1 }}
           >
             <Text className="text-white font-semibold text-center text-base">
@@ -201,5 +205,6 @@ export default function MobileVerifyOTP() {
         </View>
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
