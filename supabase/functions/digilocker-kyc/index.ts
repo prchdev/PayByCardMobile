@@ -1149,23 +1149,17 @@ Deno.serve(async (req: Request) => {
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
-        let redirectUri = savedRedirectUri;
-        if (!redirectUri) {
-          const originHeader = req.headers.get('origin') || req.headers.get('referer') || '';
-          let appOrigin = '';
-          try { appOrigin = originHeader ? new URL(originHeader).origin : ''; } catch { /* ignore */ }
-          if (!appOrigin || appOrigin.includes('supabase')) appOrigin = 'https://paybycard.in';
-          redirectUri = `${appOrigin}/digilocker-callback`;
-        }
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        const bridgeUrl = `${supabaseUrl}/functions/v1/digilocker-redirect`;
 
-        // For mobile app requests, use the redirect bridge edge function as
-        // the DigiLocker redirect_uri. The bridge returns an HTML page that
-        // redirects to paybycard://digilocker-callback?code=... which the
-        // mobile app's openAuthSessionAsync can intercept.
-        if (platform === 'mobile') {
-          const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-          redirectUri = `${supabaseUrl}/functions/v1/digilocker-redirect`;
-        }
+        // For mobile: use the bridge URL as DigiLocker's redirect_uri.
+        //   The bridge returns a 302 to paybycard://digilocker-callback which
+        //   openAuthSessionAsync intercepts.
+        // For web: use the website's callback page as DigiLocker's redirect_uri.
+        //   The website page handles the auth code in the popup.
+        const redirectUri = platform === 'mobile'
+          ? bridgeUrl
+          : (savedRedirectUri || 'https://paybycard.in/digilocker-callback');
 
         const state = 'u' + userId.replace(/-/g, '');
         const pkceParams = codeChallenge
@@ -1177,13 +1171,12 @@ Deno.serve(async (req: Request) => {
           `&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}` +
           pkceParams;
 
-        // For mobile, also return the app scheme so the client knows what to intercept
-        const mobileRedirectUri = platform === 'mobile'
+        const clientRedirectUri = platform === 'mobile'
           ? 'paybycard://digilocker-callback'
           : redirectUri;
 
         return new Response(
-          JSON.stringify({ authUrl, redirectUri: mobileRedirectUri, provider_name: provider.provider_name }),
+          JSON.stringify({ authUrl, redirectUri: clientRedirectUri, provider_name: provider.provider_name }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
