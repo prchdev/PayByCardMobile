@@ -63,7 +63,7 @@ export default function MobileVerifyOTP() {
       if (!res.ok) throw new Error(data.error || 'Failed to resend OTP');
       if (type === 'mobile') { setMobileTimer(30); setMobileOTP(['', '', '', '', '', '']); }
       else { setEmailTimer(30); setEmailOTP(['', '', '', '', '', '']); }
-      setSuccess(`OTP resent to your ${type === 'mobile' ? 'mobile' : 'email'}`);
+      setSuccess(`OTP has been resent to your ${type === 'mobile' ? 'mobile number' : 'email'}`);
       setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to resend OTP');
@@ -75,8 +75,8 @@ export default function MobileVerifyOTP() {
     const mStr = mobileOTP.join('');
     const eStr = emailOTP.join('');
     const e = { mobile: '', email: '' };
-    if (mStr.length !== 6) e.mobile = 'Enter complete mobile OTP';
-    if (eStr.length !== 6) e.email = 'Enter complete email OTP';
+    if (mStr.length !== 6) e.mobile = 'Please enter complete mobile OTP';
+    if (eStr.length !== 6) e.email = 'Please enter complete email OTP';
     if (e.mobile || e.email) { setErrors(e); return; }
 
     setIsVerifying(true); setErrors({ mobile: '', email: '' }); setError(''); setSuccess('');
@@ -91,7 +91,7 @@ export default function MobileVerifyOTP() {
       login(userId!, email!);
       navigate('/mobile/kyc-verification', { state: { userId, userEmail: email } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'OTP verification failed');
+      setError(err instanceof Error ? err.message : 'OTP verification failed. Please try again.');
     } finally {
       setIsVerifying(false);
     }
@@ -124,7 +124,7 @@ export default function MobileVerifyOTP() {
           />
           <Text className="text-xl font-bold text-gray-900 mt-2">Verify Your Account</Text>
           <Text className="text-xs text-gray-500 mt-0.5">
-            {fromLogin ? 'Verify your mobile and email to continue' : 'Codes sent to your mobile and email'}
+            {fromLogin ? 'Please verify your mobile number and email address to continue' : "We've sent verification codes to your mobile number and email address"}
           </Text>
         </View>
 
@@ -146,7 +146,7 @@ export default function MobileVerifyOTP() {
             <View className="flex-row items-center justify-between mb-3">
               <View className="flex-row items-center gap-2">
                 <Smartphone size={16} color="#8c76f0" />
-                <Text className="text-sm font-semibold text-gray-900">Mobile OTP</Text>
+                <Text className="text-sm font-semibold text-gray-900">Mobile OTP <Text className="text-red-600">*</Text></Text>
               </View>
               <Text className="text-xs text-gray-500">{mobileNumber}</Text>
             </View>
@@ -156,7 +156,7 @@ export default function MobileVerifyOTP() {
             {errors.mobile ? <Text className="text-red-600 text-xs text-center">{errors.mobile}</Text> : null}
             <View className="items-center">
               {mobileTimer > 0 ? (
-                <Text className="text-xs text-gray-500">Resend in {mobileTimer}s</Text>
+                <Text className="text-xs text-gray-500">Resend OTP in {mobileTimer}s</Text>
               ) : (
                 <TouchableOpacity onPress={() => handleResend('mobile')} className="flex-row items-center gap-1" activeOpacity={0.7} delayPressIn={0}>
                   <RefreshCw size={12} color="#8c76f0" />
@@ -172,7 +172,7 @@ export default function MobileVerifyOTP() {
             <View className="flex-row items-center justify-between mb-3">
               <View className="flex-row items-center gap-2">
                 <Mail size={16} color="#8c76f0" />
-                <Text className="text-sm font-semibold text-gray-900">Email OTP</Text>
+                <Text className="text-sm font-semibold text-gray-900">Email OTP <Text className="text-red-600">*</Text></Text>
               </View>
               <Text className="text-xs text-gray-500" numberOfLines={1}>{email}</Text>
             </View>
@@ -182,7 +182,7 @@ export default function MobileVerifyOTP() {
             {errors.email ? <Text className="text-red-600 text-xs text-center">{errors.email}</Text> : null}
             <View className="items-center">
               {emailTimer > 0 ? (
-                <Text className="text-xs text-gray-500">Resend in {emailTimer}s</Text>
+                <Text className="text-xs text-gray-500">Resend OTP in {emailTimer}s</Text>
               ) : (
                 <TouchableOpacity onPress={() => handleResend('email')} className="flex-row items-center gap-1" activeOpacity={0.7} delayPressIn={0}>
                   <RefreshCw size={12} color="#8c76f0" />
