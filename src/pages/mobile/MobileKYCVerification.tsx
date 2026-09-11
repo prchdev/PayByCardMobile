@@ -138,6 +138,28 @@ interface NameMismatch {
   lastName: string;
 }
 
+// ── Web file picker: uses a hidden HTML <input type="file"> to get a native File ─
+function pickFileViaInput(acceptTypes: string[]): Promise<File | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = acceptTypes.join(',');
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    input.onchange = () => {
+      const f = input.files?.[0];
+      document.body.removeChild(input);
+      resolve(f || null);
+    };
+    input.oncancel = () => {
+      document.body.removeChild(input);
+      resolve(null);
+    };
+    document.body.appendChild(input);
+    input.click();
+  });
+}
+
 // ── PKCE helpers ──────────────────────────────────────────────────────────────
 function uint8ToBase64Url(bytes: Uint8Array): string {
   let binary = '';
@@ -258,12 +280,8 @@ export default function MobileKYCVerification() {
   const [digiRedirectUri, setDigiRedirectUri] = useState('');
   const [digiPollCount, setDigiPollCount] = useState(0);
   const [digiNameMismatch, setDigiNameMismatch] = useState<NameMismatch | null>(null);
-  const [digiManualCode, setDigiManualCode] = useState('');
-  const [digiShowManualInput, setDigiShowManualInput] = useState(false);
 
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const popupRef = useRef<Window | null>(null);
-  const localStorageIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const stepRef = useRef(digiStep);
   const verificationIdRef = useRef(digiVerificationId);
   const redirectUriRef = useRef(digiRedirectUri);
@@ -275,59 +293,7 @@ export default function MobileKYCVerification() {
   useEffect(() => { redirectUriRef.current = digiRedirectUri; }, [digiRedirectUri]);
   useEffect(() => () => {
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
-    if (localStorageIntervalRef.current) clearInterval(localStorageIntervalRef.current);
   }, []);
-
-  // ── Web: localStorage + postMessage listener for DigiLocker redirect ────────
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-
-    const handleMessage = (event: MessageEvent) => {
-      const d = event.data;
-      if (!d || typeof d !== 'object') return;
-      const oauthCode = d.code || d.authCode || d.authorization_code;
-      if (oauthCode && typeof oauthCode === 'string' && stepRef.current === 'waiting_popup' && !codeReceivedRef.current) {
-        codeReceivedRef.current = true;
-        localStorage.removeItem('digilocker_code');
-        runAutoApprove(oauthCode);
-      }
-    };
-    window.addEventListener('message', handleMessage);
-
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'digilocker_code' && e.newValue && stepRef.current === 'waiting_popup' && !codeReceivedRef.current) {
-        codeReceivedRef.current = true;
-        localStorage.removeItem('digilocker_code');
-        runAutoApprove(e.newValue);
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-
-    return () => {
-      window.removeEventListener('message', handleMessage);
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, []);
-
-  // ── Web: popup closed watcher ───────────────────────────────────────────────
-  useEffect(() => {
-    if (Platform.OS !== 'web' || digiStep !== 'waiting_popup') return;
-    const interval = setInterval(() => {
-      if (popupRef.current && popupRef.current.closed) {
-        clearInterval(interval);
-        setTimeout(() => {
-          if (codeReceivedRef.current) return;
-          const code = localStorage.getItem('digilocker_code');
-          if (code) {
-            codeReceivedRef.current = true;
-            localStorage.removeItem('digilocker_code');
-            runAutoApprove(code);
-          }
-        }, 500);
-      }
-    }, 600);
-    return () => clearInterval(interval);
-  }, [digiStep]);
 
   // ── Data fetching ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -431,20 +397,7 @@ export default function MobileKYCVerification() {
   // ── File upload ────────────────────────────────────────────────────────────
   const uploadFile = async (fileKey: string, acceptTypes: string[]): Promise<string | null> => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: acceptTypes,
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled || !result.assets?.length) return null;
-      const file = result.assets[0];
       setUploadingField(fileKey);
-
-      if (file.size > 5 * 1024 * 1024) {
-        setError(`File "${file.name}" exceeds the 5 MB limit.`);
-        return null;
-      }
-
-      const mimeType = file.mimeType || 'image/jpeg';
       const uploadUrl = `${SUPABASE_URL}/functions/v1/upload-kyc-file`;
       const headers: Record<string, string> = {
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
@@ -452,9 +405,16 @@ export default function MobileKYCVerification() {
       };
 
       if (Platform.OS === 'web') {
-        const blob = await (await fetch(file.uri)).blob();
+        // On web, use a hidden HTML <input type="file"> to get a native File object.
+        // expo-document-picker returns a blob URI that FormData can't handle properly.
+        const fileObj = await pickFileViaInput(acceptTypes);
+        if (!fileObj) return null;
+        if (fileObj.size > 5 * 1024 * 1024) {
+          setError(`File "${fileObj.name}" exceeds the 5 MB limit.`);
+          return null;
+        }
         const fd = new FormData();
-        fd.append('file', blob, file.name);
+        fd.append('file', fileObj);
         fd.append('fileKey', fileKey);
         fd.append('userId', userId || '');
         const res = await fetch(uploadUrl, { method: 'POST', headers, body: fd });
@@ -462,6 +422,18 @@ export default function MobileKYCVerification() {
         if (!res.ok) throw new Error(data.error || 'Upload failed');
         return data.url;
       } else {
+        // On native, use expo-document-picker which returns a file URI
+        const result = await DocumentPicker.getDocumentAsync({
+          type: acceptTypes,
+          copyToCacheDirectory: true,
+        });
+        if (result.canceled || !result.assets?.length) return null;
+        const file = result.assets[0];
+        if (file.size > 5 * 1024 * 1024) {
+          setError(`File "${file.name}" exceeds the 5 MB limit.`);
+          return null;
+        }
+        const mimeType = file.mimeType || 'image/jpeg';
         const formData = new FormData();
         formData.append('file', { uri: file.uri, name: file.name, type: mimeType } as any);
         formData.append('fileKey', fileKey);
@@ -481,8 +453,6 @@ export default function MobileKYCVerification() {
   const startDigiLockerAuth = async () => {
     setDigiStep('loading_url');
     setDigiError('');
-    setDigiManualCode('');
-    setDigiShowManualInput(false);
     setDigiNameMismatch(null);
     setDigiAddrError(null);
     try {
@@ -508,32 +478,34 @@ export default function MobileKYCVerification() {
       redirectUriRef.current = rUri;
       codeReceivedRef.current = false;
 
-      if (Platform.OS === 'web') {
-        // On web: open a popup window so the DigiLocker callback page can
-        // write the auth code to localStorage and close itself.
-        localStorage.removeItem('digilocker_code');
-        localStorage.removeItem('digilocker_error');
-        const w = 500, h = 700;
-        const left = Math.max(0, (window.screen.width - w) / 2);
-        const top = Math.max(0, (window.screen.height - h) / 2);
-        const popup = window.open(url, 'DigiLockerAuth', `width=${w},height=${h},left=${left},top=${top},scrollbars=yes,resizable=yes`);
-        if (popup && !popup.closed) {
-          popupRef.current = popup;
-        } else {
-          // Popup blocked — open as new tab
-          window.open(url, '_blank');
-        }
-      } else {
-        // On native: use WebBrowser and fall back to manual code entry
-        await WebBrowser.openBrowserAsync(url, {
-          toolbarColor: '#8c76f0',
-          controlsColor: '#8c76f0',
-        });
-        setDigiShowManualInput(true);
-      }
+      // Use openAuthSessionAsync for both web and native — it intercepts the
+      // redirect to the callback URL and returns the full redirect URL with
+      // the authorization code, no manual paste needed.
+      const redirectUrl = rUri || (Platform.OS === 'web' ? `${window.location.origin}/digilocker-callback` : 'paybycard://digilocker-callback');
+      const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl, {
+        toolbarColor: '#8c76f0',
+        controlsColor: '#8c76f0',
+      });
 
       logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'popup_opened', true, { redirect_uri: rUri });
       setDigiStep('waiting_popup');
+
+      if (result.type === 'success' && result.url) {
+        const code = new URL(result.url).searchParams.get('code');
+        const errParam = new URL(result.url).searchParams.get('error');
+        if (code && !codeReceivedRef.current) {
+          codeReceivedRef.current = true;
+          runAutoApprove(code);
+        } else if (errParam) {
+          setDigiStep('error');
+          setDigiError(`DigiLocker authorization failed: ${errParam}`);
+        }
+      } else if (result.type === 'cancel' || result.type === 'dismiss') {
+        if (!codeReceivedRef.current && stepRef.current === 'waiting_popup') {
+          setDigiStep('error');
+          setDigiError('DigiLocker authorization was cancelled. Please try again.');
+        }
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Failed to connect to DigiLocker';
       logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'get_auth_url_error', false, {
@@ -661,17 +633,9 @@ export default function MobileKYCVerification() {
 
   const retryDigiLocker = () => {
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
-    if (Platform.OS === 'web') {
-      if (popupRef.current && !popupRef.current.closed) popupRef.current.close();
-      popupRef.current = null;
-      localStorage.removeItem('digilocker_code');
-      localStorage.removeItem('digilocker_error');
-    }
     setDigiStep('idle');
     setDigiError('');
     setDigiAddrError(null);
-    setDigiManualCode('');
-    setDigiShowManualInput(false);
     setDigiNameMismatch(null);
     setDigiVerificationId('');
     setDigiRedirectUri('');
@@ -1231,11 +1195,7 @@ export default function MobileKYCVerification() {
               <ActivityIndicator size="small" color="#8c76f0" />
               <View className="flex-1">
                 <Text className="text-sm font-medium text-gray-800">Waiting for DigiLocker authorization...</Text>
-                <Text className="text-xs text-gray-500 mt-0.5">
-                  {Platform.OS === 'web'
-                    ? 'Complete the authorization in the popup. It will close automatically and your KYC will be verified.'
-                    : 'Complete the authorization in the browser, then come back here.'}
-                </Text>
+                <Text className="text-xs text-gray-500 mt-0.5">Complete the authorization in the browser. It will close automatically and your KYC will be verified.</Text>
               </View>
             </View>
 
@@ -1245,30 +1205,6 @@ export default function MobileKYCVerification() {
                 <Text className="text-sm font-medium text-[#8c76f0]">I've completed authorization — check status now</Text>
               </TouchableOpacity>
             ) : null}
-
-            {digiShowManualInput && (
-              <View className="gap-2">
-                <Text className="text-xs text-gray-500">If the browser was blocked, complete authorization then paste the {isCashFree ? 'verification ID' : 'authorization code'} below:</Text>
-                <TextInput
-                  value={digiManualCode}
-                  onChangeText={(v) => setDigiManualCode(v.trim())}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base"
-                  placeholder={isCashFree ? 'Paste verification ID' : 'Paste authorization code'}
-                  placeholderTextColor="#9ca3af"
-                  autoCapitalize="none"
-                />
-                <TouchableOpacity
-                  onPress={() => digiManualCode.trim() && runAutoApprove(digiManualCode)}
-                  disabled={!digiManualCode.trim()}
-                  className="w-full py-3 bg-[#8c76f0] rounded-xl flex-row items-center justify-center gap-2"
-                  style={{ opacity: digiManualCode.trim() ? 1 : 0.5 }}
-                  activeOpacity={0.7} delayPressIn={0}
-                >
-                  <ShieldCheck size={16} color="white" />
-                  <Text className="text-white text-sm font-semibold">Verify KYC</Text>
-                </TouchableOpacity>
-              </View>
-            )}
 
             <TouchableOpacity onPress={retryDigiLocker} activeOpacity={0.7} delayPressIn={0}>
               <Text className="text-xs text-gray-400 text-center underline">Cancel</Text>
