@@ -73,7 +73,7 @@ export default function MobileHome() {
           Pay Bills with Your Credit Card
         </Text>
         <Text className="text-sm text-gray-600 text-center mt-2 max-w-sm self-center">
-          Use Credit Card to Pay Any Expenses By Transferring to Beneficiary Bank Account
+          Pay Your Bills Conveniently with Your Credit Card
         </Text>
 
         {isRemembered ? (
