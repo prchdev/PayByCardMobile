@@ -98,7 +98,7 @@ export default function MobileHome() {
                 <TouchableOpacity
                   onPress={handleBiometricUnlock}
                   disabled={unlocking}
-                  className="w-full bg-[#8c76f0] rounded-xl py-3 mt-3 flex-row items-center justify-center gap-2"
+                  className="w-full bg-[#8c76f0] rounded-xl py-3.5 mt-3 flex-row items-center justify-center gap-2"
                   activeOpacity={0.8}
                 >
                   {unlocking ? <Loader2 size={20} color="white" /> : <Fingerprint size={20} color="white" />}
@@ -109,7 +109,7 @@ export default function MobileHome() {
               ) : (
                 <TouchableOpacity
                   onPress={() => navigate('/mobile/login')}
-                  className="w-full bg-[#8c76f0] rounded-xl py-3 mt-3"
+                  className="w-full bg-[#8c76f0] rounded-xl py-3.5 mt-3"
                   activeOpacity={0.8}
                 >
                   <Text className="text-white font-semibold text-center">Login</Text>
@@ -130,14 +130,14 @@ export default function MobileHome() {
           <View className="mt-4 gap-2 w-full max-w-sm">
             <TouchableOpacity
               onPress={() => navigate('/mobile/register')}
-              className="w-full bg-[#8c76f0] rounded-xl py-3"
+              className="w-full bg-[#8c76f0] rounded-xl py-3.5"
               activeOpacity={0.8}
             >
               <Text className="text-white font-semibold text-center">Register</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => navigate('/mobile/login')}
-              className="w-full border-2 border-[#8c76f0] rounded-xl py-3"
+              className="w-full border-2 border-[#8c76f0] rounded-xl py-3.5"
               activeOpacity={0.8}
             >
               <Text className="text-[#8c76f0] font-semibold text-center">Login</Text>
