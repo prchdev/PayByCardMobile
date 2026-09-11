@@ -155,7 +155,7 @@ export default function MobileHome() {
                   style={{ width: '48%' }}
                 >
                   <View className="w-7 h-7 bg-white rounded-lg items-center justify-center">
-                    <h.icon size={16} color="#8c76f0" />
+                    {(() => { const Icon = h.icon; return <Icon size={16} color="#8c76f0" />; })()}
                   </View>
                   <Text className="text-xs font-semibold text-gray-800 flex-1">{h.label}</Text>
                 </View>

@@ -139,26 +139,26 @@ interface NameMismatch {
 }
 
 // ── PKCE helpers ──────────────────────────────────────────────────────────────
+function uint8ToBase64Url(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  const base64 = (typeof btoa !== 'undefined')
+    ? btoa(binary)
+    : (globalThis as any).Buffer?.from(binary, 'binary')?.toString('base64') || '';
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
 function generateCodeVerifier(): string {
-  const array = new Uint8Array(48);
-  if (Platform.OS === 'web' && typeof crypto !== 'undefined') {
-    crypto.getRandomValues(array);
-  } else {
-    const random = Crypto.getRandomBytes(48);
-    for (let i = 0; i < 48; i++) array[i] = random[i];
-  }
-  return btoa(String.fromCharCode(...array))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  const random = Crypto.getRandomBytes(48);
+  return uint8ToBase64Url(random);
 }
 
 async function generateCodeChallenge(verifier: string): Promise<string> {
-  if (Platform.OS === 'web' && typeof crypto !== 'undefined' && crypto.subtle) {
-    const data = new TextEncoder().encode(verifier);
-    const digest = await crypto.subtle.digest('SHA-256', data);
-    return btoa(String.fromCharCode(...new Uint8Array(digest)))
-      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-  }
-  const digest = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, verifier);
+  const digest = await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    verifier,
+    Crypto.CryptoEncoding.BASE64,
+  );
   return digest.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 

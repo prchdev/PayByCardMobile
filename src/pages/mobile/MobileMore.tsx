@@ -41,7 +41,7 @@ export default function MobileMore() {
                 activeOpacity={0.7} delayPressIn={0}
               >
                 <View className={`w-10 h-10 rounded-xl items-center justify-center ${item.color}`}>
-                  <item.icon size={20} color={item.iconColor} />
+                  {(() => { const Icon = item.icon; return <Icon size={20} color={item.iconColor} />; })()}
                 </View>
                 <Text className="flex-1 text-base font-medium text-gray-900">{item.label}</Text>
                 <ChevronRight size={18} color="#9ca3af" />

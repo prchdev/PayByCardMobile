@@ -56,11 +56,7 @@ export default function BottomNavigation({ userId, userEmail }: BottomNavProps) 
               className="flex-1 items-center justify-center h-full"
               activeOpacity={0.7} delayPressIn={0}
             >
-              <item.icon
-                size={24}
-                color={active ? '#8c76f0' : '#374151'}
-                strokeWidth={active ? 2.5 : 2}
-              />
+              {(() => { const Icon = item.icon; return <Icon size={24} color={active ? '#8c76f0' : '#374151'} strokeWidth={active ? 2.5 : 2} />; })()}
               <Text
                 className={`text-[11px] mt-1 ${active ? 'font-bold text-[#8c76f0]' : 'font-semibold text-gray-700'}`}
               >

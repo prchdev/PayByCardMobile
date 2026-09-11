@@ -216,7 +216,7 @@ export default function MobileDashboard() {
           ].map((s, i) => (
             <View key={i} className="flex-1 bg-white rounded-xl border border-gray-200 p-2.5">
               <View className={`w-7 h-7 ${s.bg} rounded-lg items-center justify-center mb-1.5`}>
-                <s.icon size={14} color={s.color} />
+                {(() => { const Icon = s.icon; return <Icon size={14} color={s.color} />; })()}
               </View>
               {s.value !== null ? (
                 <Text className="text-lg font-bold text-gray-900">{s.value}</Text>
@@ -239,7 +239,7 @@ export default function MobileDashboard() {
                 style={{ width: '48%' }}
                 activeOpacity={0.7} delayPressIn={0}
               >
-                <a.icon size={20} color="#374151" />
+                {(() => { const Icon = a.icon; return <Icon size={20} color="#374151" />; })()}
                 <Text className="text-base font-medium text-gray-700">{a.label}</Text>
               </TouchableOpacity>
             ))}
