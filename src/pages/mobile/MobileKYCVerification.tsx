@@ -935,6 +935,9 @@ export default function MobileKYCVerification() {
   const StatusIcon = cfg.icon;
 
   const kycLocked = kycStatus === 'verified';
+  const panLocked = kycData?.pan?.status === 'verified' || kycData?.pan?.status === 'verification_pending';
+  const addressLocked = kycData?.address?.status === 'verified' || kycData?.address?.status === 'verification_pending';
+  const businessLocked = kycData?.business?.status === 'verified' || kycData?.business?.status === 'verification_pending';
 
   const renderDataRow = (label: string, value: string) => (
     <View className="flex-row justify-between py-1.5">
@@ -961,7 +964,7 @@ export default function MobileKYCVerification() {
   };
 
   // ── File Upload Button ─────────────────────────────────────────────────────
-  const renderFileUpload = (label: string, fieldKey: string, value: string, onUpload: (url: string) => void, acceptTypes: string[], required?: boolean) => (
+  const renderFileUpload = (label: string, fieldKey: string, value: string, onUpload: (url: string) => void, acceptTypes: string[], required?: boolean, locked?: boolean) => (
     <View>
       <Text className="text-sm font-medium text-gray-700 mb-1.5">{label}{required ? ' *' : ''}</Text>
       <TouchableOpacity
@@ -971,8 +974,8 @@ export default function MobileKYCVerification() {
         }}
         className="flex-row items-center justify-center gap-2 w-full px-4 py-3.5 border border-dashed border-gray-300 rounded-xl bg-gray-50"
         activeOpacity={0.7} delayPressIn={0}
-        disabled={uploadingField === fieldKey || kycLocked}
-        style={{ opacity: kycLocked ? 0.5 : 1 }}
+        disabled={uploadingField === fieldKey || locked}
+        style={{ opacity: locked ? 0.5 : 1 }}
       >
         {uploadingField === fieldKey ? (
           <ActivityIndicator size="small" color="#8c76f0" />
@@ -1417,17 +1420,17 @@ export default function MobileKYCVerification() {
             <TextInput
               value={panForm.pan_number}
               onChangeText={(v) => setPanForm({ ...panForm, pan_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-widest ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-widest ${panLocked ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="ABCDE1234F"
               placeholderTextColor="#9ca3af"
               autoCapitalize="characters"
               maxLength={10}
-              editable={!kycLocked}
+              editable={!panLocked}
             />
           </View>
 
           {!kycData?.pan?.digilocker_verified && (
-            renderFileUpload('PAN Card Photo', 'pan_photo', panForm.pan_photo_url, (url) => setPanForm({ ...panForm, pan_photo_url: url }), ['image/jpeg', 'image/png', 'image/jpg'])
+            renderFileUpload('PAN Card Photo', 'pan_photo', panForm.pan_photo_url, (url) => setPanForm({ ...panForm, pan_photo_url: url }), ['image/jpeg', 'image/png', 'image/jpg'], false, panLocked)
           )}
 
           {panError ? (
@@ -1437,7 +1440,7 @@ export default function MobileKYCVerification() {
             </View>
           ) : null}
 
-          {(!kycLocked || kycData?.pan?.status === 'rejected') && (
+          {(!panLocked || kycData?.pan?.status === 'rejected') && (
             <TouchableOpacity
               onPress={handlePanSubmit}
               disabled={panSaving}
@@ -1494,11 +1497,11 @@ export default function MobileKYCVerification() {
                   setAddressForm({ ...addressForm, id_number: v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) });
                 }
               }}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${addressLocked ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder={ID_NUMBER_PLACEHOLDERS[addressForm.proof_type] ?? 'Enter document ID number'}
               placeholderTextColor="#9ca3af"
               maxLength={addressForm.proof_type === 'aadhar' ? 12 : 20}
-              editable={!kycLocked}
+              editable={!addressLocked}
             />
             {addressForm.proof_type === 'aadhar' && addressForm.id_number.length > 0 && addressForm.id_number.length < 12 && (
               <Text className="text-xs text-amber-600 mt-1">{12 - addressForm.id_number.length} more digits required</Text>
@@ -1514,7 +1517,7 @@ export default function MobileKYCVerification() {
                   onPress={() => setAddressForm({ ...addressForm, proof_type: t.value })}
                   className={`px-4 py-2.5 rounded-xl border ${addressForm.proof_type === t.value ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
                   activeOpacity={0.7} delayPressIn={0}
-                  disabled={kycLocked}
+                  disabled={addressLocked}
                 >
                   <Text className={`text-sm font-medium ${addressForm.proof_type === t.value ? 'text-white' : 'text-gray-700'}`}>{t.label}</Text>
                 </TouchableOpacity>
@@ -1527,14 +1530,14 @@ export default function MobileKYCVerification() {
             <TextInput
               value={addressForm.address}
               onChangeText={(v) => setAddressForm({ ...addressForm, address: v.replace(/[^A-Za-z0-9 \-.,()]/g, '') })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${addressLocked ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="House/Flat No., Street, Locality, Landmark"
               placeholderTextColor="#9ca3af"
               multiline
               textAlignVertical="top"
               maxLength={500}
               style={{ minHeight: 70 }}
-              editable={!kycLocked}
+              editable={!addressLocked}
             />
           </View>
 
@@ -1543,21 +1546,21 @@ export default function MobileKYCVerification() {
             <TextInput
               value={addressForm.city}
               onChangeText={(v) => setAddressForm({ ...addressForm, city: v.replace(/[^A-Za-z ]/g, '') })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${addressLocked ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="e.g. Mumbai"
               placeholderTextColor="#9ca3af"
               maxLength={20}
-              editable={!kycLocked}
+              editable={!addressLocked}
             />
           </View>
 
           <View>
             <Text className="text-sm font-medium text-gray-700 mb-1.5">State *</Text>
             <TouchableOpacity
-              onPress={() => !kycLocked && setShowStatePicker(true)}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl flex-row items-center justify-between ${kycLocked ? 'bg-gray-50' : 'bg-white'}`}
+              onPress={() => !addressLocked && setShowStatePicker(true)}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl flex-row items-center justify-between ${addressLocked ? 'bg-gray-50' : 'bg-white'}`}
               activeOpacity={0.7} delayPressIn={0}
-              disabled={kycLocked}
+              disabled={addressLocked}
             >
               <Text className={`text-base ${addressForm.state ? 'text-gray-900' : 'text-gray-400'}`}>
                 {addressForm.state || 'Select your state'}
@@ -1597,19 +1600,19 @@ export default function MobileKYCVerification() {
             <TextInput
               value={addressForm.pincode}
               onChangeText={(v) => setAddressForm({ ...addressForm, pincode: v.replace(/\D/g, '').slice(0, 6) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${addressLocked ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="6-digit pincode"
               placeholderTextColor="#9ca3af"
               keyboardType="number-pad"
               maxLength={6}
-              editable={!kycLocked}
+              editable={!addressLocked}
             />
           </View>
 
           {!kycData?.address?.digilocker_verified && addressForm.proof_type && (
             <>
-              {renderFileUpload(`${ADDRESS_PROOF_TYPES.find(p => p.value === addressForm.proof_type)?.label ?? 'Document'} - Front`, 'address_front', addressForm.front_photo_url, (url) => setAddressForm({ ...addressForm, front_photo_url: url }), ['image/jpeg', 'image/png', 'image/jpg'], true)}
-              {renderFileUpload(`${ADDRESS_PROOF_TYPES.find(p => p.value === addressForm.proof_type)?.label ?? 'Document'} - Back`, 'address_back', addressForm.back_photo_url, (url) => setAddressForm({ ...addressForm, back_photo_url: url }), ['image/jpeg', 'image/png', 'image/jpg'], true)}
+              {renderFileUpload(`${ADDRESS_PROOF_TYPES.find(p => p.value === addressForm.proof_type)?.label ?? 'Document'} - Front`, 'address_front', addressForm.front_photo_url, (url) => setAddressForm({ ...addressForm, front_photo_url: url }), ['image/jpeg', 'image/png', 'image/jpg'], true, addressLocked)}
+              {renderFileUpload(`${ADDRESS_PROOF_TYPES.find(p => p.value === addressForm.proof_type)?.label ?? 'Document'} - Back`, 'address_back', addressForm.back_photo_url, (url) => setAddressForm({ ...addressForm, back_photo_url: url }), ['image/jpeg', 'image/png', 'image/jpg'], true, addressLocked)}
             </>
           )}
 
@@ -1620,7 +1623,7 @@ export default function MobileKYCVerification() {
             </View>
           ) : null}
 
-          {(!kycLocked || kycData?.address?.status === 'rejected') && (
+          {(!addressLocked || kycData?.address?.status === 'rejected') && (
             <TouchableOpacity
               onPress={handleAddressSubmit}
               disabled={addressSaving}
@@ -1666,7 +1669,7 @@ export default function MobileKYCVerification() {
                     onPress={() => setBusinessForm({ ...businessForm, company_type: t })}
                     className={`px-3 py-2 rounded-lg border ${businessForm.company_type === t ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
                     activeOpacity={0.7} delayPressIn={0}
-                    disabled={kycLocked}
+                    disabled={businessLocked}
                   >
                     <Text className={`text-xs font-medium ${businessForm.company_type === t ? 'text-white' : 'text-gray-700'}`}>{t}</Text>
                   </TouchableOpacity>
@@ -1680,11 +1683,11 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.business_name}
               onChangeText={(v) => setBusinessForm({ ...businessForm, business_name: v.replace(/[^A-Za-z0-9&.\- ]/g, '').slice(0, 150) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="As per registration certificate"
               placeholderTextColor="#9ca3af"
               maxLength={150}
-              editable={!kycLocked}
+              editable={!businessLocked}
             />
           </View>
 
@@ -1693,11 +1696,11 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.incorporation_number}
               onChangeText={(v) => setBusinessForm({ ...businessForm, incorporation_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 21) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="CIN / LLP / Firm Number"
               placeholderTextColor="#9ca3af"
               maxLength={21}
-              editable={!kycLocked}
+              editable={!businessLocked}
             />
           </View>
 
@@ -1706,12 +1709,12 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.business_pan}
               onChangeText={(v) => setBusinessForm({ ...businessForm, business_pan: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-widest ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-widest ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="AAAAA9999A"
               placeholderTextColor="#9ca3af"
               autoCapitalize="characters"
               maxLength={10}
-              editable={!kycLocked}
+              editable={!businessLocked}
             />
           </View>
 
@@ -1720,11 +1723,11 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.gst_number}
               onChangeText={(v) => setBusinessForm({ ...businessForm, gst_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 15) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-wider ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-wider ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="15-character GSTIN"
               placeholderTextColor="#9ca3af"
               maxLength={15}
-              editable={!kycLocked}
+              editable={!businessLocked}
             />
           </View>
 
@@ -1733,14 +1736,14 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.business_address}
               onChangeText={(v) => setBusinessForm({ ...businessForm, business_address: v.slice(0, 500) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="Full registered business address"
               placeholderTextColor="#9ca3af"
               multiline
               textAlignVertical="top"
               maxLength={500}
               style={{ minHeight: 70 }}
-              editable={!kycLocked}
+              editable={!businessLocked}
             />
             <Text className="text-xs text-gray-400 mt-1 text-right">{businessForm.business_address.length}/500</Text>
           </View>
@@ -1750,12 +1753,12 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.business_email}
               onChangeText={(v) => setBusinessForm({ ...businessForm, business_email: v })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="contact@yourbusiness.com"
               placeholderTextColor="#9ca3af"
               keyboardType="email-address"
               autoCapitalize="none"
-              editable={!kycLocked}
+              editable={!businessLocked}
             />
           </View>
 
@@ -1764,24 +1767,24 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.business_phone}
               onChangeText={(v) => setBusinessForm({ ...businessForm, business_phone: v.replace(/[^0-9]/g, '').slice(0, 10) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="10-digit number"
               placeholderTextColor="#9ca3af"
               keyboardType="number-pad"
               maxLength={10}
-              editable={!kycLocked}
+              editable={!businessLocked}
             />
           </View>
 
-          {renderFileUpload('Business / Company Incorporation Certificate', 'inc_certificate', businessForm.incorporation_certificate_url, (url) => setBusinessForm({ ...businessForm, incorporation_certificate_url: url }), ['application/pdf'], COMPANY_TYPES_REQUIRING_INC_CERT.includes(businessForm.company_type))}
-          {renderFileUpload('Company PAN Photo', 'company_pan_photo', businessForm.company_pan_photo_url, (url) => setBusinessForm({ ...businessForm, company_pan_photo_url: url }), ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'], true)}
-          {renderFileUpload('GST Certificate', 'gst_certificate', businessForm.gst_certificate_url, (url) => setBusinessForm({ ...businessForm, gst_certificate_url: url }), ['application/pdf'], businessForm.gst_number.trim().length > 0)}
-          {renderFileUpload('Letter of Authorization (LoA) *', 'loa', businessForm.loa_url, (url) => setBusinessForm({ ...businessForm, loa_url: url }), ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])}
+          {renderFileUpload('Business / Company Incorporation Certificate', 'inc_certificate', businessForm.incorporation_certificate_url, (url) => setBusinessForm({ ...businessForm, incorporation_certificate_url: url }), ['application/pdf'], COMPANY_TYPES_REQUIRING_INC_CERT.includes(businessForm.company_type), businessLocked)}
+          {renderFileUpload('Company PAN Photo', 'company_pan_photo', businessForm.company_pan_photo_url, (url) => setBusinessForm({ ...businessForm, company_pan_photo_url: url }), ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'], true, businessLocked)}
+          {renderFileUpload('GST Certificate', 'gst_certificate', businessForm.gst_certificate_url, (url) => setBusinessForm({ ...businessForm, gst_certificate_url: url }), ['application/pdf'], businessForm.gst_number.trim().length > 0, businessLocked)}
+          {renderFileUpload('Letter of Authorization (LoA) *', 'loa', businessForm.loa_url, (url) => setBusinessForm({ ...businessForm, loa_url: url }), ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'], false, businessLocked)}
 
           {(businessForm.company_type === 'Private Limited Company' || businessForm.company_type === 'One Person Company (OPC)') && (
             <>
-              {renderFileUpload('Memorandum of Association (MoA) *', 'moa', businessForm.moa_url, (url) => setBusinessForm({ ...businessForm, moa_url: url }), ['application/pdf'])}
-              {renderFileUpload('Articles of Association (AoA) *', 'aoa', businessForm.aoa_url, (url) => setBusinessForm({ ...businessForm, aoa_url: url }), ['application/pdf'])}
+              {renderFileUpload('Memorandum of Association (MoA) *', 'moa', businessForm.moa_url, (url) => setBusinessForm({ ...businessForm, moa_url: url }), ['application/pdf'], false, businessLocked)}
+              {renderFileUpload('Articles of Association (AoA) *', 'aoa', businessForm.aoa_url, (url) => setBusinessForm({ ...businessForm, aoa_url: url }), ['application/pdf'], false, businessLocked)}
             </>
           )}
 
@@ -1799,7 +1802,7 @@ export default function MobileKYCVerification() {
             </View>
           )}
 
-          {(!kycLocked || kycData?.business?.status === 'rejected') && (
+          {(!businessLocked || kycData?.business?.status === 'rejected') && (
             <View className="flex-row gap-3">
               <TouchableOpacity
                 onPress={handleBusinessSubmit}
