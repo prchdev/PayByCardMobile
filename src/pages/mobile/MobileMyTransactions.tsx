@@ -166,7 +166,7 @@ export default function MobileMyTransactions() {
                           <View className="flex-row justify-between">
                             <Text className="text-xs text-gray-500">Account</Text>
                             <Text className="text-xs font-medium text-gray-900" numberOfLines={1}>
-                              {txn.beneficiary_details.bank_account?.slice(-4) || 'N/A'}
+                              {txn.beneficiary_details.bank_account || 'N/A'}
                             </Text>
                           </View>
                         )}

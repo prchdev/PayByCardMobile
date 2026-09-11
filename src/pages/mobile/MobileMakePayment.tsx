@@ -43,6 +43,7 @@ interface PaymentOption {
   gateway_registered_name: string;
   payout_mode: string;
   settlement_time: string;
+  terms_and_conditions: string;
 }
 
 interface ChargeBreakdown {
@@ -575,7 +576,7 @@ export default function MobileMakePayment() {
               </View>
             </View>
           ) : (
-            <View className="gap-4">
+            <View className="gap-4 pb-24">
               {/* Step 1: Beneficiary */}
               <View>
                 <Text className="text-sm font-semibold text-gray-700 mb-2">1. Select Beneficiary *</Text>
@@ -760,6 +761,16 @@ export default function MobileMakePayment() {
                   </View>
                 </Modal>
               </View>
+
+              {/* Terms & Conditions for selected payment option */}
+              {selectedOpt?.terms_and_conditions ? (
+                <View className="bg-gray-50 border border-gray-200 rounded-xl p-3 gap-1.5">
+                  <Text className="text-xs font-semibold text-gray-900 mb-1">Terms &amp; Conditions</Text>
+                  {selectedOpt.terms_and_conditions.split('\n').filter((l: string) => l.trim()).map((line: string, i: number) => (
+                    <Text key={i} className="text-xs text-gray-600 leading-relaxed">{line}</Text>
+                  ))}
+                </View>
+              ) : null}
 
               {/* Step 4: Amount */}
               <View>
