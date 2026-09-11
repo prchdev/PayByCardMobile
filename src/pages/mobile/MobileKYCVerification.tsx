@@ -8,7 +8,6 @@ import {
 import * as WebBrowser from 'expo-web-browser';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Crypto from 'expo-crypto';
-import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -432,9 +431,9 @@ export default function MobileKYCVerification() {
         if (!res.ok) throw new Error(data.error || 'Upload failed');
         return data.url;
       } else {
-        // On native, use expo-document-picker then read the file as base64
-        // and upload via XMLHttpRequest with a proper FormData — this avoids
-        // the "Unsupported FormDataPart" error from fetch.
+        // On native, use expo-document-picker and upload via XMLHttpRequest.
+        // XHR on React Native natively supports {uri, name, type} in FormData,
+        // so we can send the file directly without reading it into memory.
         const result = await DocumentPicker.getDocumentAsync({
           type: acceptTypes,
           copyToCacheDirectory: true,
@@ -446,20 +445,6 @@ export default function MobileKYCVerification() {
           return null;
         }
         const mimeType = file.mimeType || 'image/jpeg';
-
-        // Read file content as base64 using expo-file-system
-        const base64 = await FileSystem.readAsStringAsync(file.uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-
-        // Convert base64 to a Blob and then to a File-like object
-        const byteChars = atob(base64);
-        const byteNumbers = new Array(byteChars.length);
-        for (let i = 0; i < byteChars.length; i++) {
-          byteNumbers[i] = byteChars.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: mimeType });
 
         const uploadResult = await new Promise<string | null>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
@@ -482,7 +467,7 @@ export default function MobileKYCVerification() {
           xhr.onerror = () => reject(new Error('Network error during upload'));
 
           const formData = new FormData();
-          formData.append('file', blob, file.name);
+          formData.append('file', { uri: file.uri, name: file.name, type: mimeType } as any);
           formData.append('fileKey', fileKey);
           xhr.send(formData);
         });
