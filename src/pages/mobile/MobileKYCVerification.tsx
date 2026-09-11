@@ -436,7 +436,7 @@ export default function MobileKYCVerification() {
         // so we can send the file directly without reading it into memory.
         const result = await DocumentPicker.getDocumentAsync({
           type: acceptTypes,
-          copyToCacheDirectory: true,
+          copyToCacheDirectory: false,
         });
         if (result.canceled || !result.assets?.length) return null;
         const file = result.assets[0];

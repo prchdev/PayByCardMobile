@@ -115,7 +115,7 @@ async function pickFiles(): Promise<PickedFile[]> {
   try {
     const result = await DocumentPicker.getDocumentAsync({
       type: ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'],
-      copyToCacheDirectory: true,
+      copyToCacheDirectory: false,
       multiple: true,
     });
     if (result.canceled || !result.assets?.length) return [];
