@@ -1103,18 +1103,38 @@ Deno.serve(async (req: Request) => {
 
     if (userLookupError || !userRow) throw new Error('Unauthorized');
 
-    const { data: providers, error: providerError } = await supabase
+    // For mobile requests, prefer a mobile-specific DigiLocker provider if one exists.
+    // This allows a separate DigiLocker client (with the bridge URL registered as a
+    // redirect URI) to be used for the mobile app.
+    let providerQuery = supabase
       .from('kyc_method_settings')
       .select('*')
-      .eq('is_enabled', true)
-      .order('is_default', { ascending: false })
-      .limit(1);
+      .eq('is_enabled', true);
 
+    if (platform === 'mobile') {
+      providerQuery = providerQuery.eq('provider_name', 'DigiLocker Mobile');
+    } else {
+      providerQuery = providerQuery.neq('provider_name', 'DigiLocker Mobile');
+    }
+    providerQuery = providerQuery.order('is_default', { ascending: false }).limit(1);
+
+    const { data: providers, error: providerError } = await providerQuery;
+
+    // Fallback to any enabled provider if the platform-specific one isn't found
     if (providerError || !providers || providers.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'No DigiLocker provider is currently enabled.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      const { data: fallbackProviders } = await supabase
+        .from('kyc_method_settings')
+        .select('*')
+        .eq('is_enabled', true)
+        .order('is_default', { ascending: false })
+        .limit(1);
+      if (!fallbackProviders || fallbackProviders.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'No DigiLocker provider is currently enabled.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      providers.push(...fallbackProviders);
     }
 
     const provider = providers[0];
