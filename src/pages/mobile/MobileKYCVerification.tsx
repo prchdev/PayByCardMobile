@@ -934,10 +934,13 @@ export default function MobileKYCVerification() {
   const cfg = statusConfig[kycStatus] || statusConfig.not_started;
   const StatusIcon = cfg.icon;
 
-  const kycLocked = kycStatus === 'verified';
   const panLocked = kycData?.pan?.status === 'verified' || kycData?.pan?.status === 'verification_pending';
+  const panRejected = kycData?.pan?.status === 'rejected';
   const addressLocked = kycData?.address?.status === 'verified' || kycData?.address?.status === 'verification_pending';
+  const addressRejected = kycData?.address?.status === 'rejected';
   const businessLocked = kycData?.business?.status === 'verified' || kycData?.business?.status === 'verification_pending';
+  const businessRejected = kycData?.business?.status === 'rejected';
+  const kycLocked = panLocked || addressLocked;
 
   const renderDataRow = (label: string, value: string) => (
     <View className="flex-row justify-between py-1.5">
@@ -1420,12 +1423,12 @@ export default function MobileKYCVerification() {
             <TextInput
               value={panForm.pan_number}
               onChangeText={(v) => setPanForm({ ...panForm, pan_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-widest ${panLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-widest ${panLocked && !panRejected ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="ABCDE1234F"
               placeholderTextColor="#9ca3af"
               autoCapitalize="characters"
               maxLength={10}
-              editable={!panLocked}
+              editable={!panLocked || panRejected}
             />
           </View>
 
@@ -1497,11 +1500,11 @@ export default function MobileKYCVerification() {
                   setAddressForm({ ...addressForm, id_number: v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) });
                 }
               }}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${addressLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${addressLocked && !addressRejected ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder={ID_NUMBER_PLACEHOLDERS[addressForm.proof_type] ?? 'Enter document ID number'}
               placeholderTextColor="#9ca3af"
               maxLength={addressForm.proof_type === 'aadhar' ? 12 : 20}
-              editable={!addressLocked}
+              editable={!addressLocked || addressRejected}
             />
             {addressForm.proof_type === 'aadhar' && addressForm.id_number.length > 0 && addressForm.id_number.length < 12 && (
               <Text className="text-xs text-amber-600 mt-1">{12 - addressForm.id_number.length} more digits required</Text>
@@ -1517,7 +1520,7 @@ export default function MobileKYCVerification() {
                   onPress={() => setAddressForm({ ...addressForm, proof_type: t.value })}
                   className={`px-4 py-2.5 rounded-xl border ${addressForm.proof_type === t.value ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
                   activeOpacity={0.7} delayPressIn={0}
-                  disabled={addressLocked}
+                  disabled={addressLocked && !addressRejected}
                 >
                   <Text className={`text-sm font-medium ${addressForm.proof_type === t.value ? 'text-white' : 'text-gray-700'}`}>{t.label}</Text>
                 </TouchableOpacity>
@@ -1530,14 +1533,14 @@ export default function MobileKYCVerification() {
             <TextInput
               value={addressForm.address}
               onChangeText={(v) => setAddressForm({ ...addressForm, address: v.replace(/[^A-Za-z0-9 \-.,()]/g, '') })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${addressLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${addressLocked && !addressRejected ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="House/Flat No., Street, Locality, Landmark"
               placeholderTextColor="#9ca3af"
               multiline
               textAlignVertical="top"
               maxLength={500}
               style={{ minHeight: 70 }}
-              editable={!addressLocked}
+              editable={!addressLocked || addressRejected}
             />
           </View>
 
@@ -1546,21 +1549,21 @@ export default function MobileKYCVerification() {
             <TextInput
               value={addressForm.city}
               onChangeText={(v) => setAddressForm({ ...addressForm, city: v.replace(/[^A-Za-z ]/g, '') })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${addressLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${addressLocked && !addressRejected ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="e.g. Mumbai"
               placeholderTextColor="#9ca3af"
               maxLength={20}
-              editable={!addressLocked}
+              editable={!addressLocked || addressRejected}
             />
           </View>
 
           <View>
             <Text className="text-sm font-medium text-gray-700 mb-1.5">State *</Text>
             <TouchableOpacity
-              onPress={() => !addressLocked && setShowStatePicker(true)}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl flex-row items-center justify-between ${addressLocked ? 'bg-gray-50' : 'bg-white'}`}
+              onPress={() => (!addressLocked || addressRejected) && setShowStatePicker(true)}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl flex-row items-center justify-between ${addressLocked && !addressRejected ? 'bg-gray-50' : 'bg-white'}`}
               activeOpacity={0.7} delayPressIn={0}
-              disabled={addressLocked}
+              disabled={addressLocked && !addressRejected}
             >
               <Text className={`text-base ${addressForm.state ? 'text-gray-900' : 'text-gray-400'}`}>
                 {addressForm.state || 'Select your state'}
@@ -1600,12 +1603,12 @@ export default function MobileKYCVerification() {
             <TextInput
               value={addressForm.pincode}
               onChangeText={(v) => setAddressForm({ ...addressForm, pincode: v.replace(/\D/g, '').slice(0, 6) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${addressLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${addressLocked && !addressRejected ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="6-digit pincode"
               placeholderTextColor="#9ca3af"
               keyboardType="number-pad"
               maxLength={6}
-              editable={!addressLocked}
+              editable={!addressLocked || addressRejected}
             />
           </View>
 
@@ -1669,7 +1672,7 @@ export default function MobileKYCVerification() {
                     onPress={() => setBusinessForm({ ...businessForm, company_type: t })}
                     className={`px-3 py-2 rounded-lg border ${businessForm.company_type === t ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
                     activeOpacity={0.7} delayPressIn={0}
-                    disabled={businessLocked}
+                    disabled={businessLocked && !businessRejected}
                   >
                     <Text className={`text-xs font-medium ${businessForm.company_type === t ? 'text-white' : 'text-gray-700'}`}>{t}</Text>
                   </TouchableOpacity>
@@ -1683,11 +1686,11 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.business_name}
               onChangeText={(v) => setBusinessForm({ ...businessForm, business_name: v.replace(/[^A-Za-z0-9&.\- ]/g, '').slice(0, 150) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${businessLocked && !businessRejected ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="As per registration certificate"
               placeholderTextColor="#9ca3af"
               maxLength={150}
-              editable={!businessLocked}
+              editable={!businessLocked || businessRejected}
             />
           </View>
 
@@ -1696,11 +1699,11 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.incorporation_number}
               onChangeText={(v) => setBusinessForm({ ...businessForm, incorporation_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 21) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono ${businessLocked && !businessRejected ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="CIN / LLP / Firm Number"
               placeholderTextColor="#9ca3af"
               maxLength={21}
-              editable={!businessLocked}
+              editable={!businessLocked || businessRejected}
             />
           </View>
 
@@ -1709,12 +1712,12 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.business_pan}
               onChangeText={(v) => setBusinessForm({ ...businessForm, business_pan: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-widest ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-widest ${businessLocked && !businessRejected ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="AAAAA9999A"
               placeholderTextColor="#9ca3af"
               autoCapitalize="characters"
               maxLength={10}
-              editable={!businessLocked}
+              editable={!businessLocked || businessRejected}
             />
           </View>
 
@@ -1723,11 +1726,11 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.gst_number}
               onChangeText={(v) => setBusinessForm({ ...businessForm, gst_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 15) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-wider ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-wider ${businessLocked && !businessRejected ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="15-character GSTIN"
               placeholderTextColor="#9ca3af"
               maxLength={15}
-              editable={!businessLocked}
+              editable={!businessLocked || businessRejected}
             />
           </View>
 
@@ -1736,14 +1739,14 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.business_address}
               onChangeText={(v) => setBusinessForm({ ...businessForm, business_address: v.slice(0, 500) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${businessLocked && !businessRejected ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="Full registered business address"
               placeholderTextColor="#9ca3af"
               multiline
               textAlignVertical="top"
               maxLength={500}
               style={{ minHeight: 70 }}
-              editable={!businessLocked}
+              editable={!businessLocked || businessRejected}
             />
             <Text className="text-xs text-gray-400 mt-1 text-right">{businessForm.business_address.length}/500</Text>
           </View>
@@ -1753,12 +1756,12 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.business_email}
               onChangeText={(v) => setBusinessForm({ ...businessForm, business_email: v })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${businessLocked && !businessRejected ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="contact@yourbusiness.com"
               placeholderTextColor="#9ca3af"
               keyboardType="email-address"
               autoCapitalize="none"
-              editable={!businessLocked}
+              editable={!businessLocked || businessRejected}
             />
           </View>
 
@@ -1767,12 +1770,12 @@ export default function MobileKYCVerification() {
             <TextInput
               value={businessForm.business_phone}
               onChangeText={(v) => setBusinessForm({ ...businessForm, business_phone: v.replace(/[^0-9]/g, '').slice(0, 10) })}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${businessLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${businessLocked && !businessRejected ? 'bg-gray-50 text-gray-500' : ''}`}
               placeholder="10-digit number"
               placeholderTextColor="#9ca3af"
               keyboardType="number-pad"
               maxLength={10}
-              editable={!businessLocked}
+              editable={!businessLocked || businessRejected}
             />
           </View>
 
