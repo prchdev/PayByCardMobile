@@ -17,6 +17,7 @@ interface DigiLockerKycRequest {
   codeChallenge?: string;
   codeVerifier?: string;
   ipAddress?: string;
+  platform?: 'web' | 'mobile';
 }
 
 type AddressProofType = 'aadhar' | 'passport' | 'voter_id' | 'driving_license';
@@ -1090,7 +1091,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body: DigiLockerKycRequest = await req.json();
-    const { userId, action, authCode, verificationId: bodyVerificationId, redirectUri: bodyRedirectUri, codeChallenge, codeVerifier, ipAddress } = body;
+    const { userId, action, authCode, verificationId: bodyVerificationId, redirectUri: bodyRedirectUri, codeChallenge, codeVerifier, ipAddress, platform } = body;
 
     if (!userId) throw new Error('Missing userId');
 
@@ -1156,6 +1157,16 @@ Deno.serve(async (req: Request) => {
           if (!appOrigin || appOrigin.includes('supabase')) appOrigin = 'https://paybycard.in';
           redirectUri = `${appOrigin}/digilocker-callback`;
         }
+
+        // For mobile app requests, use the redirect bridge edge function as
+        // the DigiLocker redirect_uri. The bridge returns an HTML page that
+        // redirects to paybycard://digilocker-callback?code=... which the
+        // mobile app's openAuthSessionAsync can intercept.
+        if (platform === 'mobile') {
+          const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+          redirectUri = `${supabaseUrl}/functions/v1/digilocker-redirect`;
+        }
+
         const state = 'u' + userId.replace(/-/g, '');
         const pkceParams = codeChallenge
           ? `&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=S256`
@@ -1166,8 +1177,13 @@ Deno.serve(async (req: Request) => {
           `&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}` +
           pkceParams;
 
+        // For mobile, also return the app scheme so the client knows what to intercept
+        const mobileRedirectUri = platform === 'mobile'
+          ? 'paybycard://digilocker-callback'
+          : redirectUri;
+
         return new Response(
-          JSON.stringify({ authUrl, redirectUri, provider_name: provider.provider_name }),
+          JSON.stringify({ authUrl, redirectUri: mobileRedirectUri, provider_name: provider.provider_name }),
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -1216,7 +1232,14 @@ Deno.serve(async (req: Request) => {
 
         kycData = await fetchCashFreeDocuments(supabase, apiKey, apiSecret, publicKey, provider.environment, code, userId);
       } else {
-        const redirectUri = bodyRedirectUri || savedRedirectUri || '';
+        // For mobile, the actual redirect_uri used in the authorize request
+        // was the bridge function URL, not the custom scheme. The token
+        // exchange must use the same redirect_uri that was in the authorize call.
+        let redirectUri = bodyRedirectUri || savedRedirectUri || '';
+        if (platform === 'mobile') {
+          const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+          redirectUri = `${supabaseUrl}/functions/v1/digilocker-redirect`;
+        }
         try {
           kycData = await fetchDigiLockerData(supabase, apiKey, apiSecret, code, redirectUri, userId, codeVerifier);
         } catch (e) {

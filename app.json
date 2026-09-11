@@ -15,7 +15,13 @@
       "buildNumber": "16",
       "infoPlist": {
         "NSFaceIDUsageDescription": "PayByCard uses Face ID to securely unlock your account.",
-        "NSCameraUsageDescription": "PayByCard needs camera access to capture KYC documents."
+        "NSCameraUsageDescription": "PayByCard needs camera access to capture KYC documents.",
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["paybycard"],
+            "CFBundleURLName": "in.paybycard.app"
+          }
+        ]
       }
     },
     "android": {
@@ -34,6 +40,17 @@
         "VIBRATE",
         "SCHEDULE_EXACT_ALARM",
         "POST_NOTIFICATIONS"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": {
+            "scheme": "paybycard",
+            "host": "digilocker-callback"
+          },
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "plugins": [

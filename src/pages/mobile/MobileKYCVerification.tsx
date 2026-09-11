@@ -493,7 +493,12 @@ export default function MobileKYCVerification() {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/digilocker-kyc`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, action: 'get_auth_url', codeChallenge }),
+        body: JSON.stringify({
+          userId,
+          action: 'get_auth_url',
+          codeChallenge,
+          platform: Platform.OS === 'web' ? 'web' : 'mobile',
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to get authorization URL');
@@ -656,6 +661,7 @@ export default function MobileKYCVerification() {
         body: JSON.stringify({
           userId, action: 'auto_approve', authCode: code,
           redirectUri: resolvedRedirectUri, codeVerifier: resolvedCodeVerifier,
+          platform: Platform.OS === 'web' ? 'web' : 'mobile',
         }),
       });
       const data = await res.json();
