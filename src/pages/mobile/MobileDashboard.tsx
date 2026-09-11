@@ -17,7 +17,7 @@ interface RecentTxn {
 const STATUS_CFG: Record<string, { label: string; color: string; dot: string }> = {
   completed: { label: 'Completed', color: '#15803d', dot: '#22c55e' },
   failed: { label: 'Failed', color: '#dc2626', dot: '#ef4444' },
-  cancelled: { label: 'Failed', color: '#6b7280', dot: '#9ca3af' },
+  cancelled: { label: 'Failed', color: '#dc2626', dot: '#ef4444' },
   processing: { label: 'Processing', color: '#2563eb', dot: '#3b82f6' },
   pending: { label: 'Processing', color: '#2563eb', dot: '#3b82f6' },
   kyc_pending: { label: 'KYC Required', color: '#d97706', dot: '#f59e0b' },
