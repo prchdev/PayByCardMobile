@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, Pressable, ScrollView, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eye, EyeOff, CircleAlert as AlertCircle, X, FileText, Shield } from 'lucide-react-native';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
@@ -15,6 +16,7 @@ type ModalType = 'terms' | 'privacy' | null;
 
 export default function MobileRegister() {
   const { navigate } = useNav();
+  const insets = useSafeAreaInsets();
   const [formData, setFormData] = useState<FormData>({
     firstName: '', middleName: '', lastName: '', mobileNumber: '', email: '',
     password: '', confirmPassword: '', agreeToTerms: false,
@@ -87,7 +89,7 @@ export default function MobileRegister() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
     >
-    <ScrollView className="flex-1 bg-gray-50 px-4 pt-12 pb-6" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" showsVerticalScrollIndicator={false}>
+    <ScrollView className="flex-1 bg-gray-50 px-4" style={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 24 }} keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" showsVerticalScrollIndicator={false}>
       <View className="max-w-sm w-full self-center">
         <View className="items-center mb-4">
           <Image
