@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal } from 'react-native';
 import {
   ShieldCheck, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Clock, Circle as XCircle,
@@ -175,7 +175,6 @@ export default function MobileKYCVerification() {
   const [loading, setLoading] = useState(true);
   const [kycData, setKycData] = useState<KycData | null>(null);
   const [kycMethod, setKycMethod] = useState<'select' | 'digilocker' | 'manual'>('select');
-  const [activeSection, setActiveSection] = useState<string | null>(null);
   const [error, setError] = useState('');
   const [kycSettings, setKycSettings] = useState<{ digilocker_enabled: boolean; manual_enabled: boolean }>({ digilocker_enabled: false, manual_enabled: true });
   const [kycProvider, setKycProvider] = useState<{ provider_name: string } | null>(null);
@@ -780,16 +779,18 @@ export default function MobileKYCVerification() {
   );
 
   const renderStatusBadge = (status: string) => {
-    const styles: Record<string, { bg: string; text: string }> = {
-      verified: { bg: 'bg-green-50', text: 'text-green-700' },
-      verification_pending: { bg: 'bg-amber-50', text: 'text-amber-700' },
-      rejected: { bg: 'bg-red-50', text: 'text-red-700' },
-      pending: { bg: 'bg-amber-50', text: 'text-amber-700' },
+    const configs: Record<string, { bg: string; text: string; label: string; icon: typeof CheckCircle }> = {
+      verified: { bg: 'bg-green-100', text: 'text-green-700', label: 'Verified', icon: CheckCircle },
+      verification_pending: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Verification Pending', icon: Clock },
+      rejected: { bg: 'bg-red-100', text: 'text-red-700', label: 'Rejected', icon: XCircle },
+      pending: { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Not Submitted', icon: AlertCircle },
     };
-    const s = styles[status] || { bg: 'bg-gray-50', text: 'text-gray-600' };
+    const c = configs[status] || configs.pending;
+    const Icon = c.icon;
     return (
-      <View className={`px-2.5 py-1 rounded-md ${s.bg}`}>
-        <Text className={`text-xs font-semibold ${s.text}`}>{(status || 'pending').replace(/_/g, ' ')}</Text>
+      <View className={`flex-row items-center gap-1.5 px-2.5 py-1 rounded-full ${c.bg}`}>
+        <Icon size={12} color="currentColor" />
+        <Text className={`text-xs font-medium ${c.text}`}>{c.label}</Text>
       </View>
     );
   };
@@ -826,22 +827,13 @@ export default function MobileKYCVerification() {
     if (!kycData?.userProfile) return null;
     const p = kycData.userProfile;
     return (
-      <View className="bg-white rounded-2xl border border-gray-200 p-4 gap-3">
-        <View className="flex-row items-center gap-2">
-          <View className="w-9 h-9 bg-purple-50 rounded-xl items-center justify-center">
-            <User size={18} color="#8c76f0" />
+      <View className="bg-white rounded-2xl border-2 border-gray-200 p-4 gap-4">
+        {renderSectionHeader(User, '#8c76f0', '#f3f0fe', 'Personal Details', 'Your registration information', undefined, kycLocked ? (
+          <View className="flex-row items-center bg-gray-100 px-2 py-1 rounded-full">
+            <Lock size={12} color="#6b7280" />
+            <Text className="text-xs text-gray-500 font-medium ml-1">Read Only</Text>
           </View>
-          <View className="flex-1">
-            <Text className="text-base font-semibold text-gray-900">Personal Details</Text>
-            <Text className="text-sm text-gray-500">Your registration information</Text>
-          </View>
-          {kycLocked && (
-            <View className="flex-row items-center bg-gray-100 px-2 py-1 rounded-md">
-              <Lock size={12} color="#6b7280" />
-              <Text className="text-xs text-gray-500 font-medium ml-1">Read Only</Text>
-            </View>
-          )}
-        </View>
+        ) : undefined)}
         {kycLocked && (
           <View className="bg-amber-50 border border-amber-200 rounded-xl p-3">
             <Text className="text-sm text-amber-700">Personal details cannot be changed while KYC is under review or verified.</Text>
@@ -1221,477 +1213,457 @@ export default function MobileKYCVerification() {
     );
   };
 
+  // ── Section Card Header ──────────────────────────────────────────────────
+  const renderSectionHeader = (icon: typeof FileText, iconColor: string, iconBg: string, title: string, desc: string, status?: string, extra?: React.ReactNode) => (
+    <View className="flex-row items-center gap-3 pb-4 border-b border-gray-100">
+      <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: iconBg }}>
+        <icon size={20} color={iconColor} />
+      </View>
+      <View className="flex-1">
+        <Text className="text-base font-semibold text-gray-900">{title}</Text>
+        <Text className="text-sm text-gray-500">{desc}</Text>
+      </View>
+      {extra}
+      {status && <View>{renderStatusBadge(status)}</View>}
+    </View>
+  );
+
   // ── Manual KYC Forms ────────────────────────────────────────────────────────
   const renderManualKyc = () => {
     if (kycStatus === 'verified' || kycStatus === 'pending' || kycMethod !== 'manual') return null;
-    const sections = [
-      { key: 'pan', icon: FileText, label: 'PAN Card', color: '#8c76f0', desc: 'PAN number and photo' },
-      { key: 'address', icon: MapPin, label: 'Address Proof', color: '#16a34a', desc: 'Aadhaar, passport, or other ID' },
-      { key: 'business', icon: Building2, label: 'Business Details', color: '#2563eb', desc: 'Optional - for business accounts' },
-    ];
 
     return (
-      <View className="bg-white rounded-2xl border border-gray-200 p-4 gap-3">
+      <View className="gap-4">
         <View className="flex-row items-center justify-between">
           <Text className="text-base font-bold text-gray-900">Manual KYC Submission</Text>
-          <TouchableOpacity onPress={() => { setKycMethod('select'); setActiveSection(null); setError(''); }} activeOpacity={0.7} delayPressIn={0}>
+          <TouchableOpacity onPress={() => { setKycMethod('select'); setError(''); }} activeOpacity={0.7} delayPressIn={0}>
             <Text className="text-sm text-[#8c76f0] font-semibold">Back</Text>
           </TouchableOpacity>
         </View>
-        <Text className="text-sm text-gray-600">Submit your PAN card and address proof. Business details are optional.</Text>
 
-        {activeSection === null ? (
-          <View className="gap-2">
-            {sections.map((item) => {
-              const isDone = item.key === 'pan' ? kycData?.pan?.pan_number :
-                            item.key === 'address' ? kycData?.address?.id_number :
-                            kycData?.business?.business_name;
-              return (
+        {/* ── PAN Card ── */}
+        <View className="bg-white rounded-2xl border-2 border-gray-200 p-4 gap-4">
+          {renderSectionHeader(User, '#2563eb', '#eff6ff', 'PAN Verification', 'Permanent Account Number card details', kycData?.pan?.status, kycData?.pan?.digilocker_verified ? (
+            <View className="flex-row items-center gap-1.5 px-2.5 py-1 bg-emerald-100 rounded-full">
+              <ShieldCheck size={12} color="#16a34a" />
+              <Text className="text-xs font-semibold text-emerald-700">e-KYC</Text>
+            </View>
+          ) : undefined)}
+
+          {kycData?.pan?.status === 'rejected' && kycData.pan.rejection_reason && (
+            <View className="bg-red-50 border border-red-200 rounded-xl p-3">
+              <Text className="text-sm font-medium text-red-700">Rejection Reason</Text>
+              <Text className="text-sm text-red-600 mt-1">{kycData.pan.rejection_reason}</Text>
+              <Text className="text-sm text-red-700 mt-2 font-medium">Please update your details and resubmit.</Text>
+            </View>
+          )}
+
+          {kycData?.pan && (kycData.pan.status === 'verified' || kycData.pan.status === 'verification_pending') && kycData.pan.status !== 'rejected' && (
+            <View className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <Text className="text-sm text-amber-700">{kycData.pan.status === 'verified' ? 'PAN verification is complete. No changes allowed.' : 'PAN is under review. You cannot make changes until the review is complete.'}</Text>
+            </View>
+          )}
+
+          {kycData?.pan?.digilocker_verified && (
+            <View className="flex-row items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
+              <ShieldCheck size={18} color="#16a34a" />
+              <Text className="text-sm text-emerald-700">PAN verified electronically via DigiLocker{kycData.pan.digilocker_provider ? ` (${kycData.pan.digilocker_provider})` : ''}. Document photo is not required.</Text>
+            </View>
+          )}
+
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">PAN Card Number *</Text>
+            <TextInput
+              value={panForm.pan_number}
+              onChangeText={(v) => setPanForm({ ...panForm, pan_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10) })}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-widest ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              placeholder="ABCDE1234F"
+              placeholderTextColor="#9ca3af"
+              autoCapitalize="characters"
+              maxLength={10}
+              editable={!kycLocked}
+            />
+          </View>
+
+          {!kycData?.pan?.digilocker_verified && (
+            renderFileUpload('PAN Card Photo', 'pan_photo', panForm.pan_photo_url, (url) => setPanForm({ ...panForm, pan_photo_url: url }), ['image/jpeg', 'image/png', 'image/jpg'])
+          )}
+
+          {panError ? (
+            <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
+              <AlertCircle size={18} color="#dc2626" />
+              <Text className="text-sm text-red-700 flex-1">{panError}</Text>
+            </View>
+          ) : null}
+
+          {(!kycLocked || kycData?.pan?.status === 'rejected') && (
+            <TouchableOpacity
+              onPress={handlePanSubmit}
+              disabled={panSaving}
+              className="w-full bg-[#8c76f0] rounded-xl py-3.5 flex-row items-center justify-center gap-2"
+              style={{ opacity: panSaving ? 0.5 : 1 }}
+              activeOpacity={0.7} delayPressIn={0}
+            >
+              <Save size={18} color="white" />
+              <Text className="text-white font-semibold text-center text-base">{panSaving ? 'Saving...' : kycData?.pan?.status === 'rejected' ? 'Resubmit' : 'Save & Submit'}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ── Address Proof ── */}
+        <View className="bg-white rounded-2xl border-2 border-gray-200 p-4 gap-4">
+          {renderSectionHeader(MapPin, '#16a34a', '#f0fdf4', 'Address Proof', 'Aadhaar, passport, or other ID', kycData?.address?.status, kycData?.address?.digilocker_verified ? (
+            <View className="flex-row items-center gap-1.5 px-2.5 py-1 bg-emerald-100 rounded-full">
+              <ShieldCheck size={12} color="#16a34a" />
+              <Text className="text-xs font-semibold text-emerald-700">e-KYC</Text>
+            </View>
+          ) : undefined)}
+
+          {kycData?.address?.status === 'rejected' && kycData.address.rejection_reason && (
+            <View className="bg-red-50 border border-red-200 rounded-xl p-3">
+              <Text className="text-sm font-medium text-red-700">Rejection Reason</Text>
+              <Text className="text-sm text-red-600 mt-1">{kycData.address.rejection_reason}</Text>
+              <Text className="text-sm text-red-700 mt-2 font-medium">Please update your details and resubmit.</Text>
+            </View>
+          )}
+
+          {kycData?.address && (kycData.address.status === 'verified' || kycData.address.status === 'verification_pending') && kycData.address.status !== 'rejected' && (
+            <View className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <Text className="text-sm text-amber-700">{kycData.address.status === 'verified' ? 'Address verification is complete. No changes allowed.' : 'Address proof is under review. You cannot make changes until the review is complete.'}</Text>
+            </View>
+          )}
+
+          {kycData?.address?.digilocker_verified && (
+            <View className="flex-row items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
+              <ShieldCheck size={18} color="#16a34a" />
+              <Text className="text-sm text-emerald-700">Address proof verified electronically via DigiLocker{kycData.address.digilocker_provider ? ` (${kycData.address.digilocker_provider})` : ''}. Document photos are not required.</Text>
+            </View>
+          )}
+
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5 flex-row items-center gap-1.5">
+              <CreditCard size={14} color="#6b7280" /> {addressForm.proof_type ? `${ADDRESS_PROOF_TYPES.find(p => p.value === addressForm.proof_type)?.label ?? 'Document'} Number` : 'ID Number'} *
+            </Text>
+            <TextInput
+              value={addressForm.id_number}
+              onChangeText={(v) => {
+                if (addressForm.proof_type === 'aadhar') {
+                  setAddressForm({ ...addressForm, id_number: v.replace(/\D/g, '').slice(0, 12) });
+                } else {
+                  setAddressForm({ ...addressForm, id_number: v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) });
+                }
+              }}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              placeholder={ID_NUMBER_PLACEHOLDERS[addressForm.proof_type] ?? 'Enter document ID number'}
+              placeholderTextColor="#9ca3af"
+              maxLength={addressForm.proof_type === 'aadhar' ? 12 : 20}
+              editable={!kycLocked}
+            />
+            {addressForm.proof_type === 'aadhar' && addressForm.id_number.length > 0 && addressForm.id_number.length < 12 && (
+              <Text className="text-xs text-amber-600 mt-1">{12 - addressForm.id_number.length} more digits required</Text>
+            )}
+          </View>
+
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">Proof Document Type *</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {ADDRESS_PROOF_TYPES.map((t) => (
                 <TouchableOpacity
-                  key={item.key}
-                  onPress={() => { setError(''); setActiveSection(item.key); }}
-                  className="flex-row items-center gap-3 p-3 bg-gray-50 rounded-xl"
+                  key={t.value}
+                  onPress={() => setAddressForm({ ...addressForm, proof_type: t.value })}
+                  className={`px-4 py-2.5 rounded-xl border ${addressForm.proof_type === t.value ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
                   activeOpacity={0.7} delayPressIn={0}
+                  disabled={kycLocked}
                 >
-                  <View className="w-10 h-10 bg-white rounded-lg items-center justify-center">
-                    <item.icon size={20} color={item.color} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-base font-medium text-gray-900">{item.label}</Text>
-                    <Text className="text-sm text-gray-500">{item.desc}</Text>
-                  </View>
-                  {isDone ? <CheckCircle size={18} color="#16a34a" /> : <ChevronRight size={18} color="#9ca3af" />}
+                  <Text className={`text-sm font-medium ${addressForm.proof_type === t.value ? 'text-white' : 'text-gray-700'}`}>{t.label}</Text>
                 </TouchableOpacity>
-              );
-            })}
+              ))}
+            </View>
           </View>
-        ) : activeSection === 'pan' ? (
-          <View className="gap-3">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-base font-bold text-gray-900">PAN Card Details</Text>
-              <TouchableOpacity onPress={() => { setActiveSection(null); setPanError(''); }} activeOpacity={0.7} delayPressIn={0}>
-                <Text className="text-sm text-[#8c76f0] font-semibold">Back</Text>
-              </TouchableOpacity>
-            </View>
 
-            {kycData?.pan?.status === 'rejected' && kycData.pan.rejection_reason && (
-              <View className="bg-red-50 border border-red-200 rounded-xl p-3">
-                <Text className="text-sm font-medium text-red-700">Rejection Reason</Text>
-                <Text className="text-sm text-red-600 mt-1">{kycData.pan.rejection_reason}</Text>
-                <Text className="text-sm text-red-700 mt-2 font-medium">Please update your details and resubmit.</Text>
-              </View>
-            )}
-
-            {kycData?.pan && (kycData.pan.status === 'verified' || kycData.pan.status === 'verification_pending') && kycData.pan.status !== 'rejected' && (
-              <View className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <Text className="text-sm text-amber-700">{kycData.pan.status === 'verified' ? 'PAN verification is complete. No changes allowed.' : 'PAN is under review. You cannot make changes until the review is complete.'}</Text>
-              </View>
-            )}
-
-            {kycData?.pan?.digilocker_verified && (
-              <View className="flex-row items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
-                <ShieldCheck size={18} color="#16a34a" />
-                <Text className="text-sm text-emerald-700">PAN verified electronically via DigiLocker{kycData.pan.digilocker_provider ? ` (${kycData.pan.digilocker_provider})` : ''}. Document photo is not required.</Text>
-              </View>
-            )}
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">PAN Card Number *</Text>
-              <TextInput
-                value={panForm.pan_number}
-                onChangeText={(v) => setPanForm({ ...panForm, pan_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
-                placeholder="ABCDE1234F"
-                placeholderTextColor="#9ca3af"
-                autoCapitalize="characters"
-                maxLength={10}
-                editable={!kycLocked}
-              />
-            </View>
-
-            {!kycData?.pan?.digilocker_verified && (
-              renderFileUpload('PAN Card Photo', 'pan_photo', panForm.pan_photo_url, (url) => setPanForm({ ...panForm, pan_photo_url: url }), ['image/jpeg', 'image/png', 'image/jpg'])
-            )}
-
-            {panError ? (
-              <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
-                <AlertCircle size={18} color="#dc2626" />
-                <Text className="text-sm text-red-700 flex-1">{panError}</Text>
-              </View>
-            ) : null}
-
-            {(!kycLocked || kycData?.pan?.status === 'rejected') && (
-              <TouchableOpacity
-                onPress={handlePanSubmit}
-                disabled={panSaving}
-                className="w-full bg-[#8c76f0] rounded-xl py-3.5 flex-row items-center justify-center gap-2"
-                style={{ opacity: panSaving ? 0.5 : 1 }}
-                activeOpacity={0.7} delayPressIn={0}
-              >
-                <Save size={18} color="white" />
-                <Text className="text-white font-semibold text-center text-base">{panSaving ? 'Saving...' : kycData?.pan?.status === 'rejected' ? 'Resubmit' : 'Save & Submit'}</Text>
-              </TouchableOpacity>
-            )}
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">Full Address *</Text>
+            <TextInput
+              value={addressForm.address}
+              onChangeText={(v) => setAddressForm({ ...addressForm, address: v.replace(/[^A-Za-z0-9 \-.,()]/g, '') })}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              placeholder="House/Flat No., Street, Locality, Landmark"
+              placeholderTextColor="#9ca3af"
+              multiline
+              textAlignVertical="top"
+              maxLength={500}
+              style={{ minHeight: 70 }}
+              editable={!kycLocked}
+            />
           </View>
-        ) : activeSection === 'address' ? (
-          <View className="gap-3">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-base font-bold text-gray-900">Address Proof</Text>
-              <TouchableOpacity onPress={() => { setActiveSection(null); setAddressError(''); }} activeOpacity={0.7} delayPressIn={0}>
-                <Text className="text-sm text-[#8c76f0] font-semibold">Back</Text>
-              </TouchableOpacity>
-            </View>
 
-            {kycData?.address?.status === 'rejected' && kycData.address.rejection_reason && (
-              <View className="bg-red-50 border border-red-200 rounded-xl p-3">
-                <Text className="text-sm font-medium text-red-700">Rejection Reason</Text>
-                <Text className="text-sm text-red-600 mt-1">{kycData.address.rejection_reason}</Text>
-                <Text className="text-sm text-red-700 mt-2 font-medium">Please update your details and resubmit.</Text>
-              </View>
-            )}
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">City *</Text>
+            <TextInput
+              value={addressForm.city}
+              onChangeText={(v) => setAddressForm({ ...addressForm, city: v.replace(/[^A-Za-z ]/g, '') })}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              placeholder="e.g. Mumbai"
+              placeholderTextColor="#9ca3af"
+              maxLength={20}
+              editable={!kycLocked}
+            />
+          </View>
 
-            {kycData?.address && (kycData.address.status === 'verified' || kycData.address.status === 'verification_pending') && kycData.address.status !== 'rejected' && (
-              <View className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <Text className="text-sm text-amber-700">{kycData.address.status === 'verified' ? 'Address verification is complete. No changes allowed.' : 'Address proof is under review. You cannot make changes until the review is complete.'}</Text>
-              </View>
-            )}
-
-            {kycData?.address?.digilocker_verified && (
-              <View className="flex-row items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
-                <ShieldCheck size={18} color="#16a34a" />
-                <Text className="text-sm text-emerald-700">Address proof verified electronically via DigiLocker{kycData.address.digilocker_provider ? ` (${kycData.address.digilocker_provider})` : ''}. Document photos are not required.</Text>
-              </View>
-            )}
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5 flex-row items-center gap-1.5">
-                <CreditCard size={14} color="#6b7280" /> {addressForm.proof_type ? `${ADDRESS_PROOF_TYPES.find(p => p.value === addressForm.proof_type)?.label ?? 'Document'} Number` : 'ID Number'} *
-              </Text>
-              <TextInput
-                value={addressForm.id_number}
-                onChangeText={(v) => {
-                  if (addressForm.proof_type === 'aadhar') {
-                    setAddressForm({ ...addressForm, id_number: v.replace(/\D/g, '').slice(0, 12) });
-                  } else {
-                    setAddressForm({ ...addressForm, id_number: v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 20) });
-                  }
-                }}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
-                placeholder={ID_NUMBER_PLACEHOLDERS[addressForm.proof_type] ?? 'Enter document ID number'}
-                placeholderTextColor="#9ca3af"
-                maxLength={addressForm.proof_type === 'aadhar' ? 12 : 20}
-                editable={!kycLocked}
-              />
-              {addressForm.proof_type === 'aadhar' && addressForm.id_number.length > 0 && addressForm.id_number.length < 12 && (
-                <Text className="text-xs text-amber-600 mt-1">{12 - addressForm.id_number.length} more digits required</Text>
-              )}
-            </View>
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">Proof Document Type *</Text>
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">State *</Text>
+            <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
               <View className="flex-row flex-wrap gap-2">
-                {ADDRESS_PROOF_TYPES.map((t) => (
+                {INDIAN_STATES.map((s) => (
                   <TouchableOpacity
-                    key={t.value}
-                    onPress={() => setAddressForm({ ...addressForm, proof_type: t.value })}
-                    className={`px-4 py-2.5 rounded-xl border ${addressForm.proof_type === t.value ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
+                    key={s}
+                    onPress={() => setAddressForm({ ...addressForm, state: s })}
+                    className={`px-3 py-2 rounded-lg border ${addressForm.state === s ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
                     activeOpacity={0.7} delayPressIn={0}
                     disabled={kycLocked}
                   >
-                    <Text className={`text-sm font-medium ${addressForm.proof_type === t.value ? 'text-white' : 'text-gray-700'}`}>{t.label}</Text>
+                    <Text className={`text-xs font-medium ${addressForm.state === s ? 'text-white' : 'text-gray-700'}`}>{s}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
+            </ScrollView>
+          </View>
+
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">Pincode *</Text>
+            <TextInput
+              value={addressForm.pincode}
+              onChangeText={(v) => setAddressForm({ ...addressForm, pincode: v.replace(/\D/g, '').slice(0, 6) })}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              placeholder="6-digit pincode"
+              placeholderTextColor="#9ca3af"
+              keyboardType="number-pad"
+              maxLength={6}
+              editable={!kycLocked}
+            />
+          </View>
+
+          {!kycData?.address?.digilocker_verified && addressForm.proof_type && (
+            <>
+              {renderFileUpload(`${ADDRESS_PROOF_TYPES.find(p => p.value === addressForm.proof_type)?.label ?? 'Document'} - Front`, 'address_front', addressForm.front_photo_url, (url) => setAddressForm({ ...addressForm, front_photo_url: url }), ['image/jpeg', 'image/png', 'image/jpg'], true)}
+              {renderFileUpload(`${ADDRESS_PROOF_TYPES.find(p => p.value === addressForm.proof_type)?.label ?? 'Document'} - Back`, 'address_back', addressForm.back_photo_url, (url) => setAddressForm({ ...addressForm, back_photo_url: url }), ['image/jpeg', 'image/png', 'image/jpg'], true)}
+            </>
+          )}
+
+          {addressError ? (
+            <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
+              <AlertCircle size={18} color="#dc2626" />
+              <Text className="text-sm text-red-700 flex-1">{addressError}</Text>
             </View>
+          ) : null}
 
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">Full Address *</Text>
-              <TextInput
-                value={addressForm.address}
-                onChangeText={(v) => setAddressForm({ ...addressForm, address: v.replace(/[^A-Za-z0-9 \-.,()]/g, '') })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
-                placeholder="House/Flat No., Street, Locality, Landmark"
-                placeholderTextColor="#9ca3af"
-                multiline
-                textAlignVertical="top"
-                maxLength={500}
-                style={{ minHeight: 70 }}
-                editable={!kycLocked}
-              />
+          {(!kycLocked || kycData?.address?.status === 'rejected') && (
+            <TouchableOpacity
+              onPress={handleAddressSubmit}
+              disabled={addressSaving}
+              className="w-full bg-[#8c76f0] rounded-xl py-3.5 flex-row items-center justify-center gap-2"
+              style={{ opacity: addressSaving ? 0.5 : 1 }}
+              activeOpacity={0.7} delayPressIn={0}
+            >
+              <Save size={18} color="white" />
+              <Text className="text-white font-semibold text-center text-base">{addressSaving ? 'Saving...' : kycData?.address?.status === 'rejected' ? 'Resubmit' : 'Save & Submit'}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ── Business Details ── */}
+        <View className="bg-white rounded-2xl border-2 border-gray-200 p-4 gap-4">
+          {renderSectionHeader(Building2, '#2563eb', '#eff6ff', 'Business Details', 'Optional — for business accounts', kycData?.business?.status)}
+
+          <View className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+            <Text className="text-sm text-blue-700"><Text className="font-semibold">Note:</Text> Business information is optional. Admin review is required when you upload business documents. Letter of Authorization (LoA) is mandatory for submission.</Text>
+          </View>
+
+          {kycData?.business?.status === 'rejected' && kycData.business.rejection_reason && (
+            <View className="bg-red-50 border border-red-200 rounded-xl p-3">
+              <Text className="text-sm font-medium text-red-700">Rejection Reason</Text>
+              <Text className="text-sm text-red-600 mt-1">{kycData.business.rejection_reason}</Text>
+              <Text className="text-sm text-red-700 mt-2 font-medium">Please update your details and resubmit.</Text>
             </View>
+          )}
 
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">City *</Text>
-              <TextInput
-                value={addressForm.city}
-                onChangeText={(v) => setAddressForm({ ...addressForm, city: v.replace(/[^A-Za-z ]/g, '') })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
-                placeholder="e.g. Mumbai"
-                placeholderTextColor="#9ca3af"
-                maxLength={20}
-                editable={!kycLocked}
-              />
+          {kycData?.business && (kycData.business.status === 'verified' || kycData.business.status === 'verification_pending') && kycData.business.status !== 'rejected' && (
+            <View className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <Text className="text-sm text-amber-700">{kycData.business.status === 'verified' ? 'Business information is verified. No changes allowed.' : 'Business information is under review. You cannot make changes until the review is complete.'}</Text>
             </View>
+          )}
 
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">State *</Text>
-              <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
-                <View className="flex-row flex-wrap gap-2">
-                  {INDIAN_STATES.map((s) => (
-                    <TouchableOpacity
-                      key={s}
-                      onPress={() => setAddressForm({ ...addressForm, state: s })}
-                      className={`px-3 py-2 rounded-lg border ${addressForm.state === s ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
-                      activeOpacity={0.7} delayPressIn={0}
-                      disabled={kycLocked}
-                    >
-                      <Text className={`text-xs font-medium ${addressForm.state === s ? 'text-white' : 'text-gray-700'}`}>{s}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">Pincode *</Text>
-              <TextInput
-                value={addressForm.pincode}
-                onChangeText={(v) => setAddressForm({ ...addressForm, pincode: v.replace(/\D/g, '').slice(0, 6) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
-                placeholder="6-digit pincode"
-                placeholderTextColor="#9ca3af"
-                keyboardType="number-pad"
-                maxLength={6}
-                editable={!kycLocked}
-              />
-            </View>
-
-            {!kycData?.address?.digilocker_verified && addressForm.proof_type && (
-              <>
-                {renderFileUpload(`${ADDRESS_PROOF_TYPES.find(p => p.value === addressForm.proof_type)?.label ?? 'Document'} - Front`, 'address_front', addressForm.front_photo_url, (url) => setAddressForm({ ...addressForm, front_photo_url: url }), ['image/jpeg', 'image/png', 'image/jpg'], true)}
-                {renderFileUpload(`${ADDRESS_PROOF_TYPES.find(p => p.value === addressForm.proof_type)?.label ?? 'Document'} - Back`, 'address_back', addressForm.back_photo_url, (url) => setAddressForm({ ...addressForm, back_photo_url: url }), ['image/jpeg', 'image/png', 'image/jpg'], true)}
-              </>
-            )}
-
-            {addressError ? (
-              <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
-                <AlertCircle size={18} color="#dc2626" />
-                <Text className="text-sm text-red-700 flex-1">{addressError}</Text>
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">Company Type *</Text>
+            <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+              <View className="flex-row flex-wrap gap-2">
+                {COMPANY_TYPES.map((t) => (
+                  <TouchableOpacity
+                    key={t}
+                    onPress={() => setBusinessForm({ ...businessForm, company_type: t })}
+                    className={`px-3 py-2 rounded-lg border ${businessForm.company_type === t ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
+                    activeOpacity={0.7} delayPressIn={0}
+                    disabled={kycLocked}
+                  >
+                    <Text className={`text-xs font-medium ${businessForm.company_type === t ? 'text-white' : 'text-gray-700'}`}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            ) : null}
+            </ScrollView>
+          </View>
 
-            {(!kycLocked || kycData?.address?.status === 'rejected') && (
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">Business / Company Registration Name *</Text>
+            <TextInput
+              value={businessForm.business_name}
+              onChangeText={(v) => setBusinessForm({ ...businessForm, business_name: v.replace(/[^A-Za-z0-9&.\- ]/g, '').slice(0, 150) })}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              placeholder="As per registration certificate"
+              placeholderTextColor="#9ca3af"
+              maxLength={150}
+              editable={!kycLocked}
+            />
+          </View>
+
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">Business / Company Incorporation Number *</Text>
+            <TextInput
+              value={businessForm.incorporation_number}
+              onChangeText={(v) => setBusinessForm({ ...businessForm, incorporation_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 21) })}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              placeholder="CIN / LLP / Firm Number"
+              placeholderTextColor="#9ca3af"
+              maxLength={21}
+              editable={!kycLocked}
+            />
+          </View>
+
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">Business PAN *</Text>
+            <TextInput
+              value={businessForm.business_pan}
+              onChangeText={(v) => setBusinessForm({ ...businessForm, business_pan: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10) })}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-widest ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              placeholder="AAAAA9999A"
+              placeholderTextColor="#9ca3af"
+              autoCapitalize="characters"
+              maxLength={10}
+              editable={!kycLocked}
+            />
+          </View>
+
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">GST Number</Text>
+            <TextInput
+              value={businessForm.gst_number}
+              onChangeText={(v) => setBusinessForm({ ...businessForm, gst_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 15) })}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base font-mono tracking-wider ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              placeholder="15-character GSTIN"
+              placeholderTextColor="#9ca3af"
+              maxLength={15}
+              editable={!kycLocked}
+            />
+          </View>
+
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">Business Address *</Text>
+            <TextInput
+              value={businessForm.business_address}
+              onChangeText={(v) => setBusinessForm({ ...businessForm, business_address: v.slice(0, 500) })}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              placeholder="Full registered business address"
+              placeholderTextColor="#9ca3af"
+              multiline
+              textAlignVertical="top"
+              maxLength={500}
+              style={{ minHeight: 70 }}
+              editable={!kycLocked}
+            />
+            <Text className="text-xs text-gray-400 mt-1 text-right">{businessForm.business_address.length}/500</Text>
+          </View>
+
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">Business Email *</Text>
+            <TextInput
+              value={businessForm.business_email}
+              onChangeText={(v) => setBusinessForm({ ...businessForm, business_email: v })}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              placeholder="contact@yourbusiness.com"
+              placeholderTextColor="#9ca3af"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!kycLocked}
+            />
+          </View>
+
+          <View>
+            <Text className="text-sm font-medium text-gray-700 mb-1.5">Business Phone Number *</Text>
+            <TextInput
+              value={businessForm.business_phone}
+              onChangeText={(v) => setBusinessForm({ ...businessForm, business_phone: v.replace(/[^0-9]/g, '').slice(0, 10) })}
+              className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
+              placeholder="10-digit number"
+              placeholderTextColor="#9ca3af"
+              keyboardType="number-pad"
+              maxLength={10}
+              editable={!kycLocked}
+            />
+          </View>
+
+          {renderFileUpload('Business / Company Incorporation Certificate', 'inc_certificate', businessForm.incorporation_certificate_url, (url) => setBusinessForm({ ...businessForm, incorporation_certificate_url: url }), ['application/pdf'], COMPANY_TYPES_REQUIRING_INC_CERT.includes(businessForm.company_type))}
+          {renderFileUpload('Company PAN Photo', 'company_pan_photo', businessForm.company_pan_photo_url, (url) => setBusinessForm({ ...businessForm, company_pan_photo_url: url }), ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'], true)}
+          {renderFileUpload('GST Certificate', 'gst_certificate', businessForm.gst_certificate_url, (url) => setBusinessForm({ ...businessForm, gst_certificate_url: url }), ['application/pdf'], businessForm.gst_number.trim().length > 0)}
+          {renderFileUpload('Letter of Authorization (LoA) *', 'loa', businessForm.loa_url, (url) => setBusinessForm({ ...businessForm, loa_url: url }), ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])}
+
+          {(businessForm.company_type === 'Private Limited Company' || businessForm.company_type === 'One Person Company (OPC)') && (
+            <>
+              {renderFileUpload('Memorandum of Association (MoA) *', 'moa', businessForm.moa_url, (url) => setBusinessForm({ ...businessForm, moa_url: url }), ['application/pdf'])}
+              {renderFileUpload('Articles of Association (AoA) *', 'aoa', businessForm.aoa_url, (url) => setBusinessForm({ ...businessForm, aoa_url: url }), ['application/pdf'])}
+            </>
+          )}
+
+          {businessError ? (
+            <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
+              <AlertCircle size={18} color="#dc2626" />
+              <Text className="text-sm text-red-700 flex-1">{businessError}</Text>
+            </View>
+          ) : null}
+
+          {businessSuccess && (
+            <View className="bg-green-50 border border-green-300 rounded-xl p-3 flex-row items-center gap-2">
+              <CheckCircle size={18} color="#16a34a" />
+              <Text className="text-sm text-green-700 flex-1">Business information saved successfully.</Text>
+            </View>
+          )}
+
+          {(!kycLocked || kycData?.business?.status === 'rejected') && (
+            <View className="flex-row gap-3">
               <TouchableOpacity
-                onPress={handleAddressSubmit}
-                disabled={addressSaving}
-                className="w-full bg-[#8c76f0] rounded-xl py-3.5 flex-row items-center justify-center gap-2"
-                style={{ opacity: addressSaving ? 0.5 : 1 }}
+                onPress={handleBusinessSubmit}
+                disabled={businessSaving || removingBusiness}
+                className="flex-1 bg-[#8c76f0] rounded-xl py-3.5 flex-row items-center justify-center gap-2"
+                style={{ opacity: businessSaving || removingBusiness ? 0.5 : 1 }}
                 activeOpacity={0.7} delayPressIn={0}
               >
                 <Save size={18} color="white" />
-                <Text className="text-white font-semibold text-center text-base">{addressSaving ? 'Saving...' : kycData?.address?.status === 'rejected' ? 'Resubmit' : 'Save & Submit'}</Text>
+                <Text className="text-white font-semibold text-center text-base">{businessSaving ? 'Saving...' : kycData?.business?.status === 'rejected' ? 'Resubmit Business Info' : 'Save Business Info'}</Text>
               </TouchableOpacity>
-            )}
-          </View>
-        ) : activeSection === 'business' ? (
-          <View className="gap-3">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-base font-bold text-gray-900">Business Details (Optional)</Text>
-              <TouchableOpacity onPress={() => { setActiveSection(null); setBusinessError(''); }} activeOpacity={0.7} delayPressIn={0}>
-                <Text className="text-sm text-[#8c76f0] font-semibold">Back</Text>
-              </TouchableOpacity>
-            </View>
 
-            <View className="bg-blue-50 border border-blue-200 rounded-xl p-3">
-              <Text className="text-sm text-blue-700"><Text className="font-semibold">Note:</Text> Business information is optional. Admin review is required when you upload business documents. Letter of Authorization (LoA) is mandatory for submission.</Text>
-            </View>
-
-            {kycData?.business?.status === 'rejected' && kycData.business.rejection_reason && (
-              <View className="bg-red-50 border border-red-200 rounded-xl p-3">
-                <Text className="text-sm font-medium text-red-700">Rejection Reason</Text>
-                <Text className="text-sm text-red-600 mt-1">{kycData.business.rejection_reason}</Text>
-                <Text className="text-sm text-red-700 mt-2 font-medium">Please update your details and resubmit.</Text>
-              </View>
-            )}
-
-            {kycData?.business && (kycData.business.status === 'verified' || kycData.business.status === 'verification_pending') && kycData.business.status !== 'rejected' && (
-              <View className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <Text className="text-sm text-amber-700">{kycData.business.status === 'verified' ? 'Business information is verified. No changes allowed.' : 'Business information is under review. You cannot make changes until the review is complete.'}</Text>
-              </View>
-            )}
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">Company Type *</Text>
-              <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
-                <View className="flex-row flex-wrap gap-2">
-                  {COMPANY_TYPES.map((t) => (
-                    <TouchableOpacity
-                      key={t}
-                      onPress={() => setBusinessForm({ ...businessForm, company_type: t })}
-                      className={`px-3 py-2 rounded-lg border ${businessForm.company_type === t ? 'bg-[#8c76f0] border-[#8c76f0]' : 'border-gray-300 bg-white'}`}
-                      activeOpacity={0.7} delayPressIn={0}
-                      disabled={kycLocked}
-                    >
-                      <Text className={`text-xs font-medium ${businessForm.company_type === t ? 'text-white' : 'text-gray-700'}`}>{t}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">Business / Company Registration Name *</Text>
-              <TextInput
-                value={businessForm.business_name}
-                onChangeText={(v) => setBusinessForm({ ...businessForm, business_name: v.replace(/[^A-Za-z0-9&.\- ]/g, '').slice(0, 150) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
-                placeholder="As per registration certificate"
-                placeholderTextColor="#9ca3af"
-                maxLength={150}
-                editable={!kycLocked}
-              />
-            </View>
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">Business / Company Incorporation Number *</Text>
-              <TextInput
-                value={businessForm.incorporation_number}
-                onChangeText={(v) => setBusinessForm({ ...businessForm, incorporation_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 21) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
-                placeholder="CIN / LLP / Firm Number"
-                placeholderTextColor="#9ca3af"
-                maxLength={21}
-                editable={!kycLocked}
-              />
-            </View>
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">Business PAN *</Text>
-              <TextInput
-                value={businessForm.business_pan}
-                onChangeText={(v) => setBusinessForm({ ...businessForm, business_pan: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
-                placeholder="AAAAA9999A"
-                placeholderTextColor="#9ca3af"
-                autoCapitalize="characters"
-                maxLength={10}
-                editable={!kycLocked}
-              />
-            </View>
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">GST Number</Text>
-              <TextInput
-                value={businessForm.gst_number}
-                onChangeText={(v) => setBusinessForm({ ...businessForm, gst_number: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 15) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
-                placeholder="15-character GSTIN"
-                placeholderTextColor="#9ca3af"
-                maxLength={15}
-                editable={!kycLocked}
-              />
-            </View>
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">Business Address *</Text>
-              <TextInput
-                value={businessForm.business_address}
-                onChangeText={(v) => setBusinessForm({ ...businessForm, business_address: v.slice(0, 500) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
-                placeholder="Full registered business address"
-                placeholderTextColor="#9ca3af"
-                multiline
-                textAlignVertical="top"
-                maxLength={500}
-                style={{ minHeight: 70 }}
-                editable={!kycLocked}
-              />
-              <Text className="text-xs text-gray-400 mt-1 text-right">{businessForm.business_address.length}/500</Text>
-            </View>
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">Business Email *</Text>
-              <TextInput
-                value={businessForm.business_email}
-                onChangeText={(v) => setBusinessForm({ ...businessForm, business_email: v })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
-                placeholder="contact@yourbusiness.com"
-                placeholderTextColor="#9ca3af"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                editable={!kycLocked}
-              />
-            </View>
-
-            <View>
-              <Text className="text-sm font-medium text-gray-700 mb-1.5">Business Phone Number *</Text>
-              <TextInput
-                value={businessForm.business_phone}
-                onChangeText={(v) => setBusinessForm({ ...businessForm, business_phone: v.replace(/[^0-9]/g, '').slice(0, 10) })}
-                className={`w-full px-4 py-3 border border-gray-300 rounded-xl text-base ${kycLocked ? 'bg-gray-50 text-gray-500' : ''}`}
-                placeholder="10-digit number"
-                placeholderTextColor="#9ca3af"
-                keyboardType="number-pad"
-                maxLength={10}
-                editable={!kycLocked}
-              />
-            </View>
-
-            {renderFileUpload('Business / Company Incorporation Certificate', 'inc_certificate', businessForm.incorporation_certificate_url, (url) => setBusinessForm({ ...businessForm, incorporation_certificate_url: url }), ['application/pdf'], COMPANY_TYPES_REQUIRING_INC_CERT.includes(businessForm.company_type))}
-            {renderFileUpload('Company PAN Photo', 'company_pan_photo', businessForm.company_pan_photo_url, (url) => setBusinessForm({ ...businessForm, company_pan_photo_url: url }), ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'], true)}
-            {renderFileUpload('GST Certificate', 'gst_certificate', businessForm.gst_certificate_url, (url) => setBusinessForm({ ...businessForm, gst_certificate_url: url }), ['application/pdf'], businessForm.gst_number.trim().length > 0)}
-            {renderFileUpload('Letter of Authorization (LoA) *', 'loa', businessForm.loa_url, (url) => setBusinessForm({ ...businessForm, loa_url: url }), ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'])}
-
-            {(businessForm.company_type === 'Private Limited Company' || businessForm.company_type === 'One Person Company (OPC)') && (
-              <>
-                {renderFileUpload('Memorandum of Association (MoA) *', 'moa', businessForm.moa_url, (url) => setBusinessForm({ ...businessForm, moa_url: url }), ['application/pdf'])}
-                {renderFileUpload('Articles of Association (AoA) *', 'aoa', businessForm.aoa_url, (url) => setBusinessForm({ ...businessForm, aoa_url: url }), ['application/pdf'])}
-              </>
-            )}
-
-            {businessError ? (
-              <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
-                <AlertCircle size={18} color="#dc2626" />
-                <Text className="text-sm text-red-700 flex-1">{businessError}</Text>
-              </View>
-            ) : null}
-
-            {businessSuccess && (
-              <View className="bg-green-50 border border-green-300 rounded-xl p-3 flex-row items-center gap-2">
-                <CheckCircle size={18} color="#16a34a" />
-                <Text className="text-sm text-green-700 flex-1">Business information saved successfully.</Text>
-              </View>
-            )}
-
-            {(!kycLocked || kycData?.business?.status === 'rejected') && (
-              <View className="flex-row gap-3">
+              {kycData?.business?.status === 'rejected' && (
                 <TouchableOpacity
-                  onPress={handleBusinessSubmit}
+                  onPress={() => setShowRemoveConfirm(true)}
                   disabled={businessSaving || removingBusiness}
-                  className="flex-1 bg-[#8c76f0] rounded-xl py-3.5 flex-row items-center justify-center gap-2"
+                  className="px-4 py-3.5 bg-red-600 rounded-xl flex-row items-center justify-center gap-2"
                   style={{ opacity: businessSaving || removingBusiness ? 0.5 : 1 }}
                   activeOpacity={0.7} delayPressIn={0}
                 >
-                  <Save size={18} color="white" />
-                  <Text className="text-white font-semibold text-center text-base">{businessSaving ? 'Saving...' : kycData?.business?.status === 'rejected' ? 'Resubmit Business Info' : 'Save Business Info'}</Text>
+                  <Trash2 size={18} color="white" />
+                  <Text className="text-white font-semibold text-center text-base">Remove</Text>
                 </TouchableOpacity>
-
-                {kycData?.business?.status === 'rejected' && (
-                  <TouchableOpacity
-                    onPress={() => setShowRemoveConfirm(true)}
-                    disabled={businessSaving || removingBusiness}
-                    className="px-4 py-3.5 bg-red-600 rounded-xl flex-row items-center justify-center gap-2"
-                    style={{ opacity: businessSaving || removingBusiness ? 0.5 : 1 }}
-                    activeOpacity={0.7} delayPressIn={0}
-                  >
-                    <Trash2 size={18} color="white" />
-                    <Text className="text-white font-semibold text-center text-base">Remove</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </View>
-        ) : null}
+              )}
+            </View>
+          )}
+        </View>
 
         {/* Remove business confirm modal */}
         <Modal visible={showRemoveConfirm} animationType="fade" transparent>
