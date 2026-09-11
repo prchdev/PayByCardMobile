@@ -12,10 +12,17 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
 const ALLOWED_FILE_KEYS = new Set([
   "pan_photo",
+  "address_front",
+  "address_back",
   "address_proof_front",
   "address_proof_back",
+  "inc_certificate",
+  "company_pan_photo",
   "business_pan_photo",
   "gst_certificate",
+  "loa",
+  "moa",
+  "aoa",
   "cancelled_cheque",
   "business_photo",
   "additional_document",

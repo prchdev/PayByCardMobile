@@ -378,7 +378,13 @@ export default function MobileKYCVerification() {
       }
 
       const formData = new FormData();
-      formData.append('file', { uri: file.uri, name: file.name, type: file.mimeType || 'image/jpeg' } as any);
+      const mimeType = file.mimeType || 'image/jpeg';
+      if (Platform.OS === 'web') {
+        const blob = await (await fetch(file.uri)).blob();
+        formData.append('file', blob, file.name);
+      } else {
+        formData.append('file', { uri: file.uri, name: file.name, type: mimeType } as any);
+      }
       formData.append('fileKey', fileKey);
       formData.append('userId', userId || '');
 
