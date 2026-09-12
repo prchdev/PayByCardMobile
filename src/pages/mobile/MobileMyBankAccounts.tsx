@@ -479,7 +479,7 @@ export default function MobileMyBankAccounts() {
           </View>
 
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-            <ScrollView className="flex-1 px-4 pt-4" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}>
+            <ScrollView className="flex-1 px-4 pt-4" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}>
               {error ? (
                 <View className="bg-red-50 border-l-4 border-red-500 rounded-lg px-4 py-3 flex-row items-start gap-2 mb-4">
                   <AlertCircle size={18} color="#dc2626" />
