@@ -1184,8 +1184,15 @@ Deno.serve(async (req: Request) => {
         const pkceParams = codeChallenge
           ? `&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=S256`
           : '';
+        // Use v2 authorize endpoint when PKCE is involved — DigiLocker's v1
+        // endpoint does not support code_challenge. The token exchange must
+        // use the matching v2 token endpoint (already handled in
+        // digiLockerTokenExchange).
+        const authorizePath = codeChallenge
+          ? '/oauth2/2/authorize'
+          : '/oauth2/1/authorize';
         const authUrl =
-          `${DIGILOCKER_API}/oauth2/1/authorize` +
+          `${DIGILOCKER_API}${authorizePath}` +
           `?response_type=code&client_id=${apiKey}` +
           `&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}` +
           pkceParams;
