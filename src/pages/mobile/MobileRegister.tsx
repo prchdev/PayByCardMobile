@@ -266,9 +266,9 @@ export default function MobileRegister() {
         </View>
       </View>
 
-      <Modal visible={activeModal !== null} animationType="slide" transparent>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 12 }}>
-          <View style={{ backgroundColor: 'white', borderRadius: 16, width: '100%', maxHeight: '92%', flexDirection: 'column' }}>
+      <Modal visible={activeModal !== null} animationType="slide" transparent onRequestClose={() => setActiveModal(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 16, width: '100%', maxWidth: 480, maxHeight: '90%', overflow: 'hidden' }}>
             <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
               <View className="flex-row items-center gap-2">
                 {activeModal === 'terms' ? <FileText size={20} color="#8c76f0" /> : <Shield size={20} color="#8c76f0" />}
@@ -280,7 +280,7 @@ export default function MobileRegister() {
                 <X size={20} color="#6b7280" />
               </TouchableOpacity>
             </View>
-            <ScrollView style={{ flex: 1, padding: 16 }} contentContainerStyle={{ paddingBottom: 8 }} showsVerticalScrollIndicator>
+            <ScrollView style={{ padding: 16 }} contentContainerStyle={{ paddingBottom: 16, flexGrow: 1 }} showsVerticalScrollIndicator>
               {activeModal === 'terms' ? <TermsOfServiceContent /> : <PrivacyPolicyContent />}
             </ScrollView>
             <View className="px-4 py-3 border-t border-gray-200">

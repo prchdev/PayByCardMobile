@@ -795,6 +795,25 @@ function parseDlXml(xml: string): {
     return { name, dob, dlNumber, house: txtHouse, street: txtStreet, locality: txtLocality, vtc: txtVtc, district: txtDistrict, state: txtState, pincode: txtPincode };
   }
 
+  // ── Strategy 5: fall back to the generic certificate address parser ────
+  const certParsed = parseCertificateAddressXml(xml);
+  if (certParsed && (certParsed.district || certParsed.state || certParsed.pincode || certParsed.house)) {
+    return { name, dob, dlNumber, house: certParsed.house, street: certParsed.street, locality: certParsed.locality, vtc: certParsed.vtc, district: certParsed.district, state: certParsed.state, pincode: certParsed.pincode };
+  }
+
+  // ── Strategy 6: extract any text element containing a 6-digit pincode ──
+  const allTextRe = /<(\w+)[^>]*>([^<]+)<\/\1>/gi;
+  let tm: RegExpExecArray | null;
+  while ((tm = allTextRe.exec(xml)) !== null) {
+    const text = tm[2].trim();
+    if (/\b\d{6}\b/.test(text) && text.length > 10) {
+      const p = parseAddressLine1(text);
+      if (p.pincode || p.state || p.district) {
+        return { name, dob, dlNumber, house: p.address || text, street: '', locality: p.locality, vtc: '', district: p.district, state: p.state, pincode: p.pincode };
+      }
+    }
+  }
+
   return { name, dob, dlNumber, house: '', street: '', locality: '', vtc: '', district: '', state: '', pincode: '' };
 }
 

@@ -118,11 +118,19 @@ export default function MobileNotifications() {
   const dismissCampaign = (campaignId: string) => {
     selection();
     setCampaigns(prev => prev.filter(c => c.id !== campaignId));
+    fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
+      method: 'POST', headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, action: 'log_campaign', campaignId, campaignAction: 'dismissed' }),
+    }).catch(() => {});
   };
 
   const clickCampaign = async (campaignId: string, actionUrl?: string | null, actionType?: string | null) => {
     impact('light');
     setCampaigns(prev => prev.filter(c => c.id !== campaignId));
+    fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
+      method: 'POST', headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, action: 'log_campaign', campaignId, campaignAction: 'clicked' }),
+    }).catch(() => {});
     if (actionUrl) {
       if (actionType === 'external_url') {
         Linking.openURL(actionUrl);
