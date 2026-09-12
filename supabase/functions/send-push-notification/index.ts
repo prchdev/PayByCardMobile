@@ -17,6 +17,8 @@ interface PushPayload {
   channelId?: string;
   mutableContent?: number;
   imageUrl?: string;
+  smallIcon?: string;
+  largeIcon?: string;
 }
 
 Deno.serve(async (req: Request) => {
@@ -71,10 +73,14 @@ Deno.serve(async (req: Request) => {
         channelId: "default",
       };
 
+      if (t.platform === "android") {
+        msg.smallIcon = "notification_icon";
+        msg.largeIcon = "logo";
+      }
+
       if (imageUrl) {
         msg.mutableContent = 1;
         msg.data = { ...msg.data, image_url: imageUrl, image: imageUrl };
-        // Android: image in the notification
         if (t.platform === "android") {
           msg.imageUrl = imageUrl;
         }

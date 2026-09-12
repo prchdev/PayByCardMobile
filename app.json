@@ -61,7 +61,12 @@
         {
           "color": "#ffffff",
           "defaultChannelId": "default",
-          "androidMode": "default"
+          "androidMode": "default",
+          "icon": "./public/notification-icon.png",
+          "androidIcons": {
+            "smallIcon": "./public/notification-icon.png",
+            "largeIcon": "./public/PayByCard-Logo.png"
+          }
         }
       ],
       [
