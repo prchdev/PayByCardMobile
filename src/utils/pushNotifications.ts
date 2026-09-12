@@ -2,12 +2,14 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 
+const EXPO_PROJECT_ID = process.env.EXPO_PUBLIC_EXPO_PROJECT_ID || '7bdf2f35-5688-4c1a-bfb0-4c624da0654a';
+
 export async function registerPushToken(userId: string): Promise<void> {
   if (!userId) return;
 
   try {
     const { data: token } = await Notifications.getExpoPushTokenAsync({
-      projectId: process.env.EXPO_PUBLIC_EXPO_PROJECT_ID,
+      projectId: EXPO_PROJECT_ID,
     });
 
     if (token) {
@@ -25,8 +27,8 @@ export async function registerPushToken(userId: string): Promise<void> {
         }),
       });
     }
-  } catch {
-    /* no-op */
+  } catch (e) {
+    console.warn('Failed to register push token:', e);
   }
 }
 

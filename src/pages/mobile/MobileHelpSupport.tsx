@@ -394,7 +394,7 @@ export default function MobileHelpSupport() {
                   <Text className="text-sm text-gray-600 mb-2">{t.sub_category}</Text>
                   <View className="flex-row items-center justify-between">
                     <Text className={`text-sm font-medium ${pc}`}>{t.priority}</Text>
-                    <Text className="text-sm text-gray-500">{new Date(t.created_at).toLocaleDateString()}</Text>
+                    <Text className="text-sm text-gray-500">{new Date(t.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}</Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -645,7 +645,7 @@ export default function MobileHelpSupport() {
                     <View className="flex-row items-center gap-2 flex-1">
                       <Clock size={16} color="#6b7280" />
                       <Text className="text-sm text-gray-600">Created:</Text>
-                      <Text className="text-sm font-medium text-gray-900 flex-1" numberOfLines={1}>{new Date(ticketDetail.created_at).toLocaleDateString()}</Text>
+                      <Text className="text-sm font-medium text-gray-900 flex-1" numberOfLines={1}>{new Date(ticketDetail.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })}</Text>
                     </View>
                   </View>
                   <Text className="text-sm text-gray-600 mb-1">Sub-Category:</Text>
@@ -691,7 +691,7 @@ export default function MobileHelpSupport() {
                                   <View className={`px-2 py-0.5 rounded-full ${isAdmin ? 'bg-green-200' : 'bg-purple-200'}`}>
                                     <Text className={`text-xs ${isAdmin ? 'text-green-800' : 'text-purple-800'}`}>{isAdmin ? 'Admin' : 'You'}</Text>
                                   </View>
-                                  <Text className="text-xs text-gray-500">{new Date(reply.created_at).toLocaleDateString()}</Text>
+                                  <Text className="text-xs text-gray-500">{new Date(reply.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })}</Text>
                                 </View>
                                 <Text className="text-sm text-gray-900">{reply.message}</Text>
                                 {reply.attachments && reply.attachments.length > 0 && (
