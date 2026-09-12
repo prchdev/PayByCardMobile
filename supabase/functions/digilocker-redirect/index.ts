@@ -11,12 +11,13 @@ const corsHeaders = {
  *
  * DigiLocker redirects to this HTTPS URL after the user authorizes.
  *
- * Mobile: Returns an HTML page that redirects to
- *   paybycard://digilocker-callback?code=...&state=...
- * The in-app browser intercepts the custom scheme.
+ * Mobile: The state starts with "um" (encoded by digilocker-kyc for mobile
+ *   callers). Returns an HTTP 302 redirect to the paybycard:// custom scheme.
+ *   Android's Chrome Custom Tab (opened via openAuthSessionAsync) intercepts
+ *   HTTP redirects to custom schemes — it does NOT intercept JS redirects.
  *
- * Web: Returns an HTML page that sends postMessage to the opener window
- *   with { code, state } and then closes the popup.
+ * Web: The state starts with "uw". Returns an HTML page that sends postMessage
+ *   to the opener window with { code, state } and then closes the popup.
  */
 
 Deno.serve(async (req: Request) => {
@@ -34,8 +35,23 @@ Deno.serve(async (req: Request) => {
   if (state) params.set("state", state);
   if (error) params.set("error", error);
 
-  const appScheme = `paybycard://digilocker-callback?${params.toString()}`;
+  const isMobile = state.startsWith("um");
 
+  if (isMobile) {
+    // HTTP 302 redirect to the paybycard:// custom scheme.
+    // Chrome Custom Tab intercepts this at the OS level via intent filters,
+    // causing openAuthSessionAsync to capture the URL and return it to the app.
+    const appScheme = `paybycard://digilocker-callback?${params.toString()}`;
+    return new Response(null, {
+      status: 302,
+      headers: {
+        ...corsHeaders,
+        "Location": appScheme,
+      },
+    });
+  }
+
+  // Web: return HTML that sends postMessage to the opener popup window.
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -59,10 +75,8 @@ Deno.serve(async (req: Request) => {
   var code = ${JSON.stringify(code)};
   var state = ${JSON.stringify(state)};
   var error = ${JSON.stringify(error)};
-  var appScheme = ${JSON.stringify(appScheme)};
 
   if (window.opener && !window.opener.closed) {
-    // Web: send the auth code back to the parent window via postMessage
     var msg = { type: 'digilocker_callback' };
     if (code) msg.code = code;
     if (state) msg.state = state;
@@ -70,9 +84,7 @@ Deno.serve(async (req: Request) => {
     window.opener.postMessage(msg, '*');
     setTimeout(function() { window.close(); }, 500);
   } else {
-    // Mobile: redirect to the custom URL scheme
-    window.location.replace(appScheme);
-    setTimeout(function() { window.close(); }, 1000);
+    document.querySelector('p').textContent = 'Authorization complete. You may close this window.';
   }
 </script>
 </body>

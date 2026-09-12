@@ -1176,7 +1176,11 @@ Deno.serve(async (req: Request) => {
         // the DigiLocker dashboard — that's the saved redirect URI (bridge URL).
         const redirectUri = savedRedirectUri || bridgeUrl;
 
-        const state = 'u' + userId.replace(/-/g, '');
+        // Encode platform in state so the bridge function can choose HTTP vs JS redirect.
+        // 'um' prefix = mobile (HTTP 302 redirect to paybycard:// scheme)
+        // 'uw' prefix = web (postMessage to popup opener)
+        const statePrefix = platform === 'mobile' ? 'um' : 'uw';
+        const state = statePrefix + userId.replace(/-/g, '');
         const pkceParams = codeChallenge
           ? `&code_challenge=${encodeURIComponent(codeChallenge)}&code_challenge_method=S256`
           : '';
