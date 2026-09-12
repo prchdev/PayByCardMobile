@@ -1,6 +1,8 @@
 /// <reference types="node" />
 /// <reference types="expo/__generated__/ExpoStatic" />
 
+declare module '*.css';
+declare module 'expo-crypto';
 declare module 'expo-local-authentication';
 declare module 'expo-secure-store';
 declare module 'expo-haptics';
