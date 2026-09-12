@@ -9,21 +9,14 @@ const corsHeaders = {
 /**
  * DigiLocker Redirect Bridge
  *
- * DigiLocker redirects to an HTTPS URL after the user authorizes. On mobile,
- * the in-app browser (Custom Chrome Tab / ASWebAuthenticationSession) can only
- * intercept custom URL schemes, not HTTPS URLs.
+ * DigiLocker redirects to this HTTPS URL after the user authorizes.
  *
- * This edge function acts as a bridge:
- * 1. DigiLocker redirects to this function's URL with ?code=...&state=...
- * 2. This function returns an HTML page that redirects to
- *    paybycard://digilocker-callback?code=...&state=...
- * 3. The mobile app's openAuthSessionAsync intercepts the custom scheme
- *    and extracts the authorization code.
+ * Mobile: Returns an HTML page that redirects to
+ *   paybycard://digilocker-callback?code=...&state=...
+ * The in-app browser intercepts the custom scheme.
  *
- * An HTML page with a JavaScript redirect is used because:
- * - Custom Chrome Tabs on Android don't always follow 302 redirects to custom schemes
- * - ASWebAuthenticationSession on iOS handles JavaScript-based redirects reliably
- * - The page also calls window.close() as a fallback
+ * Web: Returns an HTML page that sends postMessage to the opener window
+ *   with { code, state } and then closes the popup.
  */
 
 Deno.serve(async (req: Request) => {
@@ -63,8 +56,24 @@ Deno.serve(async (req: Request) => {
   <p>Completing DigiLocker authorization...</p>
 </div>
 <script>
-  window.location.replace("${appScheme}");
-  setTimeout(function() { window.close(); }, 1000);
+  var code = ${JSON.stringify(code)};
+  var state = ${JSON.stringify(state)};
+  var error = ${JSON.stringify(error)};
+  var appScheme = ${JSON.stringify(appScheme)};
+
+  if (window.opener && !window.opener.closed) {
+    // Web: send the auth code back to the parent window via postMessage
+    var msg = { type: 'digilocker_callback' };
+    if (code) msg.code = code;
+    if (state) msg.state = state;
+    if (error) msg.error = error;
+    window.opener.postMessage(msg, '*');
+    setTimeout(function() { window.close(); }, 500);
+  } else {
+    // Mobile: redirect to the custom URL scheme
+    window.location.replace(appScheme);
+    setTimeout(function() { window.close(); }, 1000);
+  }
 </script>
 </body>
 </html>`;
