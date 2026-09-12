@@ -1172,14 +1172,10 @@ Deno.serve(async (req: Request) => {
         const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
         const bridgeUrl = `${supabaseUrl}/functions/v1/digilocker-redirect`;
 
-        // For mobile: use the bridge URL as DigiLocker's redirect_uri.
-        //   The bridge returns a 302 to paybycard://digilocker-callback which
-        //   openAuthSessionAsync intercepts.
-        // For web: use the website's callback page as DigiLocker's redirect_uri.
-        //   The website page handles the auth code in the popup.
-        const redirectUri = platform === 'mobile'
-          ? bridgeUrl
-          : (savedRedirectUri || 'https://paybycard.in/digilocker-callback');
+        // Use the saved redirect URI (registered with DigiLocker) for both
+        // mobile and web. The bridge function handles platform differences:
+        // mobile gets paybycard:// scheme, web gets postMessage.
+        const redirectUri = savedRedirectUri || bridgeUrl;
 
         const state = 'u' + userId.replace(/-/g, '');
         const pkceParams = codeChallenge
@@ -1191,9 +1187,9 @@ Deno.serve(async (req: Request) => {
           `&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}` +
           pkceParams;
 
-        const clientRedirectUri = platform === 'mobile'
-          ? 'paybycard://digilocker-callback'
-          : redirectUri;
+        // Client redirect URI: what the app uses for token exchange.
+        // Must match the redirect_uri used in the authorize request.
+        const clientRedirectUri = redirectUri;
 
         return new Response(
           JSON.stringify({ authUrl, redirectUri: clientRedirectUri, provider_name: provider.provider_name }),
@@ -1246,10 +1242,10 @@ Deno.serve(async (req: Request) => {
         kycData = await fetchCashFreeDocuments(supabase, apiKey, apiSecret, publicKey, provider.environment, code, userId);
       } else {
         // For mobile, the actual redirect_uri used in the authorize request
-        // was the bridge function URL, not the custom scheme. The token
-        // exchange must use the same redirect_uri that was in the authorize call.
+        // Token exchange must use the same redirect_uri that was in the
+        // authorize call — the saved redirect URI registered with DigiLocker.
         let redirectUri = bodyRedirectUri || savedRedirectUri || '';
-        if (platform === 'mobile') {
+        if (!redirectUri) {
           const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
           redirectUri = `${supabaseUrl}/functions/v1/digilocker-redirect`;
         }
