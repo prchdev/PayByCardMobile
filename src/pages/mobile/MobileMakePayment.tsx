@@ -530,7 +530,7 @@ export default function MobileMakePayment() {
   }
 
   return (
-    <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout}>
+    <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout} showBottomNav={!showBeneficiaryList && !showCategoryList && !showOptionList && !showConfirm}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View className="px-4 py-4 gap-4">
           <Text className="text-xl font-bold text-gray-900">Make Payment</Text>
@@ -590,8 +590,8 @@ export default function MobileMakePayment() {
                   </Text>
                   {showBeneficiaryList ? <ChevronUp size={18} color="#6b7280" /> : <ChevronDown size={18} color="#6b7280" />}
                 </TouchableOpacity>
-                <Modal visible={showBeneficiaryList} animationType="slide" transparent>
-                  <View className="flex-1 bg-black/50 justify-end">
+                <Modal visible={showBeneficiaryList} animationType="slide" transparent style={{ zIndex: 100 }}>
+                  <View className="flex-1 bg-black/50 justify-end" style={{ zIndex: 100 }}>
                     <View className="bg-white rounded-t-2xl max-h-[70%]">
                       <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
                         <Text className="text-base font-semibold text-gray-900">Select Beneficiary</Text>
@@ -671,8 +671,8 @@ export default function MobileMakePayment() {
                   </Text>
                   {showCategoryList ? <ChevronUp size={18} color="#6b7280" /> : <ChevronDown size={18} color="#6b7280" />}
                 </TouchableOpacity>
-                <Modal visible={showCategoryList} animationType="slide" transparent>
-                  <View className="flex-1 bg-black/50 justify-end">
+                <Modal visible={showCategoryList} animationType="slide" transparent style={{ zIndex: 100 }}>
+                  <View className="flex-1 bg-black/50 justify-end" style={{ zIndex: 100 }}>
                     <View className="bg-white rounded-t-2xl max-h-[70%]">
                       <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
                         <Text className="text-base font-semibold text-gray-900">Select Category</Text>
@@ -720,8 +720,8 @@ export default function MobileMakePayment() {
                   </Text>
                   {showOptionList ? <ChevronUp size={18} color="#6b7280" /> : <ChevronDown size={18} color="#6b7280" />}
                 </TouchableOpacity>
-                <Modal visible={showOptionList} animationType="slide" transparent>
-                  <View className="flex-1 bg-black/50 justify-end">
+                <Modal visible={showOptionList} animationType="slide" transparent style={{ zIndex: 100 }}>
+                  <View className="flex-1 bg-black/50 justify-end" style={{ zIndex: 100 }}>
                     <View className="bg-white rounded-t-2xl max-h-[70%]">
                       <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
                         <Text className="text-base font-semibold text-gray-900">Select Payment Option</Text>
@@ -855,8 +855,8 @@ export default function MobileMakePayment() {
       </ScrollView>
 
       {/* Confirm Modal */}
-      <Modal visible={showConfirm} animationType="fade" transparent>
-        <View className="flex-1 bg-black/60 justify-center items-center p-4">
+      <Modal visible={showConfirm} animationType="fade" transparent style={{ zIndex: 100 }}>
+        <View className="flex-1 bg-black/60 justify-center items-center p-4" style={{ zIndex: 100 }}>
           <View className="bg-white rounded-2xl p-5 w-full max-w-sm gap-4">
             <View className="flex-row items-center gap-2">
               <ArrowUpRight size={22} color="#8c76f0" />
