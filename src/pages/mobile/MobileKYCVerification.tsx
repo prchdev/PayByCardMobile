@@ -189,7 +189,7 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
   const digest = await Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
     verifier,
-    Crypto.CryptoEncoding.Base64,
+    { encoding: Crypto.CryptoEncoding.BASE64 },
   );
   return digest.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
@@ -483,7 +483,7 @@ export default function MobileKYCVerification() {
         });
         if (result.canceled || !result.assets?.length) return null;
         const file = result.assets[0];
-        if (file.size > 5 * 1024 * 1024) {
+        if ((file.size ?? 0) > 5 * 1024 * 1024) {
           setError(`File "${file.name}" exceeds the 5 MB limit.`);
           return null;
         }
@@ -1467,7 +1467,7 @@ export default function MobileKYCVerification() {
             </View>
           )}
 
-          {kycData?.pan && (kycData.pan.status === 'verified' || kycData.pan.status === 'verification_pending') && kycData.pan.status !== 'rejected' && (
+          {kycData?.pan && (kycData.pan.status === 'verified' || kycData.pan.status === 'verification_pending') && (
             <View className="bg-amber-50 border border-amber-200 rounded-xl p-3">
               <Text className="text-sm text-amber-700">{kycData.pan.status === 'verified' ? 'PAN verification is complete. No changes allowed.' : 'PAN is under review. You cannot make changes until the review is complete.'}</Text>
             </View>
@@ -1536,7 +1536,7 @@ export default function MobileKYCVerification() {
             </View>
           )}
 
-          {kycData?.address && (kycData.address.status === 'verified' || kycData.address.status === 'verification_pending') && kycData.address.status !== 'rejected' && (
+          {kycData?.address && (kycData.address.status === 'verified' || kycData.address.status === 'verification_pending') && (
             <View className="bg-amber-50 border border-amber-200 rounded-xl p-3">
               <Text className="text-sm text-amber-700">{kycData.address.status === 'verified' ? 'Address verification is complete. No changes allowed.' : 'Address proof is under review. You cannot make changes until the review is complete.'}</Text>
             </View>
@@ -1718,7 +1718,7 @@ export default function MobileKYCVerification() {
             </View>
           )}
 
-          {kycData?.business && (kycData.business.status === 'verified' || kycData.business.status === 'verification_pending') && kycData.business.status !== 'rejected' && (
+          {kycData?.business && (kycData.business.status === 'verified' || kycData.business.status === 'verification_pending') && (
             <View className="bg-amber-50 border border-amber-200 rounded-xl p-3">
               <Text className="text-sm text-amber-700">{kycData.business.status === 'verified' ? 'Business information is verified. No changes allowed.' : 'Business information is under review. You cannot make changes until the review is complete.'}</Text>
             </View>
@@ -1920,55 +1920,59 @@ export default function MobileKYCVerification() {
   // ── Submitted KYC Data ─────────────────────────────────────────────────────
   const renderSubmittedData = () => {
     if (!kycData) return null;
-    const hasPan = kycData.pan && kycData.pan.pan_number;
-    const hasAddress = kycData.address && kycData.address.id_number;
-    const hasBusiness = kycData.business && kycData.business.business_name;
+
+    const pan = kycData.pan;
+    const address = kycData.address;
+    const business = kycData.business;
+    const hasPan = !!pan?.pan_number;
+    const hasAddress = !!address?.id_number;
+    const hasBusiness = !!business?.business_name;
     if (!hasPan && !hasAddress && !hasBusiness) return null;
 
     return (
       <View className="gap-3">
         <Text className="text-base font-bold text-gray-900">Submitted Documents</Text>
-        {hasPan && (
+        {pan?.pan_number && (
           <View className="bg-white rounded-2xl border border-gray-200 p-4">
             <View className="flex-row items-center gap-2 mb-2">
               <View className="w-9 h-9 bg-blue-50 rounded-xl items-center justify-center">
                 <FileText size={18} color="#2563eb" />
               </View>
               <Text className="text-base font-semibold text-gray-900">PAN Card</Text>
-              <View className="ml-auto">{renderStatusBadge(kycData.pan.status)}</View>
+              <View className="ml-auto">{renderStatusBadge(pan.status)}</View>
             </View>
-            {renderDataRow('PAN Number', kycData.pan.pan_number)}
+            {renderDataRow('PAN Number', pan.pan_number)}
           </View>
         )}
-        {hasAddress && (
+        {address?.id_number && (
           <View className="bg-white rounded-2xl border border-gray-200 p-4">
             <View className="flex-row items-center gap-2 mb-2">
               <View className="w-9 h-9 bg-green-50 rounded-xl items-center justify-center">
                 <MapPin size={18} color="#16a34a" />
               </View>
               <Text className="text-base font-semibold text-gray-900">Address Proof</Text>
-              <View className="ml-auto">{renderStatusBadge(kycData.address.status)}</View>
+              <View className="ml-auto">{renderStatusBadge(address.status)}</View>
             </View>
-            {renderDataRow('Proof Type', ADDRESS_PROOF_TYPES.find(p => p.value === kycData.address.proof_type)?.label || kycData.address.proof_type)}
-            {renderDataRow('ID Number', kycData.address.id_number)}
-            {renderDataRow('Address', kycData.address.address)}
-            {renderDataRow('City', kycData.address.city)}
-            {renderDataRow('State', kycData.address.state)}
-            {renderDataRow('Pincode', kycData.address.pincode)}
+            {renderDataRow('Proof Type', ADDRESS_PROOF_TYPES.find(p => p.value === address.proof_type)?.label || address.proof_type)}
+            {renderDataRow('ID Number', address.id_number)}
+            {renderDataRow('Address', address.address)}
+            {renderDataRow('City', address.city)}
+            {renderDataRow('State', address.state)}
+            {renderDataRow('Pincode', address.pincode)}
           </View>
         )}
-        {hasBusiness && (
+        {business?.business_name && (
           <View className="bg-white rounded-2xl border border-gray-200 p-4">
             <View className="flex-row items-center gap-2 mb-2">
               <View className="w-9 h-9 bg-orange-50 rounded-xl items-center justify-center">
                 <Building2 size={18} color="#ea580c" />
               </View>
               <Text className="text-base font-semibold text-gray-900">Business Details</Text>
-              <View className="ml-auto">{renderStatusBadge(kycData.business.status)}</View>
+              <View className="ml-auto">{renderStatusBadge(business.status)}</View>
             </View>
-            {renderDataRow('Business Name', kycData.business.business_name)}
-            {kycData.business.business_pan ? renderDataRow('Business PAN', kycData.business.business_pan) : null}
-            {kycData.business.gst_number ? renderDataRow('GST Number', kycData.business.gst_number) : null}
+            {renderDataRow('Business Name', business.business_name)}
+            {business.business_pan ? renderDataRow('Business PAN', business.business_pan) : null}
+            {business.gst_number ? renderDataRow('GST Number', business.gst_number) : null}
           </View>
         )}
       </View>
