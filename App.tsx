@@ -1,5 +1,4 @@
 /// <reference types="nativewind/types" />
-import 'src/native-styles.css';
 
 import { useRef, useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
