@@ -68,7 +68,7 @@ export default function MobileChangePassword() {
   return (
     <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout} showBack>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always">
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View className="px-4 py-4 gap-4">
             <View className="flex-row items-center gap-3 mb-1">
               <View className="w-10 h-10 bg-[#8c76f0] rounded-xl items-center justify-center">
@@ -117,7 +117,6 @@ export default function MobileChangePassword() {
                       placeholderTextColor="#9ca3af"
                       secureTextEntry={!show}
                       autoCapitalize="none"
-                      minLength={8}
                       maxLength={20}
                       editable={!loading && !success}
                     />
