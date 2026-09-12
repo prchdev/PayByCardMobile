@@ -100,7 +100,7 @@ Deno.serve(async (req: Request) => {
           frequency: frequency || "once",
           notification_format: notification_format || "text",
           action_type: action_type || null,
-          push_enabled: push_enabled || false,
+          push_enabled: push_enabled !== undefined ? push_enabled : true,
           created_by_admin_id: adminId,
         })
         .select()
