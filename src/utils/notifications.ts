@@ -46,8 +46,12 @@ export function registerNotificationListeners(
   if (notificationListener) notificationListener.remove();
   if (responseListener) responseListener.remove();
 
-  notificationListener = Notifications.addNotificationReceivedListener(onReceive);
-  responseListener = Notifications.addNotificationResponseReceivedListener(onResponse);
+  if (onReceive) {
+    notificationListener = Notifications.addNotificationReceivedListener(onReceive);
+  }
+  if (onResponse) {
+    responseListener = Notifications.addNotificationResponseReceivedListener(onResponse);
+  }
 }
 
 export function unregisterNotificationListeners() {
