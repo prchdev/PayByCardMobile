@@ -15,6 +15,10 @@ export default function MobileMore() {
 
   const handleLogout = () => { logout(); reset('/mobile/login'); };
   const appVersion = Constants.expoConfig?.version || '1.0.0';
+  const iosBuildNumber = Constants.expoConfig?.ios?.buildNumber || '';
+  const androidVersionCode = Constants.expoConfig?.android?.versionCode?.toString() || '';
+  const buildInfo = [iosBuildNumber && `iOS ${iosBuildNumber}`, androidVersionCode && `Android ${androidVersionCode}`].filter(Boolean).join(' / ');
+  const versionDisplay = buildInfo ? `${appVersion} (${buildInfo})` : appVersion;
 
   const menuItems = [
     { icon: Bell, label: 'Notifications', path: '/mobile/notifications', color: 'bg-violet-50', iconColor: '#8c76f0' },
@@ -60,7 +64,7 @@ export default function MobileMore() {
         </TouchableOpacity>
 
         <View className="items-center pb-2">
-          <Text className="text-sm text-gray-400">PayByCard Mobile v{appVersion}</Text>
+          <Text className="text-sm text-gray-400">PayByCard Mobile v{versionDisplay}</Text>
         </View>
       </View>
     </MobileLayout>
