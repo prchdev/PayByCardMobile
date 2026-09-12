@@ -14,6 +14,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
 import { capitalizeName } from '../../utils/nameFormat';
+import { getItem, setItem, removeItem } from '../../utils/secureStorage';
+
+const CODE_VERIFIER_KEY = 'digilocker_code_verifier';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
@@ -289,6 +292,16 @@ export default function MobileKYCVerification() {
   const codeReceivedRef = useRef(false);
   const browserOpenRef = useRef(false);
 
+  // Restore code verifier from SecureStore on mount — Android may kill the app
+  // process while the DigiLocker browser tab is open, losing in-memory state.
+  useEffect(() => {
+    getItem(CODE_VERIFIER_KEY).then((stored) => {
+      if (stored && !codeVerifierRef.current) {
+        codeVerifierRef.current = stored;
+      }
+    });
+  }, []);
+
   useEffect(() => { stepRef.current = digiStep; }, [digiStep]);
   useEffect(() => { verificationIdRef.current = digiVerificationId; }, [digiVerificationId]);
   useEffect(() => { redirectUriRef.current = digiRedirectUri; }, [digiRedirectUri]);
@@ -532,6 +545,7 @@ export default function MobileKYCVerification() {
       const codeVerifier = generateCodeVerifier();
       const codeChallenge = await generateCodeChallenge(codeVerifier);
       codeVerifierRef.current = codeVerifier;
+      await setItem(CODE_VERIFIER_KEY, codeVerifier);
 
       const res = await fetch(`${SUPABASE_URL}/functions/v1/digilocker-kyc`, {
         method: 'POST',
@@ -709,7 +723,11 @@ export default function MobileKYCVerification() {
     setDigiError('');
 
     const resolvedRedirectUri = redirectUriRef.current || undefined;
-    const resolvedCodeVerifier = codeVerifierRef.current || undefined;
+    let resolvedCodeVerifier = codeVerifierRef.current;
+    if (!resolvedCodeVerifier) {
+      resolvedCodeVerifier = await getItem(CODE_VERIFIER_KEY) || '';
+      if (resolvedCodeVerifier) codeVerifierRef.current = resolvedCodeVerifier;
+    }
 
     logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'auto_approve_start', true, {
       has_redirect_uri: !!resolvedRedirectUri, has_code_verifier: !!resolvedCodeVerifier,
@@ -733,6 +751,7 @@ export default function MobileKYCVerification() {
           has_pan: !!(data.kycData?.pan_number), has_id: !!(data.kycData?.id_number),
         });
         setDigiStep('success');
+        removeItem(CODE_VERIFIER_KEY);
         fetchKycStatus();
         fetchKycData();
       } else if (data.error === 'DRIVING_LICENSE_UNAVAILABLE' || data.error === 'ADDRESS_PROOF_UNAVAILABLE') {
@@ -773,6 +792,7 @@ export default function MobileKYCVerification() {
     codeReceivedRef.current = false;
     codeVerifierRef.current = '';
     browserOpenRef.current = false;
+    removeItem(CODE_VERIFIER_KEY);
   };
 
   // ── Save KYC sections ──────────────────────────────────────────────────────
