@@ -46,6 +46,24 @@ function cashFreeBaseUrl(env: string): string {
 
 const DIGILOCKER_API = 'https://api.digitallocker.gov.in/public';
 
+// ── Pincode → State lookup via India Post API ──────────────────────────────────
+async function lookupStateFromPincode(pincode: string): Promise<{ state: string; district: string } | null> {
+  if (!pincode || !/^\d{6}$/.test(pincode)) return null;
+  try {
+    const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const block = Array.isArray(data) && data[0]?.PostOffice?.[0];
+    if (block) {
+      return {
+        state: (block.State || block.state || '').trim(),
+        district: (block.District || block.district || '').trim(),
+      };
+    }
+  } catch { /* non-fatal */ }
+  return null;
+}
+
 // ── CashFree 2FA signature ────────────────────────────────────────────────────
 async function generateCashFree2FASignature(apiKey: string, publicKeyPem: string): Promise<string> {
   const epochSeconds = Math.floor(Date.now() / 1000);
@@ -221,14 +239,26 @@ async function fetchCashFreeDocuments(
     panData ? storeJson(panData, 'pan_data') : Promise.resolve(null),
   ]);
 
+  let resolvedState = sa.state || '';
+  let resolvedCity  = sa.dist || sa.vtc || sa.subdist || '';
+  const resolvedPin = sa.pincode || '';
+
+  if (!resolvedState && resolvedPin) {
+    const lookup = await lookupStateFromPincode(resolvedPin);
+    if (lookup) {
+      if (lookup.state) resolvedState = lookup.state;
+      if (!resolvedCity && lookup.district) resolvedCity = lookup.district;
+    }
+  }
+
   return {
     pan_number: panData?.pan || '',
     full_name: panData?.name || aadhaarData?.name || '',
     dob: panData?.dob || aadhaarData?.dob || '',
     address: addressParts.join(', '),
-    city: sa.dist || sa.vtc || sa.subdist || '',
-    state: sa.state || '',
-    pincode: sa.pincode || '',
+    city: resolvedCity,
+    state: resolvedState,
+    pincode: resolvedPin,
     id_number: aadhaarData?.uid || '',
     address_proof_type: 'aadhar',
     aadhaar_front_url: aadhaarUrl || undefined,
@@ -662,14 +692,26 @@ async function fetchDigiLockerData(
     (addrParsed as any)?.locality,
   ].filter(Boolean);
 
+  let resolvedState = (addrParsed as any)?.state    || '';
+  let resolvedCity  = (addrParsed as any)?.district || (addrParsed as any)?.vtc || '';
+  const resolvedPin = (addrParsed as any)?.pincode  || '';
+
+  if (!resolvedState && resolvedPin) {
+    const lookup = await lookupStateFromPincode(resolvedPin);
+    if (lookup) {
+      if (lookup.state) resolvedState = lookup.state;
+      if (!resolvedCity && lookup.district) resolvedCity = lookup.district;
+    }
+  }
+
   return {
     pan_number:         panParsed?.panNumber || '',
     full_name:          panParsed?.name || aadhaarParsed?.name || userDetailsName || tokenName,
     dob:                panParsed?.dob  || aadhaarParsed?.dob  || userDetailsDob  || tokenDob,
     address:            addressParts.join(', '),
-    city:               (addrParsed as any)?.district || (addrParsed as any)?.vtc || '',
-    state:              (addrParsed as any)?.state    || '',
-    pincode:            (addrParsed as any)?.pincode  || '',
+    city:               resolvedCity,
+    state:              resolvedState,
+    pincode:            resolvedPin,
     id_number:          addrIdNumber,
     address_proof_type: addrProofType,
     pan_photo_url:      panPhotoUrl   || undefined,

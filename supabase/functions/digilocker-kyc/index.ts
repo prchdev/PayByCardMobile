@@ -329,14 +329,26 @@ async function fetchCashFreeDocuments(
     buildAndStoreCashFreeXml(supabase, 'PAN', panData, userId, 'pan_photo'),
   ]);
 
+  let resolvedState = sa.state || '';
+  let resolvedCity  = sa.dist || sa.vtc || sa.subdist || '';
+  const resolvedPin = sa.pincode || '';
+
+  if (!resolvedState && resolvedPin) {
+    const lookup = await lookupStateFromPincode(resolvedPin);
+    if (lookup) {
+      if (lookup.state) resolvedState = lookup.state;
+      if (!resolvedCity && lookup.district) resolvedCity = lookup.district;
+    }
+  }
+
   return {
     pan_number: panData?.pan || '',
     full_name: panData?.name || aadhaarData?.name || '',
     dob: panData?.dob || aadhaarData?.dob || '',
     address: addressParts.join(', '),
-    city: sa.dist || sa.vtc || sa.subdist || '',
-    state: sa.state || '',
-    pincode: sa.pincode || '',
+    city: resolvedCity,
+    state: resolvedState,
+    pincode: resolvedPin,
     id_number: aadhaarData?.uid || '',
     address_proof_type: 'aadhar',
     pan_photo_url: panPhotoUrl || undefined,
@@ -872,6 +884,24 @@ function hasAddress(a: AddrResult | null | undefined): boolean {
   return !!(a?.district || a?.state || a?.pincode || a?.house || a?.locality);
 }
 
+// ── Pincode → State lookup via India Post API ──────────────────────────────────
+async function lookupStateFromPincode(pincode: string): Promise<{ state: string; district: string } | null> {
+  if (!pincode || !/^\d{6}$/.test(pincode)) return null;
+  try {
+    const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const block = Array.isArray(data) && data[0]?.PostOffice?.[0];
+    if (block) {
+      return {
+        state: (block.State || block.state || '').trim(),
+        district: (block.District || block.district || '').trim(),
+      };
+    }
+  } catch { /* network or parse error — non-fatal */ }
+  return null;
+}
+
 // ── DigiLocker direct: fetch KYC data ────────────────────────────────────────
 async function fetchDigiLockerData(
   supabase: ReturnType<typeof createClient>,
@@ -1046,14 +1076,26 @@ async function fetchDigiLockerData(
 
   const addressParts = [addrParsed?.house, addrParsed?.street, addrParsed?.locality].filter(Boolean);
 
+  let resolvedState  = addrParsed?.state    || '';
+  let resolvedCity   = addrParsed?.district || addrParsed?.vtc || '';
+  const resolvedPin  = addrParsed?.pincode  || '';
+
+  if (!resolvedState && resolvedPin) {
+    const lookup = await lookupStateFromPincode(resolvedPin);
+    if (lookup) {
+      if (lookup.state) resolvedState = lookup.state;
+      if (!resolvedCity && lookup.district) resolvedCity = lookup.district;
+    }
+  }
+
   return {
     pan_number:         panParsed?.panNumber      || '',
     full_name:          panParsed?.name || aadhaarParsed?.name || addrParsed?.name || userDetailsName || tokenName,
     dob:                panParsed?.dob  || aadhaarParsed?.dob  || addrParsed?.dob  || userDetailsDob  || tokenDob,
     address:            addressParts.join(', '),
-    city:               addrParsed?.district || addrParsed?.vtc || '',
-    state:              addrParsed?.state    || '',
-    pincode:            addrParsed?.pincode  || '',
+    city:               resolvedCity,
+    state:              resolvedState,
+    pincode:            resolvedPin,
     id_number:          addrIdNumber,
     address_proof_type: addrProofType,
     pan_photo_url:      panPhotoUrl  || undefined,
