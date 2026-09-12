@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, BackHandler } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, BackHandler, AppState, AppStateStatus } from 'react-native';
 import {
   ShieldCheck, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Clock, Circle as XCircle,
   FileText, MapPin, Building2, User, Upload, ChevronRight, Smartphone, FileCheck, Save, Lock,
@@ -287,12 +287,55 @@ export default function MobileKYCVerification() {
   const redirectUriRef = useRef(digiRedirectUri);
   const codeVerifierRef = useRef<string>('');
   const codeReceivedRef = useRef(false);
+  const browserOpenRef = useRef(false);
 
   useEffect(() => { stepRef.current = digiStep; }, [digiStep]);
   useEffect(() => { verificationIdRef.current = digiVerificationId; }, [digiVerificationId]);
   useEffect(() => { redirectUriRef.current = digiRedirectUri; }, [digiRedirectUri]);
   useEffect(() => () => {
     if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+  }, []);
+
+  // ── Re-check KYC status when app regains focus (e.g. after returning from DigiLocker browser) ──
+  useEffect(() => {
+    const handler = (nextState: AppStateStatus) => {
+      if (nextState === 'active' && browserOpenRef.current && !codeReceivedRef.current) {
+        browserOpenRef.current = false;
+        // The browser session may have been dismissed without intercepting the
+        // custom scheme redirect. Re-fetch KYC status in case the backend already
+        // processed the auto-approve via the bridge redirect.
+        fetchKycStatus();
+        fetchKycData();
+        // Reset the DigiLocker UI so the user sees the current status
+        if (stepRef.current === 'waiting_popup') {
+          setDigiStep('idle');
+          setDigiError('');
+        }
+      }
+    };
+    const sub = AppState.addEventListener('change', handler);
+    return () => sub.remove();
+  }, []);
+
+  // ── Web: listen for postMessage from DigiLocker bridge popup ──
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handler = (event: MessageEvent) => {
+      if (!event.data || event.data.type !== 'digilocker_callback') return;
+      if (codeReceivedRef.current) return;
+      const code: string = event.data.code || '';
+      const errParam: string = event.data.error || '';
+      if (code) {
+        codeReceivedRef.current = true;
+        browserOpenRef.current = false;
+        runAutoApprove(code);
+      } else if (errParam) {
+        setDigiStep('error');
+        setDigiError(`DigiLocker authorization failed: ${errParam}`);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
   }, []);
 
   // ── Data fetching ───────────────────────────────────────────────────────────
@@ -524,20 +567,35 @@ export default function MobileKYCVerification() {
       // on iOS it opens ASWebAuthenticationSession.
       // Both intercept the redirect URL and return the full redirect URL with
       // the authorization code — no manual paste needed.
-      const redirectUrl = rUri || (Platform.OS === 'web'
-        ? `${window.location.origin}/digilocker-callback`
-        : 'paybycard://digilocker-callback');
+      // On mobile, the bridge function redirects to paybycard:// scheme which
+      // openAuthSessionAsync intercepts. On web, we open a popup and listen
+      // for postMessage from the bridge function.
+      if (Platform.OS === 'web') {
+        browserOpenRef.current = true;
+        const popup = window.open(url, 'digilocker', 'width=500,height=700,scrollbars=yes');
+        if (!popup) {
+          // Popup blocked — fall back to full-page redirect
+          window.location.href = url;
+        }
+        // The postMessage listener (set up in useEffect above) will handle the callback
+        return;
+      }
+
+      const redirectUrl = rUri || 'paybycard://digilocker-callback';
 
       try {
         await WebBrowser.warmUpAsync(redirectUrl);
       } catch {}
 
+      browserOpenRef.current = true;
       const result = await WebBrowser.openAuthSessionAsync(url, redirectUrl, {
         toolbarColor: '#8c76f0',
         controlsColor: '#8c76f0',
         showTitle: true,
         enableBarCollapsing: true,
       });
+
+      browserOpenRef.current = false;
 
       try {
         WebBrowser.coolDownAsync(redirectUrl);
@@ -554,7 +612,6 @@ export default function MobileKYCVerification() {
             setDigiStep('error');
             setDigiError(`DigiLocker authorization failed: ${errParam}`);
           } else {
-            // Redirect URL matched but no code — treat as cancel
             if (!codeReceivedRef.current) {
               setDigiStep('error');
               setDigiError('DigiLocker authorization did not return a code. Please try again.');
@@ -567,8 +624,12 @@ export default function MobileKYCVerification() {
           }
         }
       } else if (result.type === 'cancel' || result.type === 'dismiss') {
-        // Browser was closed by the user — reset to idle so they can retry
+        // Browser was closed without intercepting the redirect. The bridge
+        // function may have already processed the auto-approve server-side.
+        // Re-check KYC status instead of blindly resetting to idle.
         if (!codeReceivedRef.current) {
+          fetchKycStatus();
+          fetchKycData();
           setDigiStep('idle');
           setDigiError('');
         }
@@ -711,6 +772,7 @@ export default function MobileKYCVerification() {
     setDigiPollCount(0);
     codeReceivedRef.current = false;
     codeVerifierRef.current = '';
+    browserOpenRef.current = false;
   };
 
   // ── Save KYC sections ──────────────────────────────────────────────────────
