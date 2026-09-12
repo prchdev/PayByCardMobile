@@ -29,7 +29,7 @@ export async function setupNotifications(): Promise<void> {
         shouldSetBadge: true,
         shouldShowBanner: true,
         shouldShowList: true,
-        priority: Notifications.AndroidImportance.HIGH,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
         notificationChannel: channelId,
       };
     },
