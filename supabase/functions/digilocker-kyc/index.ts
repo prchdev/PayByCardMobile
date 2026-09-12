@@ -413,7 +413,7 @@ async function fetchIssuedDocuments(accessToken: string): Promise<any[]> {
 
 // ── DigiLocker direct: fetch a document XML by URI ───────────────────────────
 async function fetchDocumentXml(accessToken: string, uri: string, label: string): Promise<string> {
-  const res = await fetch(`${DIGILOCKER_API}/oauth2/1/xml/${encodeURIComponent(uri)}`, {
+  const res = await fetch(`${DIGILOCKER_API}/oauth2/2/xml/${encodeURIComponent(uri)}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
 
@@ -812,7 +812,7 @@ function parsePanXml(xml: string) {
 
 // ── DigiLocker direct: fetch user details ────────────────────────────────────
 async function fetchUserDetails(accessToken: string): Promise<{ name: string; dob: string; gender: string }> {
-  const res = await fetch(`${DIGILOCKER_API}/oauth2/1/user`, {
+  const res = await fetch(`${DIGILOCKER_API}/oauth2/2/user`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   let data: any;
