@@ -31,20 +31,20 @@ const Section = ({
   >
     <View className="flex-row items-center mb-3">
       {icon}
-      <Text className="text-lg font-bold text-gray-900 ml-2 flex-1">{title}</Text>
+      <Text className="text-[31px] font-bold text-gray-900 ml-2 flex-1">{title}</Text>
     </View>
     {children}
   </View>
 );
 
 const P = ({ children }: { children: React.ReactNode }) => (
-  <Text className="text-[15px] text-gray-700 leading-6 mb-2">{children}</Text>
+  <Text className="text-[26px] text-gray-700 leading-[41px] mb-3">{children}</Text>
 );
 
 const LI = ({ children }: { children: React.ReactNode }) => (
-  <View className="flex-row ml-2 mb-1.5">
-    <Text className="text-[15px] text-gray-700 mr-1.5">{'\u2022'}</Text>
-    <Text className="text-[15px] text-gray-700 flex-1 leading-6">{children}</Text>
+  <View className="flex-row ml-2 mb-2">
+    <Text className="text-[26px] text-gray-700 mr-1.5">{'\u2022'}</Text>
+    <Text className="text-[26px] text-gray-700 flex-1 leading-[41px]">{children}</Text>
   </View>
 );
 
@@ -149,7 +149,7 @@ export default function TermsOfServiceContent() {
         <LI>Engaging in money laundering, terrorist financing, or any activity violating Prevention of Money Laundering Act (PMLA) or RBI guidelines.</LI>
         <LI>Using automated scripts, bots, or any means to overload or interfere with the Platform.</LI>
         <View className="bg-amber-50 border-l-4 border-amber-500 p-3 mt-3 rounded">
-          <Text className="text-sm font-semibold text-amber-900">
+          <Text className="text-[24px] font-semibold text-amber-900">
             Important Security Advisory: PayByCard or its representatives will never request your CVV, OTP, or full card details over phone, email, SMS, or any unsolicited communication. Any such request is fraudulent — report it immediately.
           </Text>
         </View>
@@ -256,7 +256,7 @@ export default function TermsOfServiceContent() {
       </Section>
 
       <Section icon={<Building size={20} color="#8c76f0" />} title="Acknowledgement" variant="purple">
-        <Text className="text-base font-semibold text-gray-900">
+        <Text className="text-[27px] font-semibold text-gray-900">
           By using PayByCard, you confirm that you have read, understood, and agreed to these Terms of Service.
         </Text>
       </Section>
