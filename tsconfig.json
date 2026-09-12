@@ -4,6 +4,7 @@
     "strict": true,
     "jsx": "react-jsx",
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "~/*": [
         "./src/*"
@@ -16,6 +17,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    "**/*.d.ts",
     "App.tsx",
     "nativewind-env.d.ts"
   ],
