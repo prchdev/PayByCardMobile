@@ -122,7 +122,7 @@ async function pickFiles(): Promise<PickedFile[]> {
     return result.assets.map(a => ({
       uri: a.uri,
       name: a.name,
-      size: a.size,
+      size: a.size ?? 0,
       mimeType: a.mimeType || 'application/octet-stream',
     }));
   } catch {
@@ -451,7 +451,7 @@ export default function MobileHelpSupport() {
             </TouchableOpacity>
           </View>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-            <ScrollView className="flex-1 px-4 pt-4" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}>
+            <ScrollView className="flex-1 px-4 pt-4" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}>
               {error ? (
                 <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2 mb-4">
                   <AlertCircle size={16} color="#dc2626" />
