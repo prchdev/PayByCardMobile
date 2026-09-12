@@ -267,8 +267,8 @@ export default function MobileRegister() {
       </View>
 
       <Modal visible={activeModal !== null} animationType="slide" transparent>
-        <View className="flex-1 bg-black/60 justify-center items-center p-4">
-          <View className="bg-white rounded-2xl w-full max-h-[85%]">
+        <View className="flex-1 bg-black/60 justify-center items-center p-3">
+          <View className="bg-white rounded-2xl w-full max-h-[92%]">
             <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
               <View className="flex-row items-center gap-2">
                 {activeModal === 'terms' ? <FileText size={20} color="#8c76f0" /> : <Shield size={20} color="#8c76f0" />}

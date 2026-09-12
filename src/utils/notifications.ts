@@ -10,7 +10,6 @@ export async function setupNotifications(): Promise<void> {
       lightColor: '#FF231F7C',
     });
 
-    // Additional channel for campaign notifications with images
     await Notifications.setNotificationChannelAsync('campaigns', {
       name: 'Campaign Notifications',
       importance: Notifications.AndroidImportance.HIGH,
@@ -35,6 +34,25 @@ export async function setupNotifications(): Promise<void> {
       };
     },
   });
+}
+
+let notificationListener: Notifications.Subscription | null = null;
+let responseListener: Notifications.Subscription | null = null;
+
+export function registerNotificationListeners(
+  onReceive?: (notification: Notifications.Notification) => void,
+  onResponse?: (response: Notifications.NotificationResponse) => void,
+) {
+  if (notificationListener) notificationListener.remove();
+  if (responseListener) responseListener.remove();
+
+  notificationListener = Notifications.addNotificationReceivedListener(onReceive);
+  responseListener = Notifications.addNotificationResponseReceivedListener(onResponse);
+}
+
+export function unregisterNotificationListeners() {
+  if (notificationListener) { notificationListener.remove(); notificationListener = null; }
+  if (responseListener) { responseListener.remove(); responseListener = null; }
 }
 
 export async function requestNotificationPermission(): Promise<boolean> {

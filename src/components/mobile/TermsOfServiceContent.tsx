@@ -38,13 +38,13 @@ const Section = ({
 );
 
 const P = ({ children }: { children: React.ReactNode }) => (
-  <Text className="text-sm text-gray-700 leading-5 mb-2">{children}</Text>
+  <Text className="text-[15px] text-gray-700 leading-6 mb-2">{children}</Text>
 );
 
 const LI = ({ children }: { children: React.ReactNode }) => (
   <View className="flex-row ml-2 mb-1.5">
-    <Text className="text-sm text-gray-700 mr-1.5">{'\u2022'}</Text>
-    <Text className="text-sm text-gray-700 flex-1 leading-5">{children}</Text>
+    <Text className="text-[15px] text-gray-700 mr-1.5">{'\u2022'}</Text>
+    <Text className="text-[15px] text-gray-700 flex-1 leading-6">{children}</Text>
   </View>
 );
 

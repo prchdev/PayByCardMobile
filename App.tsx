@@ -9,7 +9,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { setNativeNavigationRef } from './src/utils/navigation';
-import { setupNotifications, requestNotificationPermission } from './src/utils/notifications';
+import { setupNotifications, requestNotificationPermission, registerNotificationListeners, unregisterNotificationListeners } from './src/utils/notifications';
 import type { RootStackParamList } from './src/types/navigation';
 
 import MobileHome from './src/pages/mobile/MobileHome';
@@ -46,6 +46,18 @@ export default function App() {
       } catch {}
       setAppReady(true);
     })();
+
+    registerNotificationListeners(
+      undefined,
+      (response) => {
+        const screen = response.notification.request.content.data?.screen;
+        if (screen === 'notifications') {
+          navRef.current?.navigate('Notifications' as any, undefined);
+        }
+      },
+    );
+
+    return () => unregisterNotificationListeners();
   }, []);
 
   useEffect(() => {
