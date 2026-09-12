@@ -488,6 +488,16 @@ function attrInTag(xml: string, tag: string, attr: string): string {
   return m2 ? m2[1].trim() : '';
 }
 
+const INDIAN_STATE_NAMES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
+];
+
 function parseAddressLine1(line1: string): { address: string; locality: string; district: string; state: string; pincode: string } {
   const clean = line1.replace(/,,+/g, ',').replace(/,\s*$/, '').trim();
   const pinMatch = clean.match(/\b(\d{6})\b/);
@@ -497,7 +507,18 @@ function parseAddressLine1(line1: string): { address: string; locality: string; 
   const district = distMatch ? distMatch[1].trim() : '';
 
   const stateMatch = clean.match(/(?:STATE[-.\s]+)([A-Z][A-Z\s]+?)(?:,|$)/i);
-  const state = stateMatch ? stateMatch[1].trim() : '';
+  let state = stateMatch ? stateMatch[1].trim() : '';
+
+  // Fallback: match Indian state names anywhere in the address text
+  if (!state) {
+    for (const sn of INDIAN_STATE_NAMES) {
+      const escaped = sn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp('\\b' + escaped + '\\b', 'i').test(clean)) {
+        state = sn;
+        break;
+      }
+    }
+  }
 
   const stripped = clean
     .replace(/\b\d{6}\b/, '')
@@ -961,7 +982,7 @@ async function fetchDigiLockerData(
         const parsed = parseDlXml(xml);
         console.log('[DL] parseDlXml result:', JSON.stringify({ name: parsed.name, dob: parsed.dob, dlNumber: parsed.dlNumber, district: parsed.district, state: parsed.state, pincode: parsed.pincode, house: parsed.house, locality: parsed.locality }));
         // Accept if we have any address data (house may hold a full address string)
-        if (parsed.district || parsed.pincode || parsed.house || parsed.locality) {
+        if (parsed.district || parsed.state || parsed.pincode || parsed.house || parsed.locality) {
           addrProofType = 'driving_license';
           addrIdNumber = parsed.dlNumber || extractCertIdNumber(xml, 'dl');
           addrRawXml = xml;
