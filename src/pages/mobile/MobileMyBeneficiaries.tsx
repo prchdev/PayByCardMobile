@@ -445,7 +445,7 @@ export default function MobileMyBeneficiaries() {
           </View>
 
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
-            <ScrollView className="flex-1 px-4 pt-4" keyboardShouldPersistTaps="handled" keyboardShouldDismissOnDrag="always" contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}>
+            <ScrollView className="flex-1 px-4 pt-4" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40, flexGrow: 1 }}>
               {error && isSelfTransferError ? (
                 <View className="bg-red-50 border border-red-400 rounded-xl px-4 py-3 mb-4">
                   <View className="flex-row items-start gap-2.5">
