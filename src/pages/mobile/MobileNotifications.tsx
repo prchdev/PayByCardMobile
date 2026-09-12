@@ -141,7 +141,8 @@ export default function MobileNotifications() {
   };
 
   const handleLogout = () => { logout(); reset('/mobile/login'); };
-  const filteredNotifs = filter === 'unread' ? notifications.filter(n => !n.is_read) : notifications;
+  const filteredNotifs = (filter === 'unread' ? notifications.filter(n => !n.is_read) : notifications)
+    .filter(n => !n.campaign_id);
 
   return (
     <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout}>
