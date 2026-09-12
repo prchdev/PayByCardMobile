@@ -31,6 +31,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "in.paybycard.app",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
