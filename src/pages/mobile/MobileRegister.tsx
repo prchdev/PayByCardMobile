@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, Pressable, ScrollView, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, Pressable, ScrollView, Modal, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eye, EyeOff, CircleAlert as AlertCircle, X, FileText, Shield } from 'lucide-react-native';
 import { useNav } from '../../hooks/useNav';
@@ -267,8 +267,8 @@ export default function MobileRegister() {
       </View>
 
       <Modal visible={activeModal !== null} animationType="slide" transparent onRequestClose={() => setActiveModal(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
-          <View style={{ backgroundColor: 'white', borderRadius: 16, width: '100%', maxWidth: 480, maxHeight: '90%', overflow: 'hidden' }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 16, width: Dimensions.get('window').width * 0.7, height: Dimensions.get('window').height * 0.7, overflow: 'hidden' }}>
             <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
               <View className="flex-row items-center gap-2">
                 {activeModal === 'terms' ? <FileText size={20} color="#8c76f0" /> : <Shield size={20} color="#8c76f0" />}
