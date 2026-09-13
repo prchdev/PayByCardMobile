@@ -7,6 +7,7 @@ import { registerPushToken } from '../../utils/pushNotifications';
 import { setSessionItem } from '../../utils/secureStorage';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function MobileLogin() {
   const { navigate } = useNav();
@@ -70,7 +71,7 @@ export default function MobileLogin() {
       }
     } catch (err) {
       await notification('error');
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(getErrorMessage(err, 'Login failed'));
     } finally {
       setIsSubmitting(false);
     }

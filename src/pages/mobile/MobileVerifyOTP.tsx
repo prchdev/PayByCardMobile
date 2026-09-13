@@ -4,6 +4,7 @@ import { Mail, Smartphone, RefreshCw, CircleAlert as AlertCircle, CircleCheck as
 import { useNav } from '../../hooks/useNav';
 import { useAuth } from '../../contexts/AuthContext';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function MobileVerifyOTP() {
   const { navigate, route } = useNav();
@@ -66,7 +67,7 @@ export default function MobileVerifyOTP() {
       setSuccess(`OTP has been resent to your ${type === 'mobile' ? 'mobile number' : 'email'}`);
       setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to resend OTP');
+      setError(getErrorMessage(err, 'Failed to resend OTP'));
       setTimeout(() => setError(''), 5000);
     }
   };
@@ -91,7 +92,7 @@ export default function MobileVerifyOTP() {
       login(userId!, email!, data.sessionToken);
       navigate('/mobile/kyc-verification', { state: { userId, userEmail: email } });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'OTP verification failed. Please try again.');
+      setError(getErrorMessage(err, 'OTP verification failed. Please try again.'));
     } finally {
       setIsVerifying(false);
     }

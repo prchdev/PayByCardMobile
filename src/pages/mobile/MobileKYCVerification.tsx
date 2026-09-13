@@ -13,6 +13,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { getErrorMessage } from '../../utils/errorMessage';
 import { capitalizeName } from '../../utils/nameFormat';
 import { getItem, setItem, removeItem } from '../../utils/secureStorage';
 
@@ -530,7 +531,7 @@ export default function MobileKYCVerification() {
         return uploadResult;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to upload file');
+      setError(getErrorMessage(err, 'Failed to upload file'));
       return null;
     } finally { setUploadingField(null); }
   };

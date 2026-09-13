@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { validatePassword, PASSWORD_REQUIREMENTS } from '../../utils/passwordValidation';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function MobileChangePassword() {
   const { navigate, reset, route } = useNav();
@@ -53,7 +54,7 @@ export default function MobileChangePassword() {
       setSuccess(true);
       setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to change password');
+      setError(getErrorMessage(err, 'Failed to change password'));
     } finally {
       setLoading(false);
     }

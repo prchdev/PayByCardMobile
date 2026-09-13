@@ -6,6 +6,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { getErrorMessage } from '../../utils/errorMessage';
 import { isCreditCardIfsc, looksLikeCreditCardNumber } from '../../utils/beneficiaryValidation';
 import { capitalizeName } from '../../utils/nameFormat';
 
@@ -92,7 +93,7 @@ export default function MobileMyBeneficiaries() {
       if (!res.ok) throw new Error(data.error || 'Failed to fetch beneficiaries');
       setBeneficiaries(data.beneficiaries || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load beneficiaries');
+      setError(getErrorMessage(err, 'Failed to load beneficiaries'));
     } finally { setIsLoading(false); }
   };
 
@@ -113,7 +114,7 @@ export default function MobileMyBeneficiaries() {
       if (!res.ok) throw new Error(data.error || 'Invalid IFSC code');
       setFormData(prev => ({ ...prev, bank_name: data.bank, branch_name: data.branch }));
     } catch (err) {
-      setIfscError(err instanceof Error ? err.message : 'Failed to validate IFSC code');
+      setIfscError(getErrorMessage(err, 'Failed to validate IFSC code'));
       setFormData(prev => ({ ...prev, bank_name: '', branch_name: '' }));
     } finally { setIsValidatingIFSC(false); }
   };
@@ -190,7 +191,7 @@ export default function MobileMyBeneficiaries() {
         fetchBeneficiaries();
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add beneficiary');
+      setError(getErrorMessage(err, 'Failed to add beneficiary'));
     } finally { setIsSubmitting(false); }
   };
 
@@ -207,7 +208,7 @@ export default function MobileMyBeneficiaries() {
       if (!res.ok) throw new Error(data.error || 'Failed to update status');
       fetchBeneficiaries();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update status');
+      setError(getErrorMessage(err, 'Failed to update status'));
       setTimeout(() => setError(''), 3000);
     } finally { setTogglingId(null); }
   };

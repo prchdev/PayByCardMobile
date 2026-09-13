@@ -6,6 +6,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 interface BankAccount {
   id: string;
@@ -95,7 +96,7 @@ export default function MobileMyBankAccounts() {
       if (!res.ok) throw new Error(data.error || 'Failed to fetch accounts');
       setAccounts(data.accounts || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load bank accounts');
+      setError(getErrorMessage(err, 'Failed to load bank accounts'));
     } finally { setIsLoading(false); }
   };
 
@@ -143,7 +144,7 @@ export default function MobileMyBankAccounts() {
       if (!res.ok) throw new Error(data.error || 'Invalid IFSC code');
       setFormData(prev => ({ ...prev, bank_name: data.bank, branch_name: data.branch }));
     } catch (err) {
-      setIfscError(err instanceof Error ? err.message : 'Failed to validate IFSC code');
+      setIfscError(getErrorMessage(err, 'Failed to validate IFSC code'));
       setFormData(prev => ({ ...prev, bank_name: '', branch_name: '' }));
     } finally { setIsValidatingIFSC(false); }
   };
@@ -201,7 +202,7 @@ export default function MobileMyBankAccounts() {
         fetchAccounts();
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add bank account');
+      setError(getErrorMessage(err, 'Failed to add bank account'));
     } finally { setIsSubmitting(false); }
   };
 
@@ -217,7 +218,7 @@ export default function MobileMyBankAccounts() {
       if (!res.ok) throw new Error(data.error || 'Failed to set default');
       fetchAccounts();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to set default account');
+      setError(getErrorMessage(err, 'Failed to set default account'));
       setTimeout(() => setError(''), 3000);
     } finally { setIsSettingDefault(null); }
   };

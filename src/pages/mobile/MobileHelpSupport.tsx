@@ -6,6 +6,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { getErrorMessage } from '../../utils/errorMessage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Ticket {
@@ -220,7 +221,7 @@ export default function MobileHelpSupport() {
       setReplies(data.replies || []);
       setTicketAttachments(data.attachments || []);
     } catch (err) {
-      setDetailsError(err instanceof Error ? err.message : 'Failed to load ticket details');
+      setDetailsError(getErrorMessage(err, 'Failed to load ticket details'));
     } finally { setDetailsLoading(false); }
   };
 
@@ -250,7 +251,7 @@ export default function MobileHelpSupport() {
       setCurrentPage(1);
       fetchTickets();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create ticket');
+      setError(getErrorMessage(err, 'Failed to create ticket'));
     } finally { setSubmitting(false); }
   };
 
@@ -274,7 +275,7 @@ export default function MobileHelpSupport() {
       setReplyMessage(''); setReplyFiles([]);
       fetchTicketDetails(selectedTicketId);
     } catch (err) {
-      setDetailsError(err instanceof Error ? err.message : 'Failed to send reply');
+      setDetailsError(getErrorMessage(err, 'Failed to send reply'));
     } finally { setSending(false); }
   };
 

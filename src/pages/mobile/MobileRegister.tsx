@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eye, EyeOff, CircleAlert as AlertCircle, X, FileText, Shield } from 'lucide-react-native';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { getErrorMessage } from '../../utils/errorMessage';
 import { validatePassword, PASSWORD_REQUIREMENTS } from '../../utils/passwordValidation';
 import { capitalizeName } from '../../utils/nameFormat';
 import TermsOfServiceContent from '../../components/mobile/TermsOfServiceContent';
@@ -88,7 +89,7 @@ export default function MobileRegister() {
         state: { userId: data.userId, email: formData.email, mobileNumber: `+91${formData.mobileNumber}` },
       });
     } catch (err) {
-      setErrors({ general: err instanceof Error ? err.message : 'Registration failed' });
+      setErrors({ general: getErrorMessage(err, 'Registration failed') });
     } finally {
       setIsSubmitting(false);
     }

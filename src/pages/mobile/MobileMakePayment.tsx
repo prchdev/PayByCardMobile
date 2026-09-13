@@ -12,6 +12,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { impact, selection } from '../../utils/haptics';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { getErrorMessage } from '../../utils/errorMessage';
 
 interface Beneficiary {
   id: string;
@@ -239,7 +240,7 @@ export default function MobileMakePayment() {
         success: false,
         reference: paymentInfo?.reference || '',
         totalAmount: String(paymentInfo?.totalAmount || chargeBreakdown?.totalAmount || amount),
-        message: err instanceof Error ? err.message : 'Failed to open payment gateway',
+        message: getErrorMessage(err, 'Failed to open payment gateway'),
       });
     }
   };
@@ -478,7 +479,7 @@ export default function MobileMakePayment() {
         });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to initiate payment');
+      setError(getErrorMessage(err, 'Failed to initiate payment'));
       setGatewayLoading(false);
     } finally { setSubmitting(false); }
   };

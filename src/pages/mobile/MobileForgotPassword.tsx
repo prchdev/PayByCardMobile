@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Image, Pressable, ScrollView, 
 import { Mail, Eye, EyeOff, Smartphone, RefreshCw, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { getErrorMessage } from '../../utils/errorMessage';
 import { validatePassword, PASSWORD_REQUIREMENTS } from '../../utils/passwordValidation';
 
 export default function MobileForgotPassword() {
@@ -46,7 +47,7 @@ export default function MobileForgotPassword() {
       setMaskedMobile(data.maskedMobile || '');
       setSuccess('OTPs sent to your email and mobile');
       setEmailTimer(30); setMobileTimer(30); setStep('otp');
-    } catch (err) { setError(err instanceof Error ? err.message : 'An error occurred'); }
+    } catch (err) { setError(getErrorMessage(err, 'An error occurred')); }
     finally { setLoading(false); }
   };
 
@@ -68,7 +69,7 @@ export default function MobileForgotPassword() {
       if (type === 'email') { setEmailOtp(['', '', '', '', '', '']); setEmailTimer(30); }
       else { setMobileOtp(['', '', '', '', '', '']); setMobileTimer(30); }
       setSuccess(`OTP resent to your ${type}`); setTimeout(() => setSuccess(''), 5000);
-    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to resend'); }
+    } catch (err) { setError(getErrorMessage(err, 'Failed to resend')); }
   };
 
   const handleVerifyOTP = async () => {
@@ -85,7 +86,7 @@ export default function MobileForgotPassword() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Invalid OTP');
       setSuccess('OTPs verified'); setStep('password');
-    } catch (err) { setError(err instanceof Error ? err.message : 'An error occurred'); }
+    } catch (err) { setError(getErrorMessage(err, 'An error occurred')); }
     finally { setLoading(false); }
   };
 
@@ -104,7 +105,7 @@ export default function MobileForgotPassword() {
       if (!res.ok) throw new Error(data.error || 'Failed to reset password');
       setSuccess('Password reset! Redirecting to login...');
       setTimeout(() => navigate('/mobile/login'), 2000);
-    } catch (err) { setError(err instanceof Error ? err.message : 'An error occurred'); }
+    } catch (err) { setError(getErrorMessage(err, 'An error occurred')); }
     finally { setLoading(false); }
   };
 
