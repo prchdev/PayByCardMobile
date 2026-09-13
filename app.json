@@ -2,8 +2,8 @@
   "expo": {
     "name": "PayByCard",
     "slug": "paybycard",
-    "version": "1.0.3",
-    "orientation": "portrait",
+    "version": "1.0.4",
+    "orientation": "default",
     "icon": "./public/app-icon-padded.png",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -25,7 +25,7 @@
       }
     },
     "android": {
-      "versionCode": 46,
+      "versionCode": 47,
       "adaptiveIcon": {
         "foregroundImage": "./public/app-icon-padded.png",
         "backgroundColor": "#ffffff"
@@ -55,6 +55,8 @@
       ]
     },
     "plugins": [
+      ["react-native-edge-to-edge", { "android": { "enforceNavigationBarContrast": false } }],
+      "./plugins/withProguard",
       "expo-local-authentication",
       [
         "expo-notifications",

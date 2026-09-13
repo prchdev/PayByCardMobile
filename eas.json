@@ -28,7 +28,12 @@
     },
     "production": {
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease",
+        "env": {
+          "R8_ENABLED": "true",
+          "GRADLE_ARGS": "-x lint -Pandroid.enableR8.fullMode=true"
+        }
       }
     }
   },
