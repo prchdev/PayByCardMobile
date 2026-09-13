@@ -398,7 +398,7 @@ export default function MobileMakePayment() {
           amount: payAmt,
           gatewayResponse: response || {},
           paymentMethod: 'card',
-          cardType: selectedOpt?.card_type || null,
+          cardType: selectedOpt?.category_name || selectedOpt?.card_type || null,
           gatewayName: selectedOpt?.gateway_name || null,
         }),
       });
@@ -437,7 +437,7 @@ export default function MobileMakePayment() {
           businessCategoryId: selectedCategory,
           paymentOptionId: selectedOption,
           gatewayId: selectedOpt?.gateway_id,
-          cardType: selectedOpt?.card_type || selectedOpt?.category_name,
+          cardType: selectedOpt?.category_name || selectedOpt?.card_type,
           amount: amt,
           charges: chargeBreakdown ? parseFloat(chargeBreakdown.charges) : 0,
           gst: chargeBreakdown ? parseFloat(chargeBreakdown.gst) : 0,

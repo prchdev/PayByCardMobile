@@ -81,30 +81,26 @@ export default function MobileChangePassword() {
             </View>
 
             {error ? (
-              <View className="bg-red-50 border-2 border-red-500 rounded-xl px-4 py-3 flex-row items-start gap-3">
-                <View className="w-8 h-8 bg-red-600 rounded-full items-center justify-center">
-                  <AlertCircle size={16} color="white" />
-                </View>
+              <View className="bg-red-50 border border-red-300 rounded-xl p-3 flex-row items-start gap-2">
+                <AlertCircle size={16} color="#dc2626" />
                 <View className="flex-1">
                   <Text className="text-sm font-semibold text-red-900">Error</Text>
-                  <Text className="text-sm text-red-800 mt-0.5">{error}</Text>
+                  <Text className="text-xs mt-0.5 text-red-800">{error}</Text>
                 </View>
               </View>
             ) : null}
 
             {success ? (
-              <View className="bg-green-50 border-2 border-green-500 rounded-xl px-4 py-3 flex-row items-start gap-3">
-                <View className="w-8 h-8 bg-green-600 rounded-full items-center justify-center">
-                  <CheckCircle size={16} color="white" />
-                </View>
+              <View className="bg-green-50 border border-green-300 rounded-xl p-3 flex-row items-start gap-2">
+                <CheckCircle size={16} color="#16a34a" />
                 <View className="flex-1">
                   <Text className="text-sm font-semibold text-green-900">Success</Text>
-                  <Text className="text-sm text-green-800 mt-0.5">Password changed successfully!</Text>
+                  <Text className="text-xs mt-0.5 text-green-800">Password changed successfully!</Text>
                 </View>
               </View>
             ) : null}
 
-            <View className="bg-white border-2 border-gray-200 rounded-xl p-4 gap-4">
+            <View className="bg-white border border-gray-200 rounded-2xl p-4 gap-4">
               {fields.map(({ key, label, show, toggle, placeholder }) => (
                 <View key={key}>
                   <Text className="text-sm font-medium text-gray-700 mb-1.5">{label} <Text className="text-red-500">*</Text></Text>
@@ -112,7 +108,7 @@ export default function MobileChangePassword() {
                     <TextInput
                       value={formData[key]}
                       onChangeText={(v) => setFormData({ ...formData, [key]: v })}
-                      className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl text-base text-gray-900 pr-10"
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-base text-gray-900 pr-10"
                       placeholder={placeholder}
                       placeholderTextColor="#9ca3af"
                       secureTextEntry={!show}
@@ -126,39 +122,34 @@ export default function MobileChangePassword() {
                       activeOpacity={0.7} delayPressIn={0}
                       disabled={loading || success}
                     >
-                      {show ? <EyeOff size={20} color="#9ca3af" /> : <Eye size={20} color="#9ca3af" />}
+                      {show ? <EyeOff size={16} color="#9ca3af" /> : <Eye size={16} color="#9ca3af" />}
                     </TouchableOpacity>
                   </View>
                 </View>
               ))}
 
-              <View className="pt-4 border-t-2 border-gray-200 flex-row gap-3">
+              <View className="pt-4 border-t border-gray-200 flex-row gap-3">
                 <TouchableOpacity
                   onPress={() => navigate('/mobile/dashboard', { state: { userId, userEmail } })}
                   disabled={loading || success}
-                  className="px-6 py-3.5 border-2 border-gray-300 rounded-xl"
+                  className="flex-1 py-3.5 border border-gray-300 rounded-xl"
                   activeOpacity={0.7} delayPressIn={0}
                   style={{ opacity: loading || success ? 0.5 : 1 }}
                 >
-                  <Text className="text-gray-700 text-base font-medium text-center">Cancel</Text>
+                  <Text className="text-gray-700 text-base font-semibold text-center">Cancel</Text>
                 </TouchableOpacity>
                 <Pressable
                   onPress={handleSubmit}
                   disabled={loading || success}
-                  className="flex-1 flex-row items-center justify-center gap-2 px-6 py-3.5 bg-[#8c76f0] rounded-xl"
+                  className="flex-1 py-3.5 bg-[#8c76f0] rounded-xl"
                   style={{ opacity: loading || success ? 0.5 : 1 }}
                 >
-                  {loading ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <Lock size={18} color="white" />
-                  )}
-                  <Text className="text-white text-base font-semibold">{loading ? 'Updating...' : 'Change Password'}</Text>
+                  <Text className="text-white text-base font-semibold text-center">{loading ? 'Updating...' : 'Change Password'}</Text>
                 </Pressable>
               </View>
             </View>
 
-            <View className="bg-[#f3f0fe] border-2 border-[#8c76f0] rounded-xl px-4 py-4">
+            <View className="bg-[#f3f0fe] border border-[#8c76f0] rounded-xl px-4 py-4">
               <View className="flex-row items-start gap-3">
                 <View className="w-10 h-10 bg-[#8c76f0] rounded-xl items-center justify-center">
                   <Lock size={20} color="white" />

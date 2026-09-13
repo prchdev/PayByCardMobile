@@ -268,7 +268,7 @@ export default function MobileRegister() {
 
       <Modal visible={activeModal !== null} animationType="slide" transparent onRequestClose={() => setActiveModal(null)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ backgroundColor: 'white', borderRadius: 16, width: Dimensions.get('window').width * 0.7, height: Dimensions.get('window').height * 0.7, overflow: 'hidden' }}>
+          <View style={{ backgroundColor: 'white', borderRadius: 16, width: Dimensions.get('window').width * 0.95, height: Dimensions.get('window').height * 0.9, overflow: 'hidden' }}>
             <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
               <View className="flex-row items-center gap-2">
                 {activeModal === 'terms' ? <FileText size={20} color="#8c76f0" /> : <Shield size={20} color="#8c76f0" />}

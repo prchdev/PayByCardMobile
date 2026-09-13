@@ -160,10 +160,12 @@ export default function MobileMyTransactions() {
                           <Text className="text-xs text-gray-500">Date</Text>
                           <Text className="text-xs font-medium text-gray-900">{fmtDate(txn.created_at)}</Text>
                         </View>
-                        {txn.card_type && (
+                        {(txn.selected_payment_option?.category_name || txn.card_type) && (
                           <View className="flex-row justify-between">
-                            <Text className="text-xs text-gray-500">Card Type</Text>
-                            <Text className="text-xs font-medium text-gray-900">{txn.card_type}</Text>
+                            <Text className="text-xs text-gray-500">Payment Option</Text>
+                            <Text className="text-xs font-medium text-gray-900" numberOfLines={1}>
+                              {txn.selected_payment_option?.category_name || txn.card_type}
+                            </Text>
                           </View>
                         )}
                         {txn.beneficiary_details && (

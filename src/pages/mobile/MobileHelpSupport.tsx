@@ -131,19 +131,23 @@ async function pickFiles(): Promise<PickedFile[]> {
 }
 
 async function uploadAttachment(file: PickedFile, ticketId: string, userId: string, replyId?: string) {
-  const formData = new FormData();
-  formData.append('file', { uri: file.uri, name: file.name, type: file.mimeType } as any);
-  formData.append('ticketId', ticketId);
-  formData.append('userId', userId);
-  formData.append('ip', 'user');
-  if (replyId) formData.append('replyId', replyId);
+  return new Promise<boolean>((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${SUPABASE_URL}/functions/v1/upload-ticket-attachment`);
+    xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON_KEY}`);
 
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/upload-ticket-attachment`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
-    body: formData,
+    xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300);
+    xhr.onerror = () => resolve(false);
+
+    const formData = new FormData();
+    formData.append('file', { uri: file.uri, name: file.name, type: file.mimeType } as any);
+    formData.append('ticketId', ticketId);
+    formData.append('userId', userId);
+    formData.append('ip', 'user');
+    if (replyId) formData.append('replyId', replyId);
+
+    xhr.send(formData);
   });
-  return res.ok;
 }
 
 export default function MobileHelpSupport() {
