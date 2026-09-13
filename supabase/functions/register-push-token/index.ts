@@ -17,7 +17,7 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { userId, pushToken, platform, appVersion, action } = await req.json();
+    const { userId, push_token, platform, appVersion, action } = await req.json();
 
     if (!userId) {
       return new Response(
@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
 
     // ── Unregister: mark token as inactive ──────────────────────────────
     if (action === "unregister") {
-      if (!pushToken) {
+      if (!push_token) {
         return new Response(
           JSON.stringify({ error: "Push token is required" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -38,7 +38,7 @@ Deno.serve(async (req: Request) => {
         .from("mobile_push_tokens")
         .update({ is_active: false, updated_at: new Date().toISOString() })
         .eq("user_id", userId)
-        .eq("push_token", pushToken);
+        .eq("push_token", push_token);
       if (error) {
         return new Response(
           JSON.stringify({ error: error.message }),
@@ -52,7 +52,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Register: upsert token ───────────────────────────────────────────
-    if (!pushToken) {
+    if (!push_token) {
       return new Response(
         JSON.stringify({ error: "Push token is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
       .from("mobile_push_tokens")
       .select("id, is_active")
       .eq("user_id", userId)
-      .eq("push_token", pushToken)
+      .eq("push_token", push_token)
       .maybeSingle();
 
     if (existing) {
@@ -83,7 +83,7 @@ Deno.serve(async (req: Request) => {
     } else {
       await supabase.from("mobile_push_tokens").insert({
         user_id: userId,
-        push_token: pushToken,
+        push_token: push_token,
         platform: platform || null,
         app_version: appVersion || null,
         is_active: true,

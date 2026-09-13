@@ -21,7 +21,7 @@ export async function registerPushToken(userId: string): Promise<void> {
         },
         body: JSON.stringify({
           userId,
-          pushToken: token,
+          push_token: token,
           platform: Platform.OS,
           appVersion: null,
         }),
@@ -42,7 +42,7 @@ export async function unregisterPushToken(userId: string, pushToken: string): Pr
         Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ userId, pushToken, action: 'unregister' }),
+      body: JSON.stringify({ userId, push_token: pushToken, action: 'unregister' }),
     });
   } catch {
     /* no-op */
