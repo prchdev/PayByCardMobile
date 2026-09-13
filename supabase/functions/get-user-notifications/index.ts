@@ -112,14 +112,28 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Fetch active campaigns that user hasn't dismissed yet ───────────
+    // Only show campaigns created on or after the user's registration date
+    const { data: userRow } = await supabase
+      .from("users")
+      .select("created_at")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const userCreatedAt = userRow?.created_at as string | undefined;
+
     const today = new Date().toISOString().split('T')[0];
-    const { data: campaigns } = await supabase
+    let campaignQuery = supabase
       .from("mobile_notification_campaigns")
       .select("*")
       .eq("status", "active")
       .or(`start_date.is.null,start_date.lte.${today}`)
-      .or(`end_date.is.null,end_date.gte.${today}`)
-      .order("created_at", { ascending: false });
+      .or(`end_date.is.null,end_date.gte.${today}`);
+
+    if (userCreatedAt) {
+      campaignQuery = campaignQuery.gte("created_at", userCreatedAt);
+    }
+
+    const { data: campaigns } = await campaignQuery.order("created_at", { ascending: false });
 
     // Filter out campaigns the user already dismissed or clicked
     let activeCampaigns: any[] = [];
