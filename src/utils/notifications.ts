@@ -1,5 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import * as TaskManager from 'expo-task-manager';
+
+const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND_NOTIFICATION';
+
+let backgroundTaskRegistered = false;
 
 export async function setupNotifications(): Promise<void> {
   if (Platform.OS === 'android') {
@@ -34,6 +39,21 @@ export async function setupNotifications(): Promise<void> {
       };
     },
   });
+
+  if (!backgroundTaskRegistered) {
+    TaskManager.defineTask(
+      BACKGROUND_NOTIFICATION_TASK,
+      ({ data, error }) => {
+        if (error) {
+          console.warn('Background notification task error:', error);
+        }
+        return Promise.resolve();
+      },
+    );
+    backgroundTaskRegistered = true;
+  }
+
+  await Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK);
 }
 
 let notificationListener: Notifications.Subscription | null = null;

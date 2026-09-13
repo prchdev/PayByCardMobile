@@ -2,7 +2,9 @@
 
 import './src/native-styles.css';
 import { useRef, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Notifications from 'expo-notifications';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
@@ -48,7 +50,23 @@ export default function App() {
     })();
 
     registerNotificationListeners(
-      undefined,
+      (notification) => {
+        const title = notification.request.content.title || 'Notification';
+        const body = notification.request.content.body || '';
+        if (Platform.OS === 'web') return;
+        if (Platform.OS === 'android') {
+          Notifications.scheduleNotificationAsync({
+            content: {
+              title,
+              body,
+              data: notification.request.content.data,
+              sound: 'default',
+              priority: Notifications.AndroidNotificationPriority.HIGH,
+            },
+            trigger: null,
+          });
+        }
+      },
       (response) => {
         const screen = response.notification.request.content.data?.screen;
         if (screen === 'notifications') {
