@@ -1,4 +1,4 @@
-const { withAppBuildGradle } = require('@expo/config-plugins');
+const { withAppBuildGradle, withProjectBuildGradle } = require('@expo/config-plugins');
 const { withDangerousMod } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
@@ -21,7 +21,30 @@ const withProguard = (config) => {
     },
   ]);
 
-  return withAppBuildGradle(withProguardRules, (modConfig) => {
+  const withGradleProps = withDangerousMod(withProguardRules, [
+    'android',
+    async (modConfig) => {
+      const projectRoot = modConfig.projectRoot || config.projectRoot || process.cwd();
+      const propsFile = path.join(projectRoot, 'android', 'gradle.properties');
+      let props = '';
+
+      if (fs.existsSync(propsFile)) {
+        props = fs.readFileSync(propsFile, 'utf8');
+      }
+
+      if (!props.includes('android.suppressUnsupportedCompileWarnings')) {
+        props += '\nandroid.suppressUnsupportedCompileWarnings=true\n';
+      }
+      if (!props.includes('android.experimental.enableNewAgpBase')) {
+        props += 'android.experimental.enableNewAgpBase=true\n';
+      }
+
+      fs.writeFileSync(propsFile, props);
+      return modConfig;
+    },
+  ]);
+
+  return withAppBuildGradle(withGradleProps, (modConfig) => {
     let buildGradle = modConfig.modResults.contents;
 
     if (!buildGradle.includes('minifyEnabled true')) {

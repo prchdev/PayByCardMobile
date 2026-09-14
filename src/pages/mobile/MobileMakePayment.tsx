@@ -23,12 +23,16 @@ interface Beneficiary {
   branch_name: string;
   account_type: string;
   status: string;
+  is_verified_merchant?: boolean;
 }
 
 interface PaymentCategory {
   id: string;
   category_name: string;
   receiver_kyc_required: boolean;
+  new_card_payment_delay_hours?: number;
+  refund_after_hours?: number;
+  settlement_time?: string;
 }
 
 interface PaymentOption {
@@ -497,15 +501,22 @@ export default function MobileMakePayment() {
   if (paymentResult) {
     const isSuccess = paymentResult.success;
     const isPending = !isSuccess && paymentResult.message.includes('being processed');
+    const isKycPending = isSuccess &&
+      selectedCat?.receiver_kyc_required === true &&
+      selectedBen?.is_verified_merchant !== true;
     return (
       <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout}>
         <View className="px-4 py-6 items-center">
           <View className={`w-20 h-20 rounded-full items-center justify-center mb-4 ${isSuccess ? 'bg-green-50' : isPending ? 'bg-amber-50' : 'bg-red-50'}`}>
             {isSuccess ? <CheckCircle size={48} color="#16a34a" /> : isPending ? <Clock size={48} color="#d97706" /> : <XCircle size={48} color="#dc2626" />}
           </View>
-          <Text className="text-xl font-bold text-gray-900">{isSuccess ? 'Payment Successful!' : isPending ? 'Payment Pending' : 'Payment Failed'}</Text>
+          <Text className="text-xl font-bold text-gray-900">
+            {isKycPending ? 'Payment Received - KYC Pending' : isSuccess ? 'Payment Successful!' : isPending ? 'Payment Pending' : 'Payment Failed'}
+          </Text>
           <Text className="text-base text-gray-500 mt-1.5 text-center">
-            {paymentResult.message}
+            {isKycPending
+              ? 'Your payment was received successfully. Payout to the beneficiary will be processed after Merchant KYC / Onboarding is completed by the receiver.'
+              : paymentResult.message}
           </Text>
           <View className="bg-white rounded-xl border border-gray-200 p-4 w-full mt-4 gap-2">
             <View className="flex-row justify-between">
@@ -517,6 +528,15 @@ export default function MobileMakePayment() {
               <Text className="text-sm font-semibold text-gray-900">{`\u20B9${fmtAmt(paymentResult.totalAmount)}`}</Text>
             </View>
           </View>
+          {isKycPending && (
+            <View className="bg-amber-50 border border-amber-300 rounded-xl p-4 w-full mt-3 gap-1">
+              <Text className="text-sm font-semibold text-amber-800">Awaiting Receiver KYC / Merchant Onboarding</Text>
+              <Text className="text-xs text-amber-700 mt-1">
+                The receiver has been notified via email and SMS to complete their Merchant KYC verification. Once verified, the payout will be processed automatically.
+                {selectedCat?.refund_after_hours ? ` If KYC is not completed within ${selectedCat.refund_after_hours} hours, the payment will be refunded.` : ''}
+              </Text>
+            </View>
+          )}
           <View className="flex-row gap-3 mt-5 w-full">
             <TouchableOpacity onPress={resetForm} className="flex-1 px-4 py-3 border border-gray-300 rounded-xl" activeOpacity={0.7} delayPressIn={0}>
               <Text className="text-base text-gray-700 font-medium text-center">New Payment</Text>
@@ -708,6 +728,32 @@ export default function MobileMakePayment() {
                 </Modal>
               </View>
 
+              {/* Merchant KYC warning for selected category */}
+              {selectedCat && (selectedCat.receiver_kyc_required || (selectedCat.new_card_payment_delay_hours || 0) > 0) && (
+                <View className="bg-amber-50 border border-amber-300 rounded-xl p-3 gap-2">
+                  <View className="flex-row items-start gap-2">
+                    <AlertCircle size={16} color="#d97706" />
+                    <View className="flex-1 gap-1.5">
+                      {selectedCat.receiver_kyc_required && (
+                        <Text className="text-xs text-amber-800 leading-relaxed">
+                          As per RBI guidelines, receiver KYC is required to complete payment settlement, if not already completed.
+                        </Text>
+                      )}
+                      {(selectedCat.new_card_payment_delay_hours || 0) > 0 && (
+                        <Text className="text-xs text-amber-800 leading-relaxed">
+                          As per RBI guidelines, payments made using a new credit card will be settled after {selectedCat.new_card_payment_delay_hours} hours.
+                        </Text>
+                      )}
+                      {selectedCat.receiver_kyc_required && (selectedCat.refund_after_hours || 0) > 0 && (
+                        <Text className="text-xs text-amber-800 leading-relaxed">
+                          As per RBI guidelines, if the receiver does not complete KYC within {selectedCat.refund_after_hours} hours, the payment will be refunded to the card after deducting convenience charges.
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                </View>
+              )}
+
               {/* Step 3: Payment Option */}
               <View>
                 <Text className="text-sm font-semibold text-gray-700 mb-2">3. Payment Option *</Text>
@@ -830,6 +876,26 @@ export default function MobileMakePayment() {
                   </View>
                 </View>
               ) : null}
+
+              {/* Receiver KYC required notice before payment */}
+              {selectedCat?.receiver_kyc_required && (
+                <View className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 gap-2">
+                  <View className="flex-row items-start gap-2">
+                    <AlertCircle size={18} color="#d97706" />
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-amber-900">Receiver KYC Required</Text>
+                      <Text className="text-sm text-amber-800 mt-1">
+                        A verification link will be sent to the receiver after payment. Settlement will be completed once the receiver verifies their identity.
+                        {(selectedCat.refund_after_hours || 0) > 0 ? (
+                          <Text className="mt-1">
+                            {'\n'}If KYC is not completed within {selectedCat.refund_after_hours} hours, the payment will be refunded after deducting convenience charges.
+                          </Text>
+                        ) : null}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
 
               {/* Submit */}
               <TouchableOpacity

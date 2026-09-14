@@ -26,6 +26,8 @@
     },
     "android": {
       "versionCode": 48,
+      "compileSdkVersion": 35,
+      "targetSdkVersion": 35,
       "adaptiveIcon": {
         "foregroundImage": "./public/app-icon-padded.png",
         "backgroundColor": "#ffffff"
@@ -56,6 +58,7 @@
     },
     "plugins": [
       ["react-native-edge-to-edge", { "android": { "enforceNavigationBarContrast": false } }],
+      "./plugins/withProguard",
       "expo-local-authentication",
       [
         "expo-notifications",
