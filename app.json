@@ -18,7 +18,9 @@
         "NSCameraUsageDescription": "PayByCard needs camera access to capture KYC documents.",
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["paybycard"],
+            "CFBundleURLSchemes": [
+              "paybycard"
+            ],
             "CFBundleURLName": "in.paybycard.app"
           }
         ]
@@ -52,13 +54,33 @@
             "scheme": "paybycard",
             "host": "digilocker-callback"
           },
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
     "plugins": [
-      ["react-native-edge-to-edge", { "android": { "enforceNavigationBarContrast": false } }],
+      [
+        "react-native-edge-to-edge",
+        {
+          "android": {
+            "enforceNavigationBarContrast": false
+          }
+        }
+      ],
       "./plugins/withProguard",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minifyEnabled": true,
+            "shrinkResources": true,
+            "enableProguardInReleaseBuilds": true
+          }
+        }
+      ],
       "expo-local-authentication",
       [
         "expo-notifications",
