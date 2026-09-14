@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { CircleCheck as CheckCircle, ArrowUpRight, Users, Clock, CircleAlert as AlertCircle, Circle as XCircle, RefreshCw, Factory as History, TrendingUp, Hourglass, Hash, Landmark, Bell, Info } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
@@ -50,6 +51,12 @@ export default function MobileDashboard() {
     registerPushToken(userId);
   }, [userId]);
 
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) fetchUnreadNotifs();
+    }, [userId])
+  );
+
   const fetchUnreadNotifs = async () => {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
@@ -57,7 +64,11 @@ export default function MobileDashboard() {
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
-      if (res.ok) setUnreadNotifs(data.unread_count || 0);
+      if (res.ok) {
+        const notifs = data.notifications || [];
+        const count = notifs.filter((n: any) => !n.is_read && !n.campaign_id).length;
+        setUnreadNotifs(count);
+      }
     } catch {}
   };
 

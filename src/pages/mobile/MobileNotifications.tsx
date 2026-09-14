@@ -68,8 +68,9 @@ export default function MobileNotifications() {
       });
       const data = await res.json();
       if (res.ok) {
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.unread_count || 0);
+        const notifs = data.notifications || [];
+        setNotifications(notifs);
+        setUnreadCount(notifs.filter((n: AppNotification) => !n.is_read && !n.campaign_id).length);
         setCampaigns(data.active_campaigns || []);
       }
     } catch {} finally { setLoading(false); }
