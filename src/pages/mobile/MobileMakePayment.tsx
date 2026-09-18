@@ -234,7 +234,7 @@ export default function MobileMakePayment() {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/calculate-payment-charges`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amt, categoryId: selectedOption, gatewayId: selectedOpt.gateway_id, isBusiness }),
+        body: JSON.stringify({ amount: amt, categoryId: selectedOption, gatewayId: selectedOpt.gateway_id, isBusiness, userId }),
       });
       const data = await res.json();
       if (res.ok) setChargeBreakdown(data);

@@ -102,6 +102,7 @@ Deno.serve(async (req: Request) => {
         categoryId: paymentOptionId,
         gatewayId: gatewayId,
         isBusiness,
+        userId,
       }),
     });
     if (!chargesRes.ok) {

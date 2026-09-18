@@ -16,7 +16,7 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { amount, categoryId, gatewayId, isBusiness = false } = await req.json();
+    const { amount, categoryId, gatewayId, isBusiness = false, userId } = await req.json();
 
     if (!amount || !categoryId || !gatewayId) {
       return new Response(
@@ -94,8 +94,16 @@ Deno.serve(async (req: Request) => {
       baseChargesPercentage = parseFloat(category.discounted_charges_percentage);
     }
 
-    // Business surcharge on top of base charges
-    const surchargePercentage = isBusiness ? parseFloat(category.business_surcharge_percentage || 0) : 0;
+    // Business surcharge: look up per-user surge charge from kyc_business_info
+    let surchargePercentage = 0;
+    if (isBusiness && userId) {
+      const { data: kycBusiness } = await supabase
+        .from("kyc_business_info")
+        .select("business_category_surge_charge")
+        .eq("user_id", userId)
+        .maybeSingle();
+      surchargePercentage = parseFloat(kycBusiness?.business_category_surge_charge || 0);
+    }
     const effectiveChargesPercentage = baseChargesPercentage + surchargePercentage;
 
     const charges = (paymentAmount * effectiveChargesPercentage) / 100;
