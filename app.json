@@ -35,8 +35,8 @@
     },
     "android": {
       "versionCode": 55,
-      "compileSdkVersion": 35,
-      "targetSdkVersion": 35,
+      "compileSdkVersion": 36,
+      "targetSdkVersion": 36,
       "adaptiveIcon": {
         "foregroundImage": "./public/app-icon-padded.png",
         "backgroundColor": "#ffffff"
@@ -84,6 +84,8 @@
         "expo-build-properties",
         {
           "android": {
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36,
             "minifyEnabled": true,
             "shrinkResources": true,
             "enableProguardInReleaseBuilds": true,
