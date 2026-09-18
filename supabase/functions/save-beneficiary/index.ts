@@ -149,7 +149,9 @@ Deno.serve(async (req: Request) => {
     const accountDigits = bank_account.replace(/[\s-]/g, '');
     if (/^\d{15,16}$/.test(accountDigits)) {
       const first = accountDigits[0];
-      if (first === '4' || first === '5' || first === '6') {
+      const len = accountDigits.length;
+      const isCreditCard = first === '4' || (first === '5' && len === 16) || (first === '6' && len === 16);
+      if (isCreditCard) {
         return new Response(
           JSON.stringify({
             error: 'The account number entered appears to be a credit card number. Credit card bill payments are not allowed through this platform.',

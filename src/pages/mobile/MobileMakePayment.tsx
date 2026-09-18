@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Alert } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CreditCard, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Info, ArrowUpRight,
   Landmark, FileText, Wallet, Calculator, CheckCircle, Search, Clock, Circle as XCircle,
-  X,
+  X, Upload,
 } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -91,7 +93,55 @@ export default function MobileMakePayment() {
   const [calculating, setCalculating] = useState(false);
   const [paymentResult, setPaymentResult] = useState<{ success: boolean; reference: string; totalAmount: string; message: string } | null>(null);
   const [gatewayLoading, setGatewayLoading] = useState(false);
+  const [billFile, setBillFile] = useState<{ uri: string; name: string; size: number } | null>(null);
+  const [billFileUrl, setBillFileUrl] = useState<string>('');
+  const [uploadingBill, setUploadingBill] = useState(false);
   const webViewRef = useRef<any>(null);
+
+  const pickBillFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/png', 'image/jpeg', 'application/pdf'],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const file = result.assets[0];
+      if (file.size && file.size > 1024 * 1024) {
+        Alert.alert('File Too Large', 'File size must be less than 1 MB');
+        return;
+      }
+      setBillFile({ uri: file.uri, name: file.name, size: file.size || 0 });
+      setBillFileUrl('');
+    } catch (err) {
+      Alert.alert('Error', getErrorMessage(err, 'Failed to pick file'));
+    }
+  };
+
+  const uploadBillFile = async (): Promise<string | null> => {
+    if (!billFile) return null;
+    if (billFileUrl) return billFileUrl;
+    setUploadingBill(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', {
+        uri: billFile.uri,
+        name: billFile.name,
+        type: billFile.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/*',
+      } as any);
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/upload-bill-file`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      setBillFileUrl(data.url);
+      return data.url;
+    } catch (err) {
+      Alert.alert('Upload Failed', getErrorMessage(err, 'Failed to upload bill file'));
+      return null;
+    } finally { setUploadingBill(false); }
+  };
 
   useEffect(() => {
     if (!userId) { navigate('/mobile/login'); return; }
@@ -189,6 +239,10 @@ export default function MobileMakePayment() {
   const selectedBen = beneficiaries.find(b => b.id === selectedBeneficiary);
   const selectedCat = categories.find(c => c.id === selectedCategory);
 
+  const isBillRequired = !!(selectedCat?.category_name?.toLowerCase().includes('business') ||
+    selectedCat?.category_name?.toLowerCase().includes('vendor') ||
+    selectedCat?.category_name?.toLowerCase().includes('professional'));
+
   const validate = (): string | null => {
     if (!selectedBeneficiary) return 'Please select a beneficiary';
     if (!selectedCategory) return 'Please select a payment category';
@@ -202,6 +256,7 @@ export default function MobileMakePayment() {
     } else if (amt < 1) {
       return 'Enter a valid amount (minimum \u20B91)';
     }
+    if (isBillRequired && !billFile) return 'Please upload a bill/invoice for this payment category';
     return null;
   };
 
@@ -433,6 +488,15 @@ export default function MobileMakePayment() {
     setError('');
     try {
       const amt = parseFloat(amount);
+      let uploadedBillUrl: string | null = billFileUrl;
+      if (billFile && !uploadedBillUrl) {
+        uploadedBillUrl = await uploadBillFile();
+        if (!uploadedBillUrl) {
+          setSubmitting(false);
+          setGatewayLoading(false);
+          return;
+        }
+      }
       const res = await fetch(`${SUPABASE_URL}/functions/v1/initiate-payment`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
@@ -448,6 +512,7 @@ export default function MobileMakePayment() {
           gst: chargeBreakdown ? parseFloat(chargeBreakdown.gst) : 0,
           discount: chargeBreakdown ? parseFloat(chargeBreakdown.discount) : 0,
           totalAmount: chargeBreakdown ? parseFloat(chargeBreakdown.totalAmount) : amt,
+          billFileUrl: uploadedBillUrl || null,
           beneficiaryDetails: selectedBen ? {
             full_name: selectedBen.full_name,
             bank_name: selectedBen.bank_name,
@@ -496,6 +561,8 @@ export default function MobileMakePayment() {
     setAmount('');
     setChargeBreakdown(null);
     setError('');
+    setBillFile(null);
+    setBillFileUrl('');
   };
 
   if (paymentResult) {
@@ -728,7 +795,7 @@ export default function MobileMakePayment() {
                 </Modal>
               </View>
 
-              {/* Merchant KYC warning for selected category */}
+              {/* KYC / settlement info for selected category (single consolidated message) */}
               {selectedCat && (selectedCat.receiver_kyc_required || (selectedCat.new_card_payment_delay_hours || 0) > 0) && (
                 <View className="bg-amber-50 border border-amber-300 rounded-xl p-3 gap-2">
                   <View className="flex-row items-start gap-2">
@@ -736,7 +803,7 @@ export default function MobileMakePayment() {
                     <View className="flex-1 gap-1.5">
                       {selectedCat.receiver_kyc_required && (
                         <Text className="text-xs text-amber-800 leading-relaxed">
-                          As per RBI guidelines, receiver KYC is required to complete payment settlement, if not already completed.
+                          A verification link will be sent to the receiver after payment. Settlement will be completed once the receiver verifies their identity.
                         </Text>
                       )}
                       {(selectedCat.new_card_payment_delay_hours || 0) > 0 && (
@@ -746,13 +813,47 @@ export default function MobileMakePayment() {
                       )}
                       {selectedCat.receiver_kyc_required && (selectedCat.refund_after_hours || 0) > 0 && (
                         <Text className="text-xs text-amber-800 leading-relaxed">
-                          As per RBI guidelines, if the receiver does not complete KYC within {selectedCat.refund_after_hours} hours, the payment will be refunded to the card after deducting convenience charges.
+                          If KYC is not completed within {selectedCat.refund_after_hours} hours, the payment will be refunded after deducting convenience charges.
                         </Text>
                       )}
                     </View>
                   </View>
                 </View>
               )}
+
+              {/* Upload Bill */}
+              <View>
+                <Text className="text-sm font-semibold text-gray-700 mb-2">
+                  Upload Bill {isBillRequired ? '*' : '(Optional)'}
+                </Text>
+                <Text className="text-xs text-gray-500 mb-2">PNG, JPEG, or PDF. Max size: 1 MB</Text>
+                {!billFile ? (
+                  <TouchableOpacity
+                    onPress={pickBillFile}
+                    className="border-2 border-dashed border-gray-300 rounded-xl p-6 items-center"
+                    activeOpacity={0.7} delayPressIn={0}
+                  >
+                    <Upload size={28} color="#9ca3af" />
+                    <Text className="text-sm text-gray-500 mt-2">Tap to upload bill/invoice</Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View className="border-2 border-gray-300 rounded-xl p-4 flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-3 flex-1">
+                      <FileText size={24} color="#8c76f0" />
+                      <View className="flex-1">
+                        <Text className="text-sm font-medium text-gray-900" numberOfLines={1}>{billFile.name}</Text>
+                        <Text className="text-xs text-gray-500">{(billFile.size / 1024).toFixed(2)} KB</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity onPress={() => { setBillFile(null); setBillFileUrl(''); }} activeOpacity={0.7} delayPressIn={0}>
+                      <X size={20} color="#6b7280" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {isBillRequired && !billFile && (
+                  <Text className="text-xs text-amber-600 mt-1.5">Bill/invoice upload is required for this payment category</Text>
+                )}
+              </View>
 
               {/* Step 3: Payment Option */}
               <View>
@@ -877,32 +978,12 @@ export default function MobileMakePayment() {
                 </View>
               ) : null}
 
-              {/* Receiver KYC required notice before payment */}
-              {selectedCat?.receiver_kyc_required && (
-                <View className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 gap-2">
-                  <View className="flex-row items-start gap-2">
-                    <AlertCircle size={18} color="#d97706" />
-                    <View className="flex-1">
-                      <Text className="text-sm font-semibold text-amber-900">Receiver KYC Required</Text>
-                      <Text className="text-sm text-amber-800 mt-1">
-                        A verification link will be sent to the receiver after payment. Settlement will be completed once the receiver verifies their identity.
-                        {(selectedCat.refund_after_hours || 0) > 0 ? (
-                          <Text className="mt-1">
-                            {'\n'}If KYC is not completed within {selectedCat.refund_after_hours} hours, the payment will be refunded after deducting convenience charges.
-                          </Text>
-                        ) : null}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              )}
-
               {/* Submit */}
               <TouchableOpacity
                 onPress={handleConfirm}
-                disabled={submitting || calculating}
+                disabled={submitting || calculating || uploadingBill}
                 className="w-full bg-[#8c76f0] rounded-xl py-3.5"
-                style={{ opacity: submitting || calculating ? 0.5 : 1 }}
+                style={{ opacity: submitting || calculating || uploadingBill ? 0.5 : 1 }}
                 activeOpacity={0.7} delayPressIn={0}
               >
                 <Text className="text-white font-semibold text-center text-base">
@@ -950,6 +1031,12 @@ export default function MobileMakePayment() {
                 <Text className="text-sm text-gray-500">Amount</Text>
                 <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(amount)}`}</Text>
               </View>
+              {billFile && (
+                <View className="flex-row justify-between">
+                  <Text className="text-sm text-gray-500">Bill</Text>
+                  <Text className="text-sm font-medium text-gray-900" numberOfLines={1}>{billFile.name}</Text>
+                </View>
+              )}
               {chargeBreakdown && (
                 <>
                   <View className="flex-row justify-between">

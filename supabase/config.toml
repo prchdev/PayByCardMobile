@@ -247,6 +247,8 @@ verify_jwt = false
 verify_jwt = false
 [functions.upload-kyc-file]
 verify_jwt = false
+[functions.upload-bill-file]
+verify_jwt = false
 [functions.upload-ticket-attachment]
 verify_jwt = false
 [functions.user-forgot-password]
