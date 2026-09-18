@@ -22,8 +22,15 @@
               "paybycard"
             ],
             "CFBundleURLName": "in.paybycard.app"
+          },
+          {
+            "CFBundleURLSchemes": [
+              "paybycard"
+            ],
+            "CFBundleURLName": "in.paybycard.app"
           }
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -44,7 +51,9 @@
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
         "SCHEDULE_EXACT_ALARM",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ],
       "intentFilters": [
         {
@@ -77,7 +86,8 @@
           "android": {
             "minifyEnabled": true,
             "shrinkResources": true,
-            "enableProguardInReleaseBuilds": true
+            "enableProguardInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true
           }
         }
       ],
