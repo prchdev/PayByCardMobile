@@ -93,7 +93,7 @@ export default function MobileMakePayment() {
   const [calculating, setCalculating] = useState(false);
   const [paymentResult, setPaymentResult] = useState<{ success: boolean; reference: string; totalAmount: string; message: string } | null>(null);
   const [gatewayLoading, setGatewayLoading] = useState(false);
-  const [billFile, setBillFile] = useState<{ uri: string; name: string; size: number } | null>(null);
+  const [billFile, setBillFile] = useState<{ uri: string; name: string; size: number; mimeType: string } | null>(null);
   const [billFileUrl, setBillFileUrl] = useState<string>('');
   const [uploadingBill, setUploadingBill] = useState(false);
   const webViewRef = useRef<any>(null);
@@ -110,7 +110,7 @@ export default function MobileMakePayment() {
         Alert.alert('File Too Large', 'File size must be less than 1 MB');
         return;
       }
-      setBillFile({ uri: file.uri, name: file.name, size: file.size || 0 });
+      setBillFile({ uri: file.uri, name: file.name, size: file.size || 0, mimeType: file.mimeType || '' });
       setBillFileUrl('');
     } catch (err) {
       Alert.alert('Error', getErrorMessage(err, 'Failed to pick file'));
@@ -118,25 +118,35 @@ export default function MobileMakePayment() {
   };
 
   const uploadBillFile = async (): Promise<string | null> => {
-    if (!billFile) return null;
+    if (!billFile || !userId) return null;
     if (billFileUrl) return billFileUrl;
     setUploadingBill(true);
     try {
-      const formData = new FormData();
-      formData.append('file', {
-        uri: billFile.uri,
-        name: billFile.name,
-        type: billFile.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/*',
-      } as any);
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/upload-bill-file`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
-        body: formData,
+      const mimeType = billFile.mimeType || (billFile.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+      const uploadResult = await new Promise<string | null>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${SUPABASE_URL}/functions/v1/upload-bill-file`);
+        xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON_KEY}`);
+        xhr.onload = () => {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            if (xhr.status >= 200 && xhr.status < 300 && data.url) {
+              resolve(data.url);
+            } else {
+              reject(new Error(data.error || 'Upload failed'));
+            }
+          } catch {
+            reject(new Error('Upload failed'));
+          }
+        };
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        const formData = new FormData();
+        formData.append('file', { uri: billFile.uri, name: billFile.name, type: mimeType } as any);
+        formData.append('userId', userId);
+        xhr.send(formData);
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
-      setBillFileUrl(data.url);
-      return data.url;
+      if (uploadResult) setBillFileUrl(uploadResult);
+      return uploadResult;
     } catch (err) {
       Alert.alert('Upload Failed', getErrorMessage(err, 'Failed to upload bill file'));
       return null;

@@ -23,10 +23,18 @@ Deno.serve(async (req: Request) => {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File;
+    const userId = formData.get("userId") as string;
 
     if (!file) {
       return new Response(JSON.stringify({ error: "file is required" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "userId is required" }), {
+        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -46,39 +54,42 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const authHeader = req.headers.get("Authorization") || "";
-    const anonKey = authHeader.replace("Bearer ", "");
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify user session via the anon key token
-    const { data: userData, error: userError } = await supabase.auth.getUser(anonKey);
-    if (userError || !userData.user) {
+    const { data: userRow, error: userErr } = await supabase
+      .from("users")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (userErr || !userRow) {
       return new Response(JSON.stringify({ error: "Authentication required" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = userData.user.id;
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const fileName = `${Date.now()}_${safeName}`;
     const path = `${userId}/${fileName}`;
-
-    const arrayBuffer = await file.arrayBuffer();
 
     const { error: uploadError } = await supabase.storage
       .from("bill-files")
-      .upload(path, arrayBuffer, {
+      .upload(path, file, {
         contentType: detectedType,
         upsert: false,
       });
 
     if (uploadError) {
-      throw new Error(uploadError.message);
+      console.error("Error uploading bill file:", uploadError);
+      return new Response(JSON.stringify({ error: "Failed to upload file" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const canonicalUrl = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/bill-files/${path}`;
@@ -88,6 +99,7 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    console.error("Exception in upload-bill-file:", error);
     return new Response(
       JSON.stringify({ error: "An unexpected error occurred. Please try again." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
