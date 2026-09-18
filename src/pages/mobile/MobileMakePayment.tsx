@@ -24,6 +24,9 @@ interface Beneficiary {
   ifsc: string;
   branch_name: string;
   account_type: string;
+  email: string;
+  mobile: string;
+  pan_number?: string;
   status: string;
   is_verified_merchant?: boolean;
 }
@@ -31,6 +34,8 @@ interface Beneficiary {
 interface PaymentCategory {
   id: string;
   category_name: string;
+  is_enabled: boolean;
+  display_order: number;
   receiver_kyc_required: boolean;
   new_card_payment_delay_hours?: number;
   refund_after_hours?: number;
@@ -40,6 +45,7 @@ interface PaymentCategory {
 interface PaymentOption {
   id: string;
   gateway_id: string;
+  category_id: string;
   category_name: string;
   card_type: string;
   charges_percentage: number;
@@ -48,9 +54,14 @@ interface PaymentOption {
   gst_percentage: number;
   gateway_name: string;
   gateway_registered_name: string;
+  gateway_gst_number: string;
+  gateway_gst_percentage: number;
   payout_mode: string;
   settlement_time: string;
+  is_instant_settlement: boolean;
   terms_and_conditions: string;
+  business_surcharge_percentage: number;
+  receiver_kyc_required: boolean;
 }
 
 interface ChargeBreakdown {
@@ -519,7 +530,7 @@ export default function MobileMakePayment() {
           businessCategoryId: selectedCategory,
           paymentOptionId: selectedOption,
           gatewayId: selectedOpt?.gateway_id,
-          cardType: selectedOpt?.category_name || selectedOpt?.card_type,
+          cardType: selectedOpt?.card_type || selectedOpt?.category_name,
           amount: amt,
           charges: chargeBreakdown ? parseFloat(chargeBreakdown.charges) : 0,
           gst: chargeBreakdown ? parseFloat(chargeBreakdown.gst) : 0,
@@ -529,21 +540,41 @@ export default function MobileMakePayment() {
           billFileUrl: uploadedBillUrl || null,
           beneficiaryDetails: selectedBen ? {
             full_name: selectedBen.full_name,
+            email: selectedBen.email,
+            mobile: selectedBen.mobile,
+            pan_number: selectedBen.pan_number,
             bank_name: selectedBen.bank_name,
             bank_account: selectedBen.bank_account,
             ifsc: selectedBen.ifsc,
             branch_name: selectedBen.branch_name,
             account_type: selectedBen.account_type,
+            is_verified_merchant: selectedBen.is_verified_merchant || false,
           } : {},
           categoryDetails: selectedCat ? {
             category_name: selectedCat.category_name,
+            is_enabled: selectedCat.is_enabled,
+            display_order: selectedCat.display_order,
             receiver_kyc_required: selectedCat.receiver_kyc_required,
+            refund_after_hours: selectedCat.refund_after_hours || 0,
+            settlement_time: selectedOpt?.settlement_time || selectedCat.settlement_time || '',
           } : {},
           paymentOptionDetails: selectedOpt ? {
+            gateway_name: selectedOpt.gateway_name,
+            card_type: selectedOpt.card_type,
             category_name: selectedOpt.category_name,
-            normal_charges: selectedOpt.charges_percentage,
+            charges_percentage: selectedOpt.charges_percentage,
+            discounted_charges_percentage: selectedOpt.discounted_charges_percentage,
+            show_discount: selectedOpt.show_discount,
             gst_percentage: selectedOpt.gst_percentage,
+            business_surcharge_percentage: selectedOpt.business_surcharge_percentage || 0,
+            settlement_time: selectedOpt.settlement_time || '',
+            is_instant_settlement: selectedOpt.is_instant_settlement,
+            terms_and_conditions: selectedOpt.terms_and_conditions,
+            receiver_kyc_required: selectedOpt.receiver_kyc_required || false,
           } : {},
+          payoutMode: selectedOpt?.payout_mode || 'payment_split',
+          receiverKycRequired: selectedCat?.receiver_kyc_required || false,
+          refundAfterHours: selectedCat?.refund_after_hours || 0,
         }),
       });
       const data = await res.json();
@@ -972,7 +1003,7 @@ export default function MobileMakePayment() {
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.amount)}`}</Text>
                   </View>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-gray-600">Platform Charges ({chargeBreakdown.effectiveChargesPercentage}%{chargeBreakdown.surchargePercentage > 0 ? ` incl. ${chargeBreakdown.surchargePercentage}% surcharge` : ''})</Text>
+                    <Text className="text-sm text-gray-600">{chargeBreakdown.surchargePercentage > 0 ? 'Charges & Surcharge' : 'Platform Charges'} ({chargeBreakdown.effectiveChargesPercentage}%)</Text>
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.charges)}`}</Text>
                   </View>
                   <View className="flex-row justify-between">
@@ -1058,7 +1089,7 @@ export default function MobileMakePayment() {
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.amount)}`}</Text>
                   </View>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-gray-500">Platform Charges ({chargeBreakdown.effectiveChargesPercentage}%{chargeBreakdown.surchargePercentage > 0 ? ` incl. ${chargeBreakdown.surchargePercentage}% surcharge` : ''})</Text>
+                    <Text className="text-sm text-gray-500">{chargeBreakdown.surchargePercentage > 0 ? 'Charges & Surcharge' : 'Platform Charges'} ({chargeBreakdown.effectiveChargesPercentage}%)</Text>
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.charges)}`}</Text>
                   </View>
                   <View className="flex-row justify-between">
