@@ -28,6 +28,7 @@ Deno.serve(async (req: Request) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    const body = await req.json();
     const {
       userId,
       beneficiaryId,
@@ -41,11 +42,23 @@ Deno.serve(async (req: Request) => {
       discount,
       totalAmount,
       billFileUrl,
-      ipAddress,
+      ipAddress: clientIp,
       beneficiaryDetails,
       categoryDetails,
       paymentOptionDetails,
-    } = await req.json();
+    } = body;
+
+    // Resolve the client's IP address: prefer the client-supplied value, then
+    // fall back to the connecting IP from the request headers (set by the edge
+    // runtime / load balancer).
+    const forwardedFor = req.headers.get("x-forwarded-for");
+    const remoteAddr = req.headers.get("x-real-ip");
+    const headerIp = forwardedFor
+      ? forwardedFor.split(",")[0].trim()
+      : remoteAddr
+        ? remoteAddr.trim()
+        : null;
+    const ipAddress = clientIp || headerIp || "unknown";
 
     // ── Authenticate: verify userId exists in public.users ───────────────────
     if (!userId) return err("Unauthorized: userId is required", 401);
@@ -172,7 +185,7 @@ Deno.serve(async (req: Request) => {
       environment: optionEnvironment,
       allowed_cards: allowedCards,
       initiated_at: new Date().toISOString(),
-      ip_address: ipAddress || "unknown",
+      ip_address: ipAddress,
     };
 
     const validCardType = cardType ? extractSingleCardType(cardType) : null;
@@ -200,7 +213,7 @@ Deno.serve(async (req: Request) => {
         payment_reference: paymentReference,
         bill_file_url: billFileUrl || null,
         status: "pending",
-        ip_address: ipAddress || "unknown",
+        ip_address: ipAddress,
         transaction_summary: transactionSummary,
         beneficiary_details: beneficiaryDetails || {},
         category_details: categoryDetails || {},
