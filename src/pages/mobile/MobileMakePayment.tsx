@@ -972,7 +972,7 @@ export default function MobileMakePayment() {
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.amount)}`}</Text>
                   </View>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-gray-600">Charges ({chargeBreakdown.baseChargesPercentage}%{chargeBreakdown.surchargePercentage > 0 ? ` + ${chargeBreakdown.surchargePercentage}% surcharge` : ''})</Text>
+                    <Text className="text-sm text-gray-600">Charges ({chargeBreakdown.effectiveChargesPercentage}%)</Text>
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.charges)}`}</Text>
                   </View>
                   <View className="flex-row justify-between">
