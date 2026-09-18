@@ -94,9 +94,9 @@ Deno.serve(async (req: Request) => {
       baseChargesPercentage = parseFloat(category.discounted_charges_percentage);
     }
 
-    // Business surcharge: look up per-user surge charge from kyc_business_info
+    // Surge charge: look up per-user surge charge from kyc_business_info
     let surchargePercentage = 0;
-    if (isBusiness && userId) {
+    if (userId) {
       const { data: kycBusiness } = await supabase
         .from("kyc_business_info")
         .select("business_category_surge_charge")
