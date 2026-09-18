@@ -972,15 +972,9 @@ export default function MobileMakePayment() {
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.amount)}`}</Text>
                   </View>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-gray-600">Platform Charges ({chargeBreakdown.baseChargesPercentage}%)</Text>
-                    <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt((parseFloat(chargeBreakdown.charges) - chargeBreakdown.amount * chargeBreakdown.surchargePercentage / 100).toFixed(2))}`}</Text>
+                    <Text className="text-sm text-gray-600">Platform Charges ({chargeBreakdown.effectiveChargesPercentage}%{chargeBreakdown.surchargePercentage > 0 ? ` incl. ${chargeBreakdown.surchargePercentage}% surcharge` : ''})</Text>
+                    <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.charges)}`}</Text>
                   </View>
-                  {chargeBreakdown.surchargePercentage > 0 && (
-                    <View className="flex-row justify-between">
-                      <Text className="text-sm text-gray-600">Surcharge ({chargeBreakdown.surchargePercentage}%)</Text>
-                      <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt((chargeBreakdown.amount * chargeBreakdown.surchargePercentage / 100).toFixed(2))}`}</Text>
-                    </View>
-                  )}
                   <View className="flex-row justify-between">
                     <Text className="text-sm text-gray-600">GST on Charges</Text>
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.gst)}`}</Text>
@@ -1064,15 +1058,9 @@ export default function MobileMakePayment() {
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.amount)}`}</Text>
                   </View>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-gray-500">Platform Charges ({chargeBreakdown.baseChargesPercentage}%)</Text>
-                    <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt((parseFloat(chargeBreakdown.charges) - chargeBreakdown.amount * chargeBreakdown.surchargePercentage / 100).toFixed(2))}`}</Text>
+                    <Text className="text-sm text-gray-500">Platform Charges ({chargeBreakdown.effectiveChargesPercentage}%{chargeBreakdown.surchargePercentage > 0 ? ` incl. ${chargeBreakdown.surchargePercentage}% surcharge` : ''})</Text>
+                    <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.charges)}`}</Text>
                   </View>
-                  {chargeBreakdown.surchargePercentage > 0 && (
-                    <View className="flex-row justify-between">
-                      <Text className="text-sm text-gray-500">Surcharge ({chargeBreakdown.surchargePercentage}%)</Text>
-                      <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt((chargeBreakdown.amount * chargeBreakdown.surchargePercentage / 100).toFixed(2))}`}</Text>
-                    </View>
-                  )}
                   <View className="flex-row justify-between">
                     <Text className="text-sm text-gray-500">GST on Charges</Text>
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.gst)}`}</Text>
