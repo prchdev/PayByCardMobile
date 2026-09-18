@@ -42,6 +42,7 @@ Deno.serve(async (req: Request) => {
       discount,
       totalAmount,
       billFileUrl,
+      isBusiness = false,
       ipAddress: clientIp,
       beneficiaryDetails,
       categoryDetails,
@@ -100,6 +101,7 @@ Deno.serve(async (req: Request) => {
         amount: parsedAmount,
         categoryId: paymentOptionId,
         gatewayId: gatewayId,
+        isBusiness,
       }),
     });
     if (!chargesRes.ok) {

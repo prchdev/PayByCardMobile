@@ -61,6 +61,8 @@ interface ChargeBreakdown {
   discountApplied: boolean;
   totalAmount: string;
   effectiveChargesPercentage: number;
+  baseChargesPercentage: number;
+  surchargePercentage: number;
   category: { id: string; name: string; gstPercentage: number; receiverKycRequired: boolean };
   gateway: { id: string; name: string; registeredName: string; gstNumber: string; payoutMode: string };
 }
@@ -218,6 +220,8 @@ export default function MobileMakePayment() {
   };
 
   const selectedOpt = paymentOptions.find(o => o.id === selectedOption);
+  const selectedBen = beneficiaries.find(b => b.id === selectedBeneficiary);
+  const isBusiness = selectedBen?.account_type === 'Current';
 
   const calculateCharges = useCallback(async () => {
     const amt = parseFloat(amount);
@@ -230,14 +234,14 @@ export default function MobileMakePayment() {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/calculate-payment-charges`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amt, categoryId: selectedOption, gatewayId: selectedOpt.gateway_id }),
+        body: JSON.stringify({ amount: amt, categoryId: selectedOption, gatewayId: selectedOpt.gateway_id, isBusiness }),
       });
       const data = await res.json();
       if (res.ok) setChargeBreakdown(data);
       else setChargeBreakdown(null);
     } catch { setChargeBreakdown(null); }
     finally { setCalculating(false); }
-  }, [amount, selectedOption, selectedOpt]);
+  }, [amount, selectedOption, selectedOpt, isBusiness]);
 
   useEffect(() => {
     const timeout = setTimeout(() => { if (amount && selectedOption && selectedOpt?.gateway_id) calculateCharges(); }, 500);
@@ -246,7 +250,6 @@ export default function MobileMakePayment() {
 
   const handleLogout = () => { logout(); reset('/mobile/login'); };
 
-  const selectedBen = beneficiaries.find(b => b.id === selectedBeneficiary);
   const selectedCat = categories.find(c => c.id === selectedCategory);
 
   const isBillRequired = !!(selectedCat?.category_name?.toLowerCase().includes('business') ||
@@ -522,6 +525,7 @@ export default function MobileMakePayment() {
           gst: chargeBreakdown ? parseFloat(chargeBreakdown.gst) : 0,
           discount: chargeBreakdown ? parseFloat(chargeBreakdown.discount) : 0,
           totalAmount: chargeBreakdown ? parseFloat(chargeBreakdown.totalAmount) : amt,
+          isBusiness,
           billFileUrl: uploadedBillUrl || null,
           beneficiaryDetails: selectedBen ? {
             full_name: selectedBen.full_name,
@@ -968,7 +972,7 @@ export default function MobileMakePayment() {
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.amount)}`}</Text>
                   </View>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-gray-600">Charges ({chargeBreakdown.effectiveChargesPercentage}%)</Text>
+                    <Text className="text-sm text-gray-600">Charges ({chargeBreakdown.baseChargesPercentage}%{chargeBreakdown.surchargePercentage > 0 ? ` + ${chargeBreakdown.surchargePercentage}% surcharge` : ''})</Text>
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.charges)}`}</Text>
                   </View>
                   <View className="flex-row justify-between">
