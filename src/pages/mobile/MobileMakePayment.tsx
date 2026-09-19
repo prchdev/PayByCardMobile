@@ -1091,10 +1091,6 @@ export default function MobileMakePayment() {
               {chargeBreakdown && (
                 <>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-gray-500">Amount to Send</Text>
-                    <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.amount)}`}</Text>
-                  </View>
-                  <View className="flex-row justify-between">
                     <Text className="text-sm text-gray-500">{chargeBreakdown.surchargePercentage > 0 ? 'Charges & Surcharge' : 'Platform Charges'} ({chargeBreakdown.effectiveChargesPercentage}%)</Text>
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.charges)}`}</Text>
                   </View>
@@ -1122,10 +1118,6 @@ export default function MobileMakePayment() {
                     const total = baseAmt + charges + gst;
                     return (
                       <>
-                        <View className="flex-row justify-between">
-                          <Text className="text-sm text-gray-500">Amount to Send</Text>
-                          <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(baseAmt)}`}</Text>
-                        </View>
                         <View className="flex-row justify-between">
                           <Text className="text-sm text-gray-500">{(surchargePct > 0 || surgePct > 0) ? 'Charges & Surcharge' : 'Platform Charges'} ({effPct}%)</Text>
                           <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(charges.toFixed(2))}`}</Text>
