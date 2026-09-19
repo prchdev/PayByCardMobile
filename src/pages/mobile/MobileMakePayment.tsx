@@ -1093,7 +1093,7 @@ export default function MobileMakePayment() {
                   </View>
                   <View className="flex-row justify-between">
                     <Text className="text-sm text-gray-500">Platform Fees</Text>
-                    <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt((parseFloat(chargeBreakdown.charges) + parseFloat(chargeBreakdown.gst) - parseFloat(chargeBreakdown.discount || '0')).toFixed(2))}`}</Text>
+                    <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt((parseFloat(chargeBreakdown.charges) + parseFloat(chargeBreakdown.gst)).toFixed(2))}`}</Text>
                   </View>
                   <View className="flex-row justify-between pt-2 border-t border-gray-100">
                     <Text className="text-base font-semibold text-gray-900">Total Amount</Text>
@@ -1111,8 +1111,7 @@ export default function MobileMakePayment() {
                     const effPct = basePct + surchargePct;
                     const charges = (baseAmt * effPct) / 100;
                     const gst = (charges * selectedOpt.gst_percentage) / 100;
-                    const discount = useDiscounted ? (baseAmt * selectedOpt.charges_percentage) / 100 - (baseAmt * selectedOpt.discounted_charges_percentage) / 100 : 0;
-                    const total = baseAmt + charges + gst - discount;
+                    const total = baseAmt + charges + gst;
                     return (
                       <>
                         <View className="flex-row justify-between">
@@ -1121,7 +1120,7 @@ export default function MobileMakePayment() {
                         </View>
                         <View className="flex-row justify-between">
                           <Text className="text-sm text-gray-500">Platform Fees</Text>
-                          <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt((charges + gst - discount).toFixed(2))}`}</Text>
+                          <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt((charges + gst).toFixed(2))}`}</Text>
                         </View>
                         <View className="flex-row justify-between pt-2 border-t border-gray-100">
                           <Text className="text-base font-semibold text-gray-900">Total Amount</Text>
