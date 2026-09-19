@@ -253,12 +253,12 @@ export default function MobileMakePayment() {
       else setChargeBreakdown(null);
     } catch { setChargeBreakdown(null); }
     finally { setCalculating(false); }
-  }, [amount, selectedOption, selectedOpt, isBusiness]);
+  }, [amount, selectedOption, selectedOpt, isBusiness, userId]);
 
   useEffect(() => {
     const timeout = setTimeout(() => { if (amount && selectedOption && selectedOpt?.gateway_id) calculateCharges(); }, 500);
     return () => clearTimeout(timeout);
-  }, [amount, selectedOption, selectedOpt, calculateCharges]);
+  }, [amount, selectedOption, selectedOpt, calculateCharges, userId]);
 
   const handleLogout = () => { logout(); reset('/mobile/login'); };
 
