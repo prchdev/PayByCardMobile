@@ -44,6 +44,7 @@ Deno.serve(async (req: Request) => {
       billFileUrl,
       isBusiness = false,
       ipAddress: clientIp,
+      deviceId,
       beneficiaryDetails,
       categoryDetails,
       paymentOptionDetails,
@@ -59,7 +60,7 @@ Deno.serve(async (req: Request) => {
       : remoteAddr
         ? remoteAddr.trim()
         : null;
-    const ipAddress = clientIp || headerIp || "unknown";
+    const ipAddress = clientIp || headerIp || (deviceId ? `device:${deviceId}` : "unknown");
 
     // ── Authenticate: verify userId exists in public.users ───────────────────
     if (!userId) return err("Unauthorized: userId is required", 401);
@@ -112,7 +113,7 @@ Deno.serve(async (req: Request) => {
     const parsedCharges = parseFloat(chargesData.charges || 0);
     const parsedGst = parseFloat(chargesData.gst || 0);
     const parsedDiscount = parseFloat(chargesData.discount || 0);
-    const parsedTotal = parsedAmount + parsedCharges + parsedGst - parsedDiscount;
+    const parsedTotal = parsedAmount + parsedCharges + parsedGst;
 
     // ── Duplicate payment guard ───────────────────────────────────────────────
     // Detects double-submit within 30 s: same user + beneficiary + amount.
