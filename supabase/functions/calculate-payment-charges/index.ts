@@ -94,7 +94,7 @@ Deno.serve(async (req: Request) => {
       baseChargesPercentage = parseFloat(category.discounted_charges_percentage);
     }
 
-    // Surge charge: look up per-user surge charge from kyc_business_info
+    // Surge charge: per-user surge from kyc_business_info + per-option business surcharge
     let surchargePercentage = 0;
     if (userId) {
       const { data: kycBusiness } = await supabase
@@ -103,6 +103,9 @@ Deno.serve(async (req: Request) => {
         .eq("user_id", userId)
         .maybeSingle();
       surchargePercentage = parseFloat(kycBusiness?.business_category_surge_charge || 0);
+    }
+    if (isBusiness) {
+      surchargePercentage += parseFloat(category.business_surcharge_percentage || 0);
     }
     const effectiveChargesPercentage = baseChargesPercentage + surchargePercentage;
 
