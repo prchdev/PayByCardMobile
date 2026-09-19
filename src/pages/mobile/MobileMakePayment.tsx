@@ -1092,9 +1092,19 @@ export default function MobileMakePayment() {
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.amount)}`}</Text>
                   </View>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-gray-500">Platform Fees</Text>
-                    <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt((parseFloat(chargeBreakdown.charges) + parseFloat(chargeBreakdown.gst)).toFixed(2))}`}</Text>
+                    <Text className="text-sm text-gray-500">{chargeBreakdown.surchargePercentage > 0 ? 'Charges & Surcharge' : 'Platform Charges'} ({chargeBreakdown.effectiveChargesPercentage}%)</Text>
+                    <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.charges)}`}</Text>
                   </View>
+                  <View className="flex-row justify-between">
+                    <Text className="text-sm text-gray-500">GST on Charges</Text>
+                    <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.gst)}`}</Text>
+                  </View>
+                  {chargeBreakdown.discountApplied && parseFloat(chargeBreakdown.discount) > 0 && (
+                    <View className="flex-row justify-between">
+                      <Text className="text-sm text-green-600">Discount</Text>
+                      <Text className="text-sm font-medium text-green-600">- {`\u20B9${fmtAmt(chargeBreakdown.discount)}`}</Text>
+                    </View>
+                  )}
                   <View className="flex-row justify-between pt-2 border-t border-gray-100">
                     <Text className="text-base font-semibold text-gray-900">Total Amount</Text>
                     <Text className="text-base font-bold text-[#8c76f0]">{`\u20B9${fmtAmt(chargeBreakdown.totalAmount)}`}</Text>
@@ -1119,9 +1129,19 @@ export default function MobileMakePayment() {
                           <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(baseAmt)}`}</Text>
                         </View>
                         <View className="flex-row justify-between">
-                          <Text className="text-sm text-gray-500">Platform Fees</Text>
-                          <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt((charges + gst).toFixed(2))}`}</Text>
+                          <Text className="text-sm text-gray-500">{surchargePct > 0 ? 'Charges & Surcharge' : 'Platform Charges'} ({effPct}%)</Text>
+                          <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(charges.toFixed(2))}`}</Text>
                         </View>
+                        <View className="flex-row justify-between">
+                          <Text className="text-sm text-gray-500">GST on Charges</Text>
+                          <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(gst.toFixed(2))}`}</Text>
+                        </View>
+                        {useDiscounted && (
+                          <View className="flex-row justify-between">
+                            <Text className="text-sm text-green-600">Discount</Text>
+                            <Text className="text-sm font-medium text-green-600">- {`\u20B9${fmtAmt(((baseAmt * selectedOpt.charges_percentage) / 100 - (baseAmt * selectedOpt.discounted_charges_percentage) / 100).toFixed(2))}`}</Text>
+                          </View>
+                        )}
                         <View className="flex-row justify-between pt-2 border-t border-gray-100">
                           <Text className="text-base font-semibold text-gray-900">Total Amount</Text>
                           <Text className="text-base font-bold text-[#8c76f0]">{`\u20B9${fmtAmt(total.toFixed(2))}`}</Text>
