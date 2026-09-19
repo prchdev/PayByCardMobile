@@ -35,10 +35,8 @@
 # Keep Kotlin metadata
 -keep class kotlin.Metadata { *; }
 
-# Optimization
--optimizationpasses 5
+# Optimization (R8-compatible — mergeinterfacesaggressively and optimizationpasses are deprecated in R8 full mode)
 -allowaccessmodification
--mergeinterfacesaggressively
 
 # Remove logging
 -assumenosideeffects class android.util.Log {
