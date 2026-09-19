@@ -284,10 +284,13 @@ export default function MobileMakePayment() {
     return null;
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setError('');
     const validationError = validate();
     if (validationError) { setError(validationError); return; }
+    if (!chargeBreakdown) {
+      await calculateCharges();
+    }
     setShowConfirm(true);
   };
 
@@ -1096,6 +1099,37 @@ export default function MobileMakePayment() {
                     <Text className="text-base font-semibold text-gray-900">Total Amount</Text>
                     <Text className="text-base font-bold text-[#8c76f0]">{`\u20B9${fmtAmt(chargeBreakdown.totalAmount)}`}</Text>
                   </View>
+                </>
+              )}
+              {!chargeBreakdown && selectedOpt && (
+                <>
+                  {(() => {
+                    const baseAmt = parseFloat(amount) || 0;
+                    const useDiscounted = selectedOpt.show_discount;
+                    const basePct = useDiscounted ? selectedOpt.discounted_charges_percentage : selectedOpt.charges_percentage;
+                    const surchargePct = isBusiness ? (selectedOpt.business_surcharge_percentage || 0) : 0;
+                    const effPct = basePct + surchargePct;
+                    const charges = (baseAmt * effPct) / 100;
+                    const gst = (charges * selectedOpt.gst_percentage) / 100;
+                    const discount = useDiscounted ? (baseAmt * selectedOpt.charges_percentage) / 100 - (baseAmt * selectedOpt.discounted_charges_percentage) / 100 : 0;
+                    const total = baseAmt + charges + gst - discount;
+                    return (
+                      <>
+                        <View className="flex-row justify-between">
+                          <Text className="text-sm text-gray-500">Amount to Send</Text>
+                          <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(baseAmt)}`}</Text>
+                        </View>
+                        <View className="flex-row justify-between">
+                          <Text className="text-sm text-gray-500">Platform Fees</Text>
+                          <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt((charges + gst - discount).toFixed(2))}`}</Text>
+                        </View>
+                        <View className="flex-row justify-between pt-2 border-t border-gray-100">
+                          <Text className="text-base font-semibold text-gray-900">Total Amount</Text>
+                          <Text className="text-base font-bold text-[#8c76f0]">{`\u20B9${fmtAmt(total.toFixed(2))}`}</Text>
+                        </View>
+                      </>
+                    );
+                  })()}
                 </>
               )}
             </View>
