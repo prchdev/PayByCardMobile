@@ -94,20 +94,19 @@ Deno.serve(async (req: Request) => {
       baseChargesPercentage = parseFloat(category.discounted_charges_percentage);
     }
 
-    // Surge charge: per-user surge from kyc_business_info + per-option business surcharge
-    let surchargePercentage = 0;
+    // Surcharge: per-option business surcharge (always applied) + per-user surge from kyc_business_info
+    const surchargePercentage = parseFloat(category.business_surcharge_percentage || 0);
+    let surgeChargePercentage = 0;
     if (userId) {
       const { data: kycBusiness } = await supabase
         .from("kyc_business_info")
         .select("business_category_surge_charge")
         .eq("user_id", userId)
         .maybeSingle();
-      surchargePercentage = parseFloat(kycBusiness?.business_category_surge_charge || 0);
+      surgeChargePercentage = parseFloat(kycBusiness?.business_category_surge_charge || 0);
     }
-    if (isBusiness) {
-      surchargePercentage += parseFloat(category.business_surcharge_percentage || 0);
-    }
-    const effectiveChargesPercentage = baseChargesPercentage + surchargePercentage;
+    const totalSurchargePercentage = surchargePercentage + surgeChargePercentage;
+    const effectiveChargesPercentage = baseChargesPercentage + totalSurchargePercentage;
 
     const charges = (paymentAmount * effectiveChargesPercentage) / 100;
     const gst = (charges * parseFloat(category.gst_percentage || 0) / 100);
@@ -132,7 +131,7 @@ Deno.serve(async (req: Request) => {
         totalAmount: totalAmount.toFixed(2),
         isBusiness,
         baseChargesPercentage,
-        surchargePercentage,
+        surchargePercentage: totalSurchargePercentage,
         effectiveChargesPercentage,
         category: {
           id: category.id,

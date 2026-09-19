@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: businessData, error: businessError } = await supabase
       .from('kyc_business_info')
-      .select('status')
+      .select('status, business_category_surge_charge')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -108,6 +108,7 @@ Deno.serve(async (req: Request) => {
         isVerified: isFullyVerified,
         status: overallStatus,
         isRestricted: userData?.is_restricted || false,
+        businessCategorySurgeCharge: parseFloat(businessData?.business_category_surge_charge || 0),
         details: {
           pan: { status: panStatus, verified: isPanVerified },
           address: { status: addressStatus, verified: isAddressVerified },

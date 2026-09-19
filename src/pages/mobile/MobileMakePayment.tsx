@@ -95,7 +95,7 @@ export default function MobileMakePayment() {
   const [selectedOption, setSelectedOption] = useState('');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(true);
-  const [kycStatus, setKycStatus] = useState<{ isVerified: boolean; status: string; isRestricted?: boolean } | null>(null);
+  const [kycStatus, setKycStatus] = useState<{ isVerified: boolean; status: string; isRestricted?: boolean; businessCategorySurgeCharge?: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showBeneficiaryList, setShowBeneficiaryList] = useState(false);
@@ -180,7 +180,7 @@ export default function MobileMakePayment() {
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
-      if (res.ok) setKycStatus({ isVerified: data.isVerified === true || data.status === 'verified', status: data.status, isRestricted: data.isRestricted });
+      if (res.ok) setKycStatus({ isVerified: data.isVerified === true || data.status === 'verified', status: data.status, isRestricted: data.isRestricted, businessCategorySurgeCharge: data.businessCategorySurgeCharge || 0 });
     } catch {}
   };
 
@@ -1114,8 +1114,9 @@ export default function MobileMakePayment() {
                     const baseAmt = parseFloat(amount) || 0;
                     const useDiscounted = selectedOpt.show_discount;
                     const basePct = useDiscounted ? selectedOpt.discounted_charges_percentage : selectedOpt.charges_percentage;
-                    const surchargePct = isBusiness ? (selectedOpt.business_surcharge_percentage || 0) : 0;
-                    const effPct = basePct + surchargePct;
+                    const surchargePct = selectedOpt.business_surcharge_percentage || 0;
+                    const surgePct = kycStatus?.businessCategorySurgeCharge || 0;
+                    const effPct = basePct + surchargePct + surgePct;
                     const charges = (baseAmt * effPct) / 100;
                     const gst = (charges * selectedOpt.gst_percentage) / 100;
                     const total = baseAmt + charges + gst;
@@ -1126,7 +1127,7 @@ export default function MobileMakePayment() {
                           <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(baseAmt)}`}</Text>
                         </View>
                         <View className="flex-row justify-between">
-                          <Text className="text-sm text-gray-500">{surchargePct > 0 ? 'Charges & Surcharge' : 'Platform Charges'} ({effPct}%)</Text>
+                          <Text className="text-sm text-gray-500">{(surchargePct > 0 || surgePct > 0) ? 'Charges & Surcharge' : 'Platform Charges'} ({effPct}%)</Text>
                           <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(charges.toFixed(2))}`}</Text>
                         </View>
                         <View className="flex-row justify-between">
