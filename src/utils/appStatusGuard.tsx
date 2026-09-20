@@ -1,6 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, Modal, Platform, Linking, AppState } from 'react-native';
-import * as SplashScreen from 'expo-splash-screen';
 import Constants from 'expo-constants';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 
@@ -112,7 +111,6 @@ export function useAppStatusGuard() {
       const reason = checkVersion(data);
       if (reason) {
         setBlockReason(reason);
-        SplashScreen.hideAsync().catch(() => {});
       }
     } catch {
       // On error, allow app to proceed

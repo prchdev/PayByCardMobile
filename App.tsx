@@ -81,10 +81,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (appReady) {
+    if (appReady && !checking) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [appReady]);
+  }, [appReady, checking]);
 
   if (!appReady || checking) {
     return null;
