@@ -2,7 +2,7 @@
 
 import './src/native-styles.css';
 import { useRef, useEffect, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, BackHandler } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Notifications from 'expo-notifications';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
@@ -12,6 +12,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { setNativeNavigationRef } from './src/utils/navigation';
 import { setupNotifications, requestNotificationPermission, registerNotificationListeners, unregisterNotificationListeners } from './src/utils/notifications';
+import { useAppStatusGuard, AppBlockModal } from './src/utils/appStatusGuard';
 import type { RootStackParamList } from './src/types/navigation';
 
 import MobileHome from './src/pages/mobile/MobileHome';
@@ -39,6 +40,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function App() {
   const navRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
   const [appReady, setAppReady] = useState(false);
+  const { blockReason, checking } = useAppStatusGuard();
 
   useEffect(() => {
     (async () => {
@@ -84,7 +86,7 @@ export default function App() {
     }
   }, [appReady]);
 
-  if (!appReady) {
+  if (!appReady || checking) {
     return null;
   }
 
@@ -125,6 +127,13 @@ export default function App() {
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>
+      {blockReason && (
+        <AppBlockModal blockReason={blockReason} onOkay={() => {
+          if (Platform.OS !== 'web') {
+            BackHandler.exitApp();
+          }
+        }} />
+      )}
     </GestureHandlerRootView>
   );
 }
