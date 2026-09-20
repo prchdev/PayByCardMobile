@@ -41,11 +41,9 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     if (!user) {
-      // F21: Return the same success response whether or not the email exists,
-      // so an attacker cannot enumerate accounts.
       return new Response(
-        JSON.stringify({ success: true, message: "If an account exists with this email, OTPs have been sent." }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "No account found with this email. Please check your email or register first." }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
