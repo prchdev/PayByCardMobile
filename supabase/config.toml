@@ -295,3 +295,9 @@ verify_jwt = false
 
 [functions.get-app-status]
 verify_jwt = false
+
+[functions.check-beneficiary-monthly-limit]
+verify_jwt = false
+
+[functions.check-invoice-verification]
+verify_jwt = false

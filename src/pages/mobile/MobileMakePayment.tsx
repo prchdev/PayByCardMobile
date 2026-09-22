@@ -41,6 +41,10 @@ interface PaymentCategory {
   new_card_payment_delay_hours?: number;
   refund_after_hours?: number;
   settlement_time?: string;
+  invoice_required: boolean;
+  invoice_frequency_months: number;
+  invoice_min_amount: number;
+  max_payment_per_beneficiary: number;
 }
 
 interface PaymentOption {
@@ -110,6 +114,19 @@ export default function MobileMakePayment() {
   const [billFile, setBillFile] = useState<{ uri: string; name: string; size: number; mimeType: string } | null>(null);
   const [billFileUrl, setBillFileUrl] = useState<string>('');
   const [uploadingBill, setUploadingBill] = useState(false);
+  const [billRequired, setBillRequired] = useState(false);
+  const [checkingBillRequired, setCheckingBillRequired] = useState(false);
+  const [monthlyLimitExceeded, setMonthlyLimitExceeded] = useState(false);
+  const [monthlyLimitInfo, setMonthlyLimitInfo] = useState<{ max: number; total: number } | null>(null);
+  const [checkingMonthlyLimit, setCheckingMonthlyLimit] = useState(false);
+  const [invoiceCheck, setInvoiceCheck] = useState<{
+    invoiceRequired: boolean;
+    hasConfirmedInvoice: boolean;
+    canUsePreviousInvoice: boolean;
+    needsInvoiceUpload: boolean;
+    lastConfirmedAt?: string;
+  } | null>(null);
+  const [checkingInvoice, setCheckingInvoice] = useState(false);
   const webViewRef = useRef<any>(null);
 
   const pickBillFile = async () => {
@@ -264,9 +281,65 @@ export default function MobileMakePayment() {
 
   const selectedCat = categories.find(c => c.id === selectedCategory);
 
-  const isBillRequired = !!(selectedCat?.category_name?.toLowerCase().includes('business') ||
-    selectedCat?.category_name?.toLowerCase().includes('vendor') ||
-    selectedCat?.category_name?.toLowerCase().includes('professional'));
+  // Check bill required whenever category, beneficiary, or amount changes
+  useEffect(() => {
+    const checkRequirement = async () => {
+      if (!selectedCategory || !selectedBeneficiary || !amount) {
+        setBillRequired(false);
+        return;
+      }
+      const amountValue = parseFloat(amount);
+      if (isNaN(amountValue) || amountValue <= 0) {
+        setBillRequired(false);
+        return;
+      }
+      setCheckingBillRequired(true);
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/check-invoice-verification`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, beneficiaryId: selectedBeneficiary, categoryId: selectedCategory, amount: amountValue }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setInvoiceCheck(data);
+          setBillRequired(data.needsInvoiceUpload);
+        }
+      } catch {} finally { setCheckingBillRequired(false); }
+    };
+    checkRequirement();
+  }, [selectedCategory, selectedBeneficiary, amount, userId]);
+
+  // Check monthly beneficiary limit whenever category or beneficiary changes
+  useEffect(() => {
+    const checkLimit = async () => {
+      if (!selectedCategory || !selectedBeneficiary) {
+        setMonthlyLimitExceeded(false);
+        setMonthlyLimitInfo(null);
+        return;
+      }
+      const cat = categories.find(c => c.id === selectedCategory);
+      if (!cat || !cat.max_payment_per_beneficiary || cat.max_payment_per_beneficiary <= 0) {
+        setMonthlyLimitExceeded(false);
+        setMonthlyLimitInfo(null);
+        return;
+      }
+      setCheckingMonthlyLimit(true);
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/check-beneficiary-monthly-limit`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, beneficiaryId: selectedBeneficiary, categoryId: selectedCategory }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setMonthlyLimitExceeded(data.limitExceeded);
+          setMonthlyLimitInfo({ max: data.maxPerBeneficiary, total: data.totalThisMonth });
+        }
+      } catch {} finally { setCheckingMonthlyLimit(false); }
+    };
+    checkLimit();
+  }, [selectedCategory, selectedBeneficiary, userId]);
 
   const validate = (): string | null => {
     if (!selectedBeneficiary) return 'Please select a beneficiary';
@@ -281,7 +354,11 @@ export default function MobileMakePayment() {
     } else if (amt < 1) {
       return 'Enter a valid amount (minimum \u20B91)';
     }
-    if (isBillRequired && !billFile) return 'Please upload a bill/invoice for this payment category';
+    if (billRequired && !billFile) return 'Please upload an agreement/invoice/bill for this payment';
+    if (monthlyLimitExceeded) {
+      const max = monthlyLimitInfo?.max || 0;
+      return `The maximum permitted payment of \u20B9${fmtAmt(max)} per beneficiary per month for "${selectedCat?.category_name || 'this category'}" has already been reached for ${selectedBen?.full_name || 'this beneficiary'} this month.`;
+    }
     return null;
   };
 
@@ -872,12 +949,40 @@ export default function MobileMakePayment() {
                 </View>
               )}
 
-              {/* Upload Bill */}
+              {/* Upload Agreement/Invoice/Bill */}
               <View>
                 <Text className="text-sm font-semibold text-gray-700 mb-2">
-                  Upload Bill {isBillRequired ? '*' : '(Optional)'}
+                  Upload Agreement/Invoice/Bill {billRequired ? '*' : '(Optional)'}
                 </Text>
                 <Text className="text-xs text-gray-500 mb-2">PNG, JPEG, or PDF. Max size: 1 MB</Text>
+
+                {/* Invoice verification info */}
+                {invoiceCheck && invoiceCheck.canUsePreviousInvoice && (
+                  <View className="bg-green-50 border border-green-200 rounded-xl p-3 mb-2 flex-row items-center gap-2">
+                    <CheckCircle size={16} color="#16a34a" />
+                    <Text className="text-xs text-green-800 flex-1">
+                      A previously verified agreement/invoice is still valid
+                      {invoiceCheck.lastConfirmedAt ? ` (verified on ${new Date(invoiceCheck.lastConfirmedAt).toLocaleDateString('en-IN')})` : ''}. No new upload needed.
+                    </Text>
+                  </View>
+                )}
+                {invoiceCheck && invoiceCheck.needsInvoiceUpload && invoiceCheck.invoiceRequired && (
+                  <View className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-2 flex-row items-start gap-2">
+                    <AlertCircle size={16} color="#d97706" />
+                    <Text className="text-xs text-amber-800 flex-1">
+                      {invoiceCheck.hasConfirmedInvoice
+                        ? 'Your previous agreement/invoice verification has expired. Please upload a new one for verification.'
+                        : 'An agreement/invoice is required for this payment and will be verified before settlement.'}
+                    </Text>
+                  </View>
+                )}
+                {billRequired && (selectedCat?.invoice_min_amount || 0) > 0 && (
+                  <Text className="text-xs text-gray-500 mb-1.5">Invoice required for amounts \u2265 \u20B9{fmtAmt(selectedCat?.invoice_min_amount || 0)}</Text>
+                )}
+                {billRequired && (selectedCat?.invoice_frequency_months || 0) > 0 && (
+                  <Text className="text-xs text-gray-500 mb-1.5">Required every {selectedCat?.invoice_frequency_months} month(s) for this beneficiary</Text>
+                )}
+
                 {!billFile ? (
                   <TouchableOpacity
                     onPress={pickBillFile}
@@ -885,7 +990,7 @@ export default function MobileMakePayment() {
                     activeOpacity={0.7} delayPressIn={0}
                   >
                     <Upload size={28} color="#9ca3af" />
-                    <Text className="text-sm text-gray-500 mt-2">Tap to upload bill/invoice</Text>
+                    <Text className="text-sm text-gray-500 mt-2">Tap to upload agreement/invoice/bill</Text>
                   </TouchableOpacity>
                 ) : (
                   <View className="border-2 border-gray-300 rounded-xl p-4 flex-row items-center justify-between">
@@ -901,10 +1006,32 @@ export default function MobileMakePayment() {
                     </TouchableOpacity>
                   </View>
                 )}
-                {isBillRequired && !billFile && (
-                  <Text className="text-xs text-amber-600 mt-1.5">Bill/invoice upload is required for this payment category</Text>
+                {billRequired && !billFile && (
+                  <Text className="text-xs text-amber-600 mt-1.5">Agreement/invoice/bill upload is required for this payment</Text>
                 )}
               </View>
+
+              {/* Monthly limit info */}
+              {checkingMonthlyLimit && (
+                <View className="flex-row items-center gap-2">
+                  <ActivityIndicator size="small" color="#8c76f0" />
+                  <Text className="text-sm text-gray-500">Checking monthly limit...</Text>
+                </View>
+              )}
+              {monthlyLimitExceeded && monthlyLimitInfo && (
+                <View className="bg-red-50 border border-red-300 rounded-xl p-3 gap-1.5">
+                  <View className="flex-row items-center gap-2">
+                    <AlertCircle size={16} color="#dc2626" />
+                    <Text className="text-sm font-semibold text-red-800">Monthly Limit Reached</Text>
+                  </View>
+                  <Text className="text-xs text-red-700">
+                    Maximum: \u20B9{fmtAmt(monthlyLimitInfo.max)} per beneficiary per month for "{selectedCat?.category_name || 'this category'}"
+                  </Text>
+                  <Text className="text-xs text-red-700">
+                    Used this month: \u20B9{fmtAmt(monthlyLimitInfo.total)}
+                  </Text>
+                </View>
+              )}
 
               {/* Step 3: Payment Option */}
               <View>
