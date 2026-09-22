@@ -874,9 +874,30 @@ export default function MobileMakePayment() {
                 </View>
               )}
 
-              {/* Step 2: Payment Category */}
+              {/* Step 2: Amount */}
               <View>
-                <Text className="text-sm font-semibold text-gray-700 mb-2">2. Payment Category *</Text>
+                <Text className="text-sm font-semibold text-gray-700 mb-2">2. Amount *</Text>
+                <View className="flex-row items-center w-full px-4 py-3 border border-gray-300 rounded-xl bg-white">
+                  <Text className="text-base text-gray-500 mr-2">{`\u20B9`}</Text>
+                  <TextInput
+                    value={amount}
+                    onChangeText={(v) => setAmount(v.replace(/[^\d.]/g, ''))}
+                    className="flex-1 text-base text-gray-900"
+                    placeholder="0.00"
+                    placeholderTextColor="#9ca3af"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+                {paymentLimits && (
+                  <Text className="text-sm text-gray-500 mt-1.5">
+                    Min: {`\u20B9${fmtAmt(paymentLimits.minimum_amount)}`} - Max: {`\u20B9${fmtAmt(paymentLimits.maximum_amount)}`}
+                  </Text>
+                )}
+              </View>
+
+              {/* Step 3: Payment Category */}
+              <View>
+                <Text className="text-sm font-semibold text-gray-700 mb-2">3. Payment Category *</Text>
                 <TouchableOpacity
                   onPress={() => { setShowCategoryList(!showCategoryList); setShowBeneficiaryList(false); setShowOptionList(false); }}
                   className="flex-row items-center justify-between w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
@@ -1033,9 +1054,9 @@ export default function MobileMakePayment() {
                 </View>
               )}
 
-              {/* Step 3: Payment Option */}
+              {/* Step 4: Payment Option */}
               <View>
-                <Text className="text-sm font-semibold text-gray-700 mb-2">3. Payment Option *</Text>
+                <Text className="text-sm font-semibold text-gray-700 mb-2">4. Payment Option *</Text>
                 <TouchableOpacity
                   onPress={() => { setShowOptionList(!showOptionList); setShowBeneficiaryList(false); setShowCategoryList(false); }}
                   className="flex-row items-center justify-between w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
@@ -1097,27 +1118,6 @@ export default function MobileMakePayment() {
                   ))}
                 </View>
               ) : null}
-
-              {/* Step 4: Amount */}
-              <View>
-                <Text className="text-sm font-semibold text-gray-700 mb-2">4. Amount *</Text>
-                <View className="flex-row items-center w-full px-4 py-3 border border-gray-300 rounded-xl bg-white">
-                  <Text className="text-base text-gray-500 mr-2">{`\u20B9`}</Text>
-                  <TextInput
-                    value={amount}
-                    onChangeText={(v) => setAmount(v.replace(/[^\d.]/g, ''))}
-                    className="flex-1 text-base text-gray-900"
-                    placeholder="0.00"
-                    placeholderTextColor="#9ca3af"
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-                {paymentLimits && (
-                  <Text className="text-sm text-gray-500 mt-1.5">
-                    Min: {`\u20B9${fmtAmt(paymentLimits.minimum_amount)}`} - Max: {`\u20B9${fmtAmt(paymentLimits.maximum_amount)}`}
-                  </Text>
-                )}
-              </View>
 
               {/* Charge breakdown */}
               {calculating ? (
