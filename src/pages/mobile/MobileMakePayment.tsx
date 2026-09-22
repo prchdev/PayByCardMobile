@@ -998,7 +998,7 @@ export default function MobileMakePayment() {
                   </View>
                 )}
                 {billRequired && (selectedCat?.invoice_min_amount || 0) > 0 && (
-                  <Text className="text-xs text-gray-500 mb-1.5">Invoice required for amounts \u2265 \u20B9{fmtAmt(selectedCat?.invoice_min_amount || 0)}</Text>
+                  <Text className="text-xs text-gray-500 mb-1.5">Invoice required for amounts ≥ ₹{fmtAmt(selectedCat?.invoice_min_amount || 0)}</Text>
                 )}
                 {billRequired && (selectedCat?.invoice_frequency_months || 0) > 0 && (
                   <Text className="text-xs text-gray-500 mb-1.5">Required every {selectedCat?.invoice_frequency_months} month(s) for this beneficiary</Text>
