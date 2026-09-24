@@ -497,7 +497,8 @@ export default function MobileMakePayment() {
   </script>
 </body>
 </html>`;
-      return URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+      const encodedHtml = encodeURIComponent(html).replace(/'/g, '%27').replace(/"/g, '%22');
+      return `data:text/html;charset=utf-8,${encodedHtml}`;
     }
 
     // For other gateways with an SDK URL, use it directly
