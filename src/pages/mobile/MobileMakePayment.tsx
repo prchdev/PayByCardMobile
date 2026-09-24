@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Alert } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Alert, StyleSheet } from 'react-native';
+import { WebView } from 'react-native-webview';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -128,6 +128,9 @@ export default function MobileMakePayment() {
   } | null>(null);
   const [checkingInvoice, setCheckingInvoice] = useState(false);
   const webViewRef = useRef<any>(null);
+  const [checkoutHtml, setCheckoutHtml] = useState<string | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutPaymentInfo, setCheckoutPaymentInfo] = useState<any>(null);
 
   const pickBillFile = async () => {
     try {
@@ -373,136 +376,164 @@ export default function MobileMakePayment() {
   };
 
   // ── Payment Gateway Checkout ─────────────────────────────────────────────────
-  // For ALL gateways, create a self-contained HTML page as a blob URL that loads
-  // the gateway SDK and opens checkout. Open this blob URL in expo-web-browser.
-  // This avoids script injection issues and works on both web and native.
+  // Build a self-contained HTML page that loads the gateway SDK and opens checkout
+  // inside an in-app WebView. This works on both native and web — no external
+  // browser activity required.
   const openGatewayCheckout = async (gatewayConfig: any, paymentInfo: any) => {
-    const gatewayName = (gatewayConfig.gateway || '').toLowerCase();
     setGatewayLoading(false);
+    setCheckoutPaymentInfo(paymentInfo);
 
-    try {
-      const checkoutUrl = buildCheckoutUrl(gatewayConfig, paymentInfo);
-      if (checkoutUrl) {
-        await WebBrowser.warmUpAsync();
-        await WebBrowser.openBrowserAsync(checkoutUrl, {
-          toolbarColor: '#8c76f0',
-          controlsColor: '#8c76f0',
-        });
-        WebBrowser.coolDownAsync();
-        // After browser closes, check payment status
-        await checkPaymentStatus(paymentInfo);
-      } else {
-        setPaymentResult({
-          success: false,
-          reference: paymentInfo.reference || '',
-          totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
-          message: 'Unable to open payment gateway. Please try again or contact support.',
-        });
-      }
-    } catch (err) {
+    const html = buildCheckoutHtml(gatewayConfig, paymentInfo);
+    if (html) {
+      setCheckoutHtml(html);
+      setShowCheckout(true);
+    } else {
       setPaymentResult({
         success: false,
-        reference: paymentInfo?.reference || '',
-        totalAmount: String(paymentInfo?.totalAmount || chargeBreakdown?.totalAmount || amount),
-        message: getErrorMessage(err, 'Failed to open payment gateway'),
+        reference: paymentInfo.reference || '',
+        totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
+        message: 'Unable to open payment gateway. Please try again or contact support.',
       });
     }
   };
 
-  // Build a checkout URL for the gateway. For Razorpay, create a blob URL with
-  // an HTML page that loads the SDK and opens checkout automatically.
-  // For other gateways that provide a checkoutUrl or sdkUrl, use that directly.
-  const buildCheckoutUrl = (gatewayConfig: any, paymentInfo: any): string | null => {
+  const closeCheckout = () => {
+    setShowCheckout(false);
+    setCheckoutHtml(null);
+    setCheckoutPaymentInfo(null);
+  };
+
+  const onCheckoutMessage = (event: any) => {
+    const data = event.nativeEvent.data;
+    if (!data) return;
+    try {
+      const msg = JSON.parse(data);
+      if (msg.type === 'PAYMENT_SUCCESS') {
+        closeCheckout();
+        if (checkoutPaymentInfo) checkPaymentStatus(checkoutPaymentInfo);
+      } else if (msg.type === 'PAYMENT_FAILED') {
+        closeCheckout();
+        setPaymentResult({
+          success: false,
+          reference: checkoutPaymentInfo?.reference || '',
+          totalAmount: String(checkoutPaymentInfo?.totalAmount || chargeBreakdown?.totalAmount || amount),
+          message: msg.message || 'Payment failed. Please try again.',
+        });
+      } else if (msg.type === 'PAYMENT_DISMISSED') {
+        closeCheckout();
+        handlePaymentDismiss(checkoutPaymentInfo);
+      }
+    } catch {}
+  };
+
+  const onCheckoutNavigationStateChange = (navState: any) => {
+    const title = navState.title || '';
+    if (title === 'PAYMENT_SUCCESS') {
+      closeCheckout();
+      if (checkoutPaymentInfo) checkPaymentStatus(checkoutPaymentInfo);
+    } else if (title === 'PAYMENT_FAILED') {
+      closeCheckout();
+      setPaymentResult({
+        success: false,
+        reference: checkoutPaymentInfo?.reference || '',
+        totalAmount: String(checkoutPaymentInfo?.totalAmount || chargeBreakdown?.totalAmount || amount),
+        message: 'Payment failed. Please try again.',
+      });
+    } else if (title === 'PAYMENT_DISMISSED') {
+      closeCheckout();
+      handlePaymentDismiss(checkoutPaymentInfo);
+    }
+  };
+
+  const buildCheckoutHtml = (gatewayConfig: any, paymentInfo: any): string | null => {
     const gatewayName = (gatewayConfig.gateway || '').toLowerCase();
     const options = gatewayConfig.options || {};
 
-    // If the gateway provides a direct checkout URL, use it
-    if (options.checkoutUrl) return options.checkoutUrl;
+    // PhonePe provides a direct checkout URL — redirect to it
+    if (options.checkoutUrl) {
+      return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:0}.spinner-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;font-family:-apple-system,system-ui,sans-serif}.spinner{width:40px;height:40px;border:4px solid #e5e7eb;border-top-color:#8c76f0;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}</style></head><body><div class="spinner-wrap"><div class="spinner"></div><div style="color:#6b7280;font-size:14px">Redirecting to payment gateway...</div></div><script>window.location.href=${JSON.stringify(options.checkoutUrl)};</script></body></html>`;
+    }
+
+    const loadingHtml = `<style>body{margin:0;padding:0;background:#f9fafb;font-family:-apple-system,system-ui,sans-serif}.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px}.spinner{width:40px;height:40px;border:4px solid #e5e7eb;border-top-color:#8c76f0;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.text{color:#6b7280;font-size:14px}</style>`;
 
     if (gatewayName === 'razorpay') {
-      // Create a self-contained HTML page that loads Razorpay SDK and opens checkout
       const sdkUrl = gatewayConfig.sdkUrl || 'https://checkout.razorpay.com/v1/checkout.js';
       const razorpayKey = options.key || gatewayConfig.keyId;
       const orderId = options.order_id;
-      const amount = options.amount;
+      const amt = options.amount;
       const currency = options.currency || 'INR';
       const name = options.name || 'PayByCard';
       const description = options.description || `Payment: ${paymentInfo.reference || ''}`;
       const prefill = options.prefill || {};
       const theme = options.theme || { color: '#2563eb' };
 
-      const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Payment</title>
-  <style>
-    body { margin:0; padding:0; background:#f9fafb; font-family:-apple-system,system-ui,sans-serif; }
-    .loading { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; gap:16px; }
-    .spinner { width:40px; height:40px; border:4px solid #e5e7eb; border-top-color:#8c76f0; border-radius:50%; animation:spin 0.8s linear infinite; }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    .text { color:#6b7280; font-size:14px; }
-  </style>
-</head>
-<body>
-  <div class="loading">
-    <div class="spinner"></div>
-    <div class="text">Opening payment gateway...</div>
-  </div>
+      return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">${loadingHtml}</head><body>
+  <div class="loading"><div class="spinner"></div><div class="text">Opening payment gateway...</div></div>
   <script src="${sdkUrl}"></script>
   <script>
-    (function() {
-      function openCheckout() {
-        var options = {
-          key: ${JSON.stringify(razorpayKey)},
-          amount: ${JSON.stringify(amount)},
-          currency: ${JSON.stringify(currency)},
-          name: ${JSON.stringify(name)},
-          description: ${JSON.stringify(description)},
-          order_id: ${JSON.stringify(orderId)},
-          prefill: ${JSON.stringify(prefill)},
-          theme: ${JSON.stringify(theme)},
-          handler: function(response) {
-            document.title = 'PAYMENT_SUCCESS';
-            document.body.innerHTML = '<div class="loading"><div class="text">Payment successful! You can close this window.</div></div>';
-          },
-          modal: {
-            ondismiss: function() {
-              document.title = 'PAYMENT_DISMISSED';
-              document.body.innerHTML = '<div class="loading"><div class="text">Payment cancelled. You can close this window.</div></div>';
-            }
-          }
-        };
-        var rzp = new Razorpay(options);
-        rzp.on('payment.failed', function(response) {
-          document.title = 'PAYMENT_FAILED';
-          document.body.innerHTML = '<div class="loading"><div class="text">Payment failed. You can close this window.</div></div>';
-        });
+    (function(){
+      function openCheckout(){
+        var opt={key:${JSON.stringify(razorpayKey)},amount:${JSON.stringify(amt)},currency:${JSON.stringify(currency)},name:${JSON.stringify(name)},description:${JSON.stringify(description)},order_id:${JSON.stringify(orderId)},prefill:${JSON.stringify(prefill)},theme:${JSON.stringify(theme)},
+        handler:function(r){window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAYMENT_SUCCESS',data:r}));document.title='PAYMENT_SUCCESS';document.body.innerHTML='<div class="loading"><div class="text">Payment successful!</div></div>';},
+        modal:{ondismiss:function(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAYMENT_DISMISSED'}));document.title='PAYMENT_DISMISSED';document.body.innerHTML='<div class="loading"><div class="text">Payment cancelled.</div></div>';}}};
+        var rzp=new Razorpay(opt);
+        rzp.on('payment.failed',function(r){window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAYMENT_FAILED',message:r.error.description}));document.title='PAYMENT_FAILED';document.body.innerHTML='<div class="loading"><div class="text">Payment failed.</div></div>';});
         rzp.open();
       }
-      if (typeof Razorpay !== 'undefined') {
-        openCheckout();
-      } else {
-        // Wait for SDK to load
-        var checkInterval = setInterval(function() {
-          if (typeof Razorpay !== 'undefined') {
-            clearInterval(checkInterval);
-            openCheckout();
-          }
-        }, 100);
-        setTimeout(function() { clearInterval(checkInterval); }, 10000);
-      }
+      if(typeof Razorpay!=='undefined'){openCheckout();}else{var ci=setInterval(function(){if(typeof Razorpay!=='undefined'){clearInterval(ci);openCheckout();}},100);setTimeout(function(){clearInterval(ci);},15000);}
     })();
-  </script>
-</body>
-</html>`;
-      const encodedHtml = encodeURIComponent(html).replace(/'/g, '%27').replace(/"/g, '%22');
-      return `data:text/html;charset=utf-8,${encodedHtml}`;
+  </script></body></html>`;
     }
 
-    // For other gateways with an SDK URL, use it directly
-    return gatewayConfig.sdkUrl || null;
+    if (gatewayName === 'cashfree') {
+      const sdkUrl = gatewayConfig.sdkUrl || 'https://sdk.cashfree.com/js/v3/cashfree.js';
+      const paymentSessionId = options.paymentSessionId;
+      const orderAmount = options.orderAmount;
+      const orderCurrency = options.orderCurrency || 'INR';
+      const returnUrl = options.returnUrl || gatewayConfig.callbackUrl;
+      const environment = gatewayConfig.environment || 'production';
+
+      return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">${loadingHtml}</head><body>
+  <div class="loading"><div class="spinner"></div><div class="text">Opening Cashfree payment...</div></div>
+  <script src="${sdkUrl}"></script>
+  <script>
+    (function(){
+      function openCheckout(){
+        Cashfree({env:'${environment}'}).checkout({paymentSessionId:${JSON.stringify(paymentSessionId)},orderAmount:${JSON.stringify(orderAmount)},orderCurrency:${JSON.stringify(orderCurrency)},returnUrl:${JSON.stringify(returnUrl)},
+        onSuccess:function(r){window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAYMENT_SUCCESS',data:r}));document.title='PAYMENT_SUCCESS';},
+        onFailure:function(r){window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAYMENT_FAILED',message:r.error?.message||'Payment failed'}));document.title='PAYMENT_FAILED';}});
+      }
+      if(typeof Cashfree!=='undefined'){openCheckout();}else{var ci=setInterval(function(){if(typeof Cashfree!=='undefined'){clearInterval(ci);openCheckout();}},100);setTimeout(function(){clearInterval(ci);},15000);}
+    })();
+  </script></body></html>`;
+    }
+
+    if (gatewayName === 'payu') {
+      const sdkUrl = gatewayConfig.sdkUrl || 'https://jssdk.payu.in/bolt/bolt.min.js';
+      const opt = options;
+      return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">${loadingHtml}</head><body>
+  <div class="loading"><div class="spinner"></div><div class="text">Opening PayU payment...</div></div>
+  <script src="${sdkUrl}"></script>
+  <script>
+    (function(){
+      function openCheckout(){
+        bolt.launchPayment({key:${JSON.stringify(opt.key)},txnid:${JSON.stringify(opt.txnid)},amount:${JSON.stringify(opt.amount)},productinfo:${JSON.stringify(opt.productinfo)},firstname:${JSON.stringify(opt.firstname)},email:${JSON.stringify(opt.email)},phone:${JSON.stringify(opt.phone)},surl:${JSON.stringify(opt.surl)},furl:${JSON.stringify(opt.furl)},hash:${JSON.stringify(opt.hash)},enforce_paymethod:${JSON.stringify(opt.enforce_paymethod||'')}},
+        function(r){if(r.status==='success'){window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAYMENT_SUCCESS',data:r}));document.title='PAYMENT_SUCCESS';}else{window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAYMENT_FAILED',message:r.message||'Payment failed'}));document.title='PAYMENT_FAILED';}});
+      }
+      if(typeof bolt!=='undefined'){openCheckout();}else{var ci=setInterval(function(){if(typeof bolt!=='undefined'){clearInterval(ci);openCheckout();}},100);setTimeout(function(){clearInterval(ci);},15000);}
+    })();
+  </script></body></html>`;
+    }
+
+    // For gateways that use a redirect URL (ccavenue, easebuzz, zaakpay, enkash, phonepe),
+    // load the SDK URL and let it redirect. Fall back to the SDK URL directly.
+    if (gatewayConfig.sdkUrl) {
+      return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">${loadingHtml}</head><body>
+  <div class="loading"><div class="spinner"></div><div class="text">Redirecting to payment gateway...</div></div>
+  <script>window.location.href=${JSON.stringify(gatewayConfig.sdkUrl)};</script></body></html>`;
+    }
+
+    return null;
   };
 
   const checkPaymentStatus = async (paymentInfo: any) => {
@@ -1181,6 +1212,36 @@ export default function MobileMakePayment() {
         </View>
       </ScrollView>
 
+      {/* Checkout WebView Modal */}
+      <Modal visible={showCheckout} animationType="slide" transparent={false} style={{ zIndex: 200 }}>
+        <View style={styles.checkoutContainer}>
+          <View style={styles.checkoutHeader}>
+            <TouchableOpacity onPress={() => { closeCheckout(); handlePaymentDismiss(checkoutPaymentInfo); }} activeOpacity={0.7} delayPressIn={0}>
+              <X size={24} color="#374151" />
+            </TouchableOpacity>
+            <Text style={styles.checkoutTitle}>Payment Gateway</Text>
+            <View style={{ width: 24 }} />
+          </View>
+          {checkoutHtml ? (
+            <WebView
+              ref={webViewRef}
+              source={{ html: checkoutHtml, baseUrl: 'https://checkout.paybycard.in' }}
+              style={styles.webview}
+              javaScriptEnabled
+              domStorageEnabled
+              onMessage={onCheckoutMessage}
+              onNavigationStateChange={onCheckoutNavigationStateChange}
+              startInLoadingState
+              renderLoading={() => (
+                <View style={styles.webviewLoading}>
+                  <ActivityIndicator size="large" color="#8c76f0" />
+                </View>
+              )}
+            />
+          ) : null}
+        </View>
+      </Modal>
+
       {/* Confirm Modal */}
       <Modal visible={showConfirm} animationType="fade" transparent style={{ zIndex: 100 }}>
         <View className="flex-1 bg-black/60 justify-center items-center p-4" style={{ zIndex: 100 }}>
@@ -1281,3 +1342,32 @@ export default function MobileMakePayment() {
     </MobileLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  checkoutContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  checkoutHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  checkoutTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  webview: {
+    flex: 1,
+  },
+  webviewLoading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
