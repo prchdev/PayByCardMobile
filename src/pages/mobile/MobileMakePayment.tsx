@@ -128,6 +128,7 @@ export default function MobileMakePayment() {
   } | null>(null);
   const [checkingInvoice, setCheckingInvoice] = useState(false);
   const webViewRef = useRef<any>(null);
+  const insets = useSafeAreaInsets();
   const [checkoutHtml, setCheckoutHtml] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutPaymentInfo, setCheckoutPaymentInfo] = useState<any>(null);
@@ -410,7 +411,7 @@ export default function MobileMakePayment() {
       const msg = JSON.parse(data);
       if (msg.type === 'PAYMENT_SUCCESS') {
         closeCheckout();
-        if (checkoutPaymentInfo) checkPaymentStatus(checkoutPaymentInfo);
+        if (checkoutPaymentInfo) handlePaymentSuccess(msg.data || {}, checkoutPaymentInfo);
       } else if (msg.type === 'PAYMENT_FAILED') {
         closeCheckout();
         setPaymentResult({
@@ -430,7 +431,7 @@ export default function MobileMakePayment() {
     const title = navState.title || '';
     if (title === 'PAYMENT_SUCCESS') {
       closeCheckout();
-      if (checkoutPaymentInfo) checkPaymentStatus(checkoutPaymentInfo);
+      if (checkoutPaymentInfo) handlePaymentSuccess({}, checkoutPaymentInfo);
     } else if (title === 'PAYMENT_FAILED') {
       closeCheckout();
       setPaymentResult({
@@ -1214,7 +1215,7 @@ export default function MobileMakePayment() {
 
       {/* Checkout WebView Modal */}
       <Modal visible={showCheckout} animationType="slide" transparent={false} style={{ zIndex: 200 }}>
-        <View style={styles.checkoutContainer}>
+        <View style={[styles.checkoutContainer, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
           <View style={styles.checkoutHeader}>
             <TouchableOpacity onPress={() => { closeCheckout(); handlePaymentDismiss(checkoutPaymentInfo); }} activeOpacity={0.7} delayPressIn={0}>
               <X size={24} color="#374151" />
@@ -1347,6 +1348,7 @@ const styles = StyleSheet.create({
   checkoutContainer: {
     flex: 1,
     backgroundColor: '#fff',
+    paddingTop: 0,
   },
   checkoutHeader: {
     flexDirection: 'row',
