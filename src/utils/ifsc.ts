@@ -1,4 +1,5 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
+import { buildAuthHeaders } from './api';
 
 export interface IfscResult {
   ifsc: string;
@@ -13,10 +14,7 @@ export interface IfscResult {
 export async function fetchIfscDetails(ifsc: string): Promise<IfscResult> {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/validate-ifsc`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-    },
+    headers: await buildAuthHeaders(true),
     body: JSON.stringify({ ifsc }),
   });
   const data = await res.json();

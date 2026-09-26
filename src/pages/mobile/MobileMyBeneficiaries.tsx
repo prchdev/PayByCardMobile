@@ -6,6 +6,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { buildAuthHeaders } from '../../utils/api';
 import { getErrorMessage } from '../../utils/errorMessage';
 import { isCreditCardIfsc, looksLikeCreditCardNumber } from '../../utils/beneficiaryValidation';
 import { capitalizeName } from '../../utils/nameFormat';
@@ -70,7 +71,7 @@ export default function MobileMyBeneficiaries() {
       setIsCheckingKyc(true);
       const res = await fetch(`${SUPABASE_URL}/functions/v1/check-kyc-status`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const result = await res.json();
@@ -86,7 +87,7 @@ export default function MobileMyBeneficiaries() {
       setIsLoading(true);
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-beneficiaries`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
@@ -107,7 +108,7 @@ export default function MobileMyBeneficiaries() {
       setIfscError('');
       const res = await fetch(`${SUPABASE_URL}/functions/v1/validate-ifsc`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ ifsc: ifscCode }),
       });
       const data = await res.json();
@@ -171,7 +172,7 @@ export default function MobileMyBeneficiaries() {
       setIsSubmitting(true);
       const res = await fetch(`${SUPABASE_URL}/functions/v1/save-beneficiary`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({
           ...formData,
           full_name: capitalizeName(formData.full_name),
@@ -201,7 +202,7 @@ export default function MobileMyBeneficiaries() {
       setTogglingId(beneficiaryId);
       const res = await fetch(`${SUPABASE_URL}/functions/v1/toggle-beneficiary-status`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ beneficiary_id: beneficiaryId, status: newStatus, userId }),
       });
       const data = await res.json();

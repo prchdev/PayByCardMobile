@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { impact } from '../../utils/haptics';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { buildAuthHeaders } from '../../utils/api';
 import { registerPushToken } from '../../utils/pushNotifications';
 
 interface RecentTxn {
@@ -60,7 +61,7 @@ export default function MobileDashboard() {
   const fetchUnreadNotifs = async () => {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
-        method: 'POST', headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
@@ -75,7 +76,7 @@ export default function MobileDashboard() {
   const checkKycStatus = async () => {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/check-kyc-status`, {
-        method: 'POST', headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const result = await res.json();
@@ -86,7 +87,7 @@ export default function MobileDashboard() {
   const fetchStats = async () => {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-stats`, {
-        method: 'POST', headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
@@ -97,7 +98,7 @@ export default function MobileDashboard() {
   const fetchRecentTransactions = async () => {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-transactions`, {
-        method: 'POST', headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, page: 1, limit: 5, status: 'all' }),
       });
       const data = await res.json();
@@ -108,7 +109,7 @@ export default function MobileDashboard() {
   const fetchDashboardNotifs = async () => {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/dashboard-notifications?action=active`, {
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+        headers: await buildAuthHeaders(),
       });
       const data = await res.json();
       if (res.ok) setDashboardNotifs(data.notifications || []);

@@ -16,6 +16,8 @@ import { impact, selection } from '../../utils/haptics';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
 import { getErrorMessage } from '../../utils/errorMessage';
 import { getDeviceId } from '../../utils/deviceId';
+import { buildAuthHeaders } from '../../utils/api';
+import { getSessionItem } from '../../utils/secureStorage';
 
 interface Beneficiary {
   id: string;
@@ -158,10 +160,12 @@ export default function MobileMakePayment() {
     setUploadingBill(true);
     try {
       const mimeType = billFile.mimeType || (billFile.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
-      const uploadResult = await new Promise<string | null>((resolve, reject) => {
+      const uploadResult = await new Promise<string | null>(async (resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', `${SUPABASE_URL}/functions/v1/upload-bill-file`);
         xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON_KEY}`);
+        const sessionToken = await getSessionItem('pbc_session');
+        if (sessionToken) xhr.setRequestHeader('x-pbc-session', sessionToken);
         xhr.onload = () => {
           try {
             const data = JSON.parse(xhr.responseText);
@@ -197,7 +201,7 @@ export default function MobileMakePayment() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/check-kyc-status`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
@@ -209,7 +213,7 @@ export default function MobileMakePayment() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-beneficiaries`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
@@ -221,7 +225,7 @@ export default function MobileMakePayment() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-payment-categories-list`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
@@ -233,7 +237,7 @@ export default function MobileMakePayment() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-gateway-charges`, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
       });
       const data = await res.json();
       if (res.ok) setPaymentOptions(data.paymentOptions || []);
@@ -244,7 +248,7 @@ export default function MobileMakePayment() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-payment-limits`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
@@ -266,7 +270,7 @@ export default function MobileMakePayment() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/calculate-payment-charges`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ amount: amt, categoryId: selectedOption, gatewayId: selectedOpt.gateway_id, isBusiness, userId }),
       });
       const data = await res.json();
@@ -301,7 +305,7 @@ export default function MobileMakePayment() {
       try {
         const res = await fetch(`${SUPABASE_URL}/functions/v1/check-invoice-verification`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+          headers: await buildAuthHeaders(),
           body: JSON.stringify({ userId, beneficiaryId: selectedBeneficiary, categoryId: selectedCategory, amount: amountValue }),
         });
         const data = await res.json();
@@ -332,7 +336,7 @@ export default function MobileMakePayment() {
       try {
         const res = await fetch(`${SUPABASE_URL}/functions/v1/check-beneficiary-monthly-limit`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+          headers: await buildAuthHeaders(),
           body: JSON.stringify({ userId, beneficiaryId: selectedBeneficiary, categoryId: selectedCategory }),
         });
         const data = await res.json();
@@ -452,6 +456,15 @@ export default function MobileMakePayment() {
 
     // PhonePe provides a direct checkout URL — redirect to it
     if (options.checkoutUrl) {
+      const allowedDomains = ['api.phonepe.com', 'api-preprod.phonepe.com'];
+      try {
+        const parsed = new URL(options.checkoutUrl);
+        if (!allowedDomains.includes(parsed.hostname)) {
+          return null;
+        }
+      } catch {
+        return null;
+      }
       return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:0}.spinner-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;font-family:-apple-system,system-ui,sans-serif}.spinner{width:40px;height:40px;border:4px solid #e5e7eb;border-top-color:#8c76f0;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}</style></head><body><div class="spinner-wrap"><div class="spinner"></div><div style="color:#6b7280;font-size:14px">Redirecting to payment gateway...</div></div><script>window.location.href=${JSON.stringify(options.checkoutUrl)};</script></body></html>`;
     }
 
@@ -543,7 +556,7 @@ export default function MobileMakePayment() {
       try {
         const res = await fetch(`${SUPABASE_URL}/functions/v1/check-payment-status`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+          headers: await buildAuthHeaders(),
           body: JSON.stringify({ paymentId: paymentInfo.id, userId }),
         });
         const data = await res.json();
@@ -587,7 +600,7 @@ export default function MobileMakePayment() {
     try {
       await fetch(`${SUPABASE_URL}/functions/v1/save-transaction-status`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({
           userId,
           paymentId: payId,
@@ -638,7 +651,7 @@ export default function MobileMakePayment() {
       const deviceId = await getDeviceId();
       const res = await fetch(`${SUPABASE_URL}/functions/v1/initiate-payment`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({
           userId,
           beneficiaryId: selectedBeneficiary,

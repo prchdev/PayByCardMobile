@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
+import { buildAuthHeaders } from './api';
 
 const EXPO_PROJECT_ID = process.env.EXPO_PUBLIC_EXPO_PROJECT_ID || '7bdf2f35-5688-4c1a-bfb0-4c624da0654a';
 
@@ -15,10 +16,7 @@ export async function registerPushToken(userId: string): Promise<void> {
     if (token) {
       await fetch(`${SUPABASE_URL}/functions/v1/register-push-token`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({
           userId,
           push_token: token,
@@ -38,10 +36,7 @@ export async function unregisterPushToken(userId: string, pushToken: string): Pr
   try {
     await fetch(`${SUPABASE_URL}/functions/v1/register-push-token`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-      },
+      headers: await buildAuthHeaders(),
       body: JSON.stringify({ userId, push_token: pushToken, action: 'unregister' }),
     });
   } catch {

@@ -5,6 +5,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { buildAuthHeaders } from '../../utils/api';
 
 interface Transaction {
   id: string; payment_reference: string; amount: string; total_amount: string;
@@ -57,7 +58,7 @@ export default function MobileMyTransactions() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-transactions`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, page: 1, limit: 50, status: effectiveFilter }),
       });
       const data = await res.json();

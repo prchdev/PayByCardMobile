@@ -6,6 +6,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { buildAuthHeaders } from '../../utils/api';
 import { getErrorMessage } from '../../utils/errorMessage';
 
 interface BankAccount {
@@ -73,7 +74,7 @@ export default function MobileMyBankAccounts() {
       setIsCheckingKyc(true);
       const res = await fetch(`${SUPABASE_URL}/functions/v1/check-kyc-status`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const result = await res.json();
@@ -89,7 +90,7 @@ export default function MobileMyBankAccounts() {
       setIsLoading(true);
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-bank-accounts`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
@@ -105,7 +106,7 @@ export default function MobileMyBankAccounts() {
       setIsLoadingProfile(true);
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-profile-for-bank`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
@@ -137,7 +138,7 @@ export default function MobileMyBankAccounts() {
       setIfscError('');
       const res = await fetch(`${SUPABASE_URL}/functions/v1/validate-ifsc`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ ifsc: ifscCode }),
       });
       const data = await res.json();
@@ -178,7 +179,7 @@ export default function MobileMyBankAccounts() {
       setIsSubmitting(true);
       const response = await fetch(`${SUPABASE_URL}/functions/v1/save-user-bank-account`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({
           userId,
           bank_account_number: formData.bank_account_number,
@@ -211,7 +212,7 @@ export default function MobileMyBankAccounts() {
       setIsSettingDefault(accountId);
       const res = await fetch(`${SUPABASE_URL}/functions/v1/set-default-bank-account`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, accountId }),
       });
       const data = await res.json();

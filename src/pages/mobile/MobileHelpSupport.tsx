@@ -6,6 +6,8 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { buildAuthHeaders } from '../../utils/api';
+import { getSessionItem } from '../../utils/secureStorage';
 import { getErrorMessage } from '../../utils/errorMessage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -132,10 +134,12 @@ async function pickFiles(): Promise<PickedFile[]> {
 }
 
 async function uploadAttachment(file: PickedFile, ticketId: string, userId: string, replyId?: string) {
-  return new Promise<boolean>((resolve) => {
+  return new Promise<boolean>(async (resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${SUPABASE_URL}/functions/v1/upload-ticket-attachment`);
     xhr.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON_KEY}`);
+    const sessionToken = await getSessionItem('pbc_session');
+    if (sessionToken) xhr.setRequestHeader('x-pbc-session', sessionToken);
 
     xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300);
     xhr.onerror = () => resolve(false);
@@ -198,7 +202,7 @@ export default function MobileHelpSupport() {
       if (statusFilter !== 'All') params.append('status', statusFilter);
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-support-tickets?${params}`, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch tickets');
@@ -213,7 +217,7 @@ export default function MobileHelpSupport() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-ticket-details?ticketId=${ticketId}&userId=${userId}`, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch ticket details');
@@ -234,7 +238,7 @@ export default function MobileHelpSupport() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/create-support-ticket`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, category: selectedCategory, sub_category: selectedSubCategory, description: description.trim(), ip: 'user' }),
       });
       const data = await res.json();
@@ -261,7 +265,7 @@ export default function MobileHelpSupport() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/add-ticket-reply`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ ticketId: selectedTicketId, userId, message: replyMessage, ip: 'user' }),
       });
       const data = await res.json();

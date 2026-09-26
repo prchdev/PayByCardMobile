@@ -13,6 +13,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { buildAuthHeaders } from '../../utils/api';
 import { getErrorMessage } from '../../utils/errorMessage';
 import { capitalizeName } from '../../utils/nameFormat';
 import { getItem, setItem, removeItem } from '../../utils/secureStorage';
@@ -214,10 +215,10 @@ async function getClientIp(): Promise<string | null> {
   }
 }
 
-function logEvent(userId: string, provider: string, action: string, success: boolean, extra?: Record<string, unknown>) {
+async function logEvent(userId: string, provider: string, action: string, success: boolean, extra?: Record<string, unknown>) {
   fetch(`${SUPABASE_URL}/functions/v1/log-digilocker-event`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+    headers: await buildAuthHeaders(),
     body: JSON.stringify({
       user_id: userId, flow: 'user', action, provider, environment: '', success,
       ...(extra?.error_code ? { error_code: extra.error_code } : {}),
@@ -379,7 +380,7 @@ export default function MobileKYCVerification() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/check-kyc-status`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
@@ -393,7 +394,7 @@ export default function MobileKYCVerification() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-kyc-settings`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({}),
       });
       const data = await res.json();
@@ -405,7 +406,7 @@ export default function MobileKYCVerification() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-kyc-provider`, {
         method: 'GET',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
       });
       const data = await res.json();
       if (res.ok && data.provider) setKycProvider(data.provider);
@@ -416,7 +417,7 @@ export default function MobileKYCVerification() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-kyc-data`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
@@ -550,7 +551,7 @@ export default function MobileKYCVerification() {
 
       const res = await fetch(`${SUPABASE_URL}/functions/v1/digilocker-kyc`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({
           userId,
           action: 'get_auth_url',
@@ -688,7 +689,7 @@ export default function MobileKYCVerification() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/digilocker-kyc`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, action: 'check_status', verificationId: vid }),
       });
       const data = await res.json();
@@ -737,7 +738,7 @@ export default function MobileKYCVerification() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/digilocker-kyc`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({
           userId, action: 'auto_approve', authCode: code,
           redirectUri: resolvedRedirectUri, codeVerifier: resolvedCodeVerifier,
@@ -800,7 +801,7 @@ export default function MobileKYCVerification() {
   const saveKycSection = async (section: 'pan' | 'address' | 'business', data: Record<string, unknown>, ipAddress?: string | null): Promise<boolean> => {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/save-kyc-data`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+      headers: await buildAuthHeaders(),
       body: JSON.stringify({ userId, section, data, ipAddress }),
     });
     const json = await res.json();
@@ -819,7 +820,7 @@ export default function MobileKYCVerification() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/update-user-profile`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({
           userId,
           first_name: capitalizeName(personalForm.first_name),
@@ -992,7 +993,7 @@ export default function MobileKYCVerification() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/remove-business-info`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();

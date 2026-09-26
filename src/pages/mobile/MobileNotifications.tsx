@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { impact, selection } from '../../utils/haptics';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { buildAuthHeaders } from '../../utils/api';
 
 interface AppNotification {
   id: string; user_id: string; type: string; title: string;
@@ -63,7 +64,7 @@ export default function MobileNotifications() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
       const data = await res.json();
@@ -87,7 +88,7 @@ export default function MobileNotifications() {
     setUnreadCount(prev => Math.max(0, prev - 1));
     try {
       await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
-        method: 'POST', headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, action: 'mark_read', notificationId: notifId }),
       });
     } catch {}
@@ -99,7 +100,7 @@ export default function MobileNotifications() {
     setUnreadCount(0);
     try {
       await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
-        method: 'POST', headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, action: 'mark_all_read' }),
       });
     } catch {}
@@ -110,17 +111,17 @@ export default function MobileNotifications() {
     setNotifications(prev => prev.filter(n => n.id !== notifId));
     try {
       await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
-        method: 'POST', headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, action: 'delete', notificationId: notifId }),
       });
     } catch {}
   };
 
-  const dismissCampaign = (campaignId: string) => {
+  const dismissCampaign = async (campaignId: string) => {
     selection();
     setCampaigns(prev => prev.filter(c => c.id !== campaignId));
     fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
-      method: 'POST', headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+      method: 'POST', headers: await buildAuthHeaders(),
       body: JSON.stringify({ userId, action: 'log_campaign', campaignId, campaignAction: 'dismissed' }),
     }).catch(() => {});
   };
@@ -129,7 +130,7 @@ export default function MobileNotifications() {
     impact('light');
     setCampaigns(prev => prev.filter(c => c.id !== campaignId));
     fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
-      method: 'POST', headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+      method: 'POST', headers: await buildAuthHeaders(),
       body: JSON.stringify({ userId, action: 'log_campaign', campaignId, campaignAction: 'clicked' }),
     }).catch(() => {});
     if (actionUrl) {

@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { validatePassword, PASSWORD_REQUIREMENTS } from '../../utils/passwordValidation';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
+import { buildAuthHeaders } from '../../utils/api';
 import { getErrorMessage } from '../../utils/errorMessage';
 
 export default function MobileChangePassword() {
@@ -46,7 +47,7 @@ export default function MobileChangePassword() {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/change-password`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+        headers: await buildAuthHeaders(),
         body: JSON.stringify({ user_id: userId, current_password: formData.currentPassword, new_password: formData.newPassword }),
       });
       const data = await res.json();
