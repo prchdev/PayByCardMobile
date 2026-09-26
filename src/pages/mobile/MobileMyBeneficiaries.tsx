@@ -6,7 +6,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
-import { buildAuthHeaders } from '../../utils/api';
+import { buildAuthHeaders, checkSessionExpired } from '../../utils/api';
 import { getErrorMessage } from '../../utils/errorMessage';
 import { isCreditCardIfsc, looksLikeCreditCardNumber } from '../../utils/beneficiaryValidation';
 import { capitalizeName } from '../../utils/nameFormat';
@@ -74,6 +74,7 @@ export default function MobileMyBeneficiaries() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const result = await res.json();
       if (res.ok) {
         setKycStatus(result);
@@ -90,6 +91,7 @@ export default function MobileMyBeneficiaries() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch beneficiaries');
       setBeneficiaries(data.beneficiaries || []);
@@ -111,6 +113,7 @@ export default function MobileMyBeneficiaries() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ ifsc: ifscCode }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Invalid IFSC code');
       setFormData(prev => ({ ...prev, bank_name: data.bank, branch_name: data.branch }));
@@ -179,6 +182,7 @@ export default function MobileMyBeneficiaries() {
           userId,
         }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) {
         if (data.self_transfer) setIsSelfTransferError(true);
@@ -205,6 +209,7 @@ export default function MobileMyBeneficiaries() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ beneficiary_id: beneficiaryId, status: newStatus, userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update status');
       fetchBeneficiaries();

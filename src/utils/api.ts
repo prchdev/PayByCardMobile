@@ -3,6 +3,22 @@ import { getSessionItem } from './secureStorage';
 
 const SESSION_TOKEN_KEY = 'pbc_session';
 
+let sessionExpiredHandler: (() => void) | null = null;
+
+export function setSessionExpiredHandler(fn: () => void) {
+  sessionExpiredHandler = fn;
+}
+
+export async function checkSessionExpired(res: Response): Promise<void> {
+  if (res.status !== 401) return;
+  try {
+    const data = await res.clone().json();
+    if (data?.code === 'SESSION_INVALID' && sessionExpiredHandler) {
+      sessionExpiredHandler();
+    }
+  } catch {}
+}
+
 export interface ApiFetchOptions {
   method?: string;
   body?: any;
@@ -33,11 +49,14 @@ export async function apiFetch(
     ? functionName
     : `${SUPABASE_URL}/functions/v1/${functionName}`;
 
-  return fetch(url, {
+  const res = await fetch(url, {
     method,
     headers: finalHeaders,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+
+  await checkSessionExpired(res);
+  return res;
 }
 
 export async function apiJson<T = any>(

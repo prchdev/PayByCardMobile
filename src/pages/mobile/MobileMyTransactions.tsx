@@ -5,7 +5,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
-import { buildAuthHeaders } from '../../utils/api';
+import { buildAuthHeaders, checkSessionExpired } from '../../utils/api';
 
 interface Transaction {
   id: string; payment_reference: string; amount: string; total_amount: string;
@@ -61,6 +61,7 @@ export default function MobileMyTransactions() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, page: 1, limit: 50, status: effectiveFilter }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setTransactions(data.payments || []);
     } catch {} finally { setLoading(false); setRefreshing(false); }

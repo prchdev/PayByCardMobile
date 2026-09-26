@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { impact } from '../../utils/haptics';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
-import { buildAuthHeaders } from '../../utils/api';
+import { buildAuthHeaders, checkSessionExpired } from '../../utils/api';
 import { registerPushToken } from '../../utils/pushNotifications';
 
 interface RecentTxn {
@@ -64,6 +64,7 @@ export default function MobileDashboard() {
         method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) {
         const notifs = data.notifications || [];
@@ -79,6 +80,7 @@ export default function MobileDashboard() {
         method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const result = await res.json();
       if (res.ok) setKycStatus(result);
     } catch {} finally { setIsCheckingKyc(false); }
@@ -90,6 +92,7 @@ export default function MobileDashboard() {
         method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setStats(data);
     } catch {}
@@ -101,6 +104,7 @@ export default function MobileDashboard() {
         method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, page: 1, limit: 5, status: 'all' }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setRecentTxns(data.payments || []);
     } catch {} finally { setLoadingTxns(false); }
@@ -111,6 +115,7 @@ export default function MobileDashboard() {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/dashboard-notifications?action=active`, {
         headers: await buildAuthHeaders(),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setDashboardNotifs(data.notifications || []);
     } catch {}

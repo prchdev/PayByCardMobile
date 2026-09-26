@@ -6,6 +6,7 @@ import {
   getItem, setItem, removeItem,
   getSessionItem, setSessionItem, removeSessionItem,
 } from '../utils/secureStorage';
+import { setSessionExpiredHandler } from '../utils/api';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -68,6 +69,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
 
     return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    setSessionExpiredHandler(() => {
+      (async () => {
+        await removeSessionItem(SESSION_USER_ID);
+        await removeSessionItem(SESSION_USER_EMAIL);
+        await removeSessionItem(SESSION_TOKEN_KEY);
+        await removeSessionItem('isRestricted');
+      })();
+      setIsAuthenticated(false);
+      setUserId(null);
+      setUserEmail(null);
+      setSessionToken(null);
+    });
   }, []);
 
   const login = (id: string, email: string, token?: string) => {

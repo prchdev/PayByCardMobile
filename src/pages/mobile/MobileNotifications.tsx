@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { impact, selection } from '../../utils/haptics';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
-import { buildAuthHeaders } from '../../utils/api';
+import { buildAuthHeaders, checkSessionExpired } from '../../utils/api';
 
 interface AppNotification {
   id: string; user_id: string; type: string; title: string;
@@ -67,6 +67,7 @@ export default function MobileNotifications() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) {
         const notifs = data.notifications || [];
@@ -87,10 +88,11 @@ export default function MobileNotifications() {
     setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, is_read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
     try {
-      await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
         method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, action: 'mark_read', notificationId: notifId }),
       });
+      await checkSessionExpired(res);
     } catch {}
   };
 
@@ -99,10 +101,11 @@ export default function MobileNotifications() {
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     setUnreadCount(0);
     try {
-      await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
         method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, action: 'mark_all_read' }),
       });
+      await checkSessionExpired(res);
     } catch {}
   };
 
@@ -110,29 +113,32 @@ export default function MobileNotifications() {
     impact('medium');
     setNotifications(prev => prev.filter(n => n.id !== notifId));
     try {
-      await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
         method: 'POST', headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, action: 'delete', notificationId: notifId }),
       });
+      await checkSessionExpired(res);
     } catch {}
   };
 
   const dismissCampaign = async (campaignId: string) => {
     selection();
     setCampaigns(prev => prev.filter(c => c.id !== campaignId));
-    fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
       method: 'POST', headers: await buildAuthHeaders(),
       body: JSON.stringify({ userId, action: 'log_campaign', campaignId, campaignAction: 'dismissed' }),
-    }).catch(() => {});
+    });
+    await checkSessionExpired(res);
   };
 
   const clickCampaign = async (campaignId: string, actionUrl?: string | null, actionType?: string | null) => {
     impact('light');
     setCampaigns(prev => prev.filter(c => c.id !== campaignId));
-    fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-notifications`, {
       method: 'POST', headers: await buildAuthHeaders(),
       body: JSON.stringify({ userId, action: 'log_campaign', campaignId, campaignAction: 'clicked' }),
-    }).catch(() => {});
+    });
+    await checkSessionExpired(res);
     if (actionUrl) {
       if (actionType === 'external_url') {
         Linking.openURL(actionUrl);

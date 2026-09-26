@@ -13,7 +13,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
-import { buildAuthHeaders } from '../../utils/api';
+import { buildAuthHeaders, checkSessionExpired } from '../../utils/api';
 import { getErrorMessage } from '../../utils/errorMessage';
 import { capitalizeName } from '../../utils/nameFormat';
 import { getItem, setItem, removeItem } from '../../utils/secureStorage';
@@ -225,7 +225,7 @@ async function logEvent(userId: string, provider: string, action: string, succes
       ...(extra?.error_message ? { error_message: extra.error_message } : {}),
       raw_response: extra ? { ...extra, error_code: undefined, error_message: undefined } : undefined,
     }),
-  }).catch(() => {});
+  }).then(async (res) => { await checkSessionExpired(res); }).catch(() => {});
 }
 
 // ── Main Component ─────────────────────────────────────────────────────────────
@@ -383,6 +383,7 @@ export default function MobileKYCVerification() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setKycStatus(data.isVerified ? 'verified' : data.status || 'not_started');
       else setKycStatus('not_started');
@@ -397,6 +398,7 @@ export default function MobileKYCVerification() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({}),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setKycSettings(data);
     } catch {}
@@ -408,6 +410,7 @@ export default function MobileKYCVerification() {
         method: 'GET',
         headers: await buildAuthHeaders(),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok && data.provider) setKycProvider(data.provider);
     } catch {}
@@ -420,6 +423,7 @@ export default function MobileKYCVerification() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) {
         setKycData(data);
@@ -559,6 +563,7 @@ export default function MobileKYCVerification() {
           platform: Platform.OS === 'web' ? 'web' : 'mobile',
         }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to get authorization URL');
 
@@ -692,6 +697,7 @@ export default function MobileKYCVerification() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, action: 'check_status', verificationId: vid }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       const status: string = (data.status || '').toUpperCase();
       setDigiPollCount(count + 1);
@@ -745,6 +751,7 @@ export default function MobileKYCVerification() {
           platform: Platform.OS === 'web' ? 'web' : 'mobile',
         }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'DigiLocker verification failed');
 
@@ -804,6 +811,7 @@ export default function MobileKYCVerification() {
       headers: await buildAuthHeaders(),
       body: JSON.stringify({ userId, section, data, ipAddress }),
     });
+    await checkSessionExpired(res);
     const json = await res.json();
     if (!res.ok) throw new Error(json.error || 'Save failed');
     return true;
@@ -828,6 +836,7 @@ export default function MobileKYCVerification() {
           last_name: capitalizeName(personalForm.last_name),
         }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) { setPersonalError(data.error || 'Failed to save.'); return; }
       setPersonalSuccess(true);
@@ -996,6 +1005,7 @@ export default function MobileKYCVerification() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to remove business information');
       setBusinessSuccess(true);

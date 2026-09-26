@@ -4,7 +4,7 @@ import { LogOut, CircleCheck as CheckCircle, Clock, Circle as XCircle, CircleAle
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
-import { buildAuthHeaders } from '../../utils/api';
+import { buildAuthHeaders, checkSessionExpired } from '../../utils/api';
 
 interface MobileHeaderProps {
   userEmail?: string;
@@ -31,6 +31,7 @@ export default function MobileHeader({ userEmail, userId, onLogout, showBack, on
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const result = await res.json();
       if (res.ok) {
         setKycStatus(result.isVerified ? 'verified' : result.status);

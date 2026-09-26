@@ -6,7 +6,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
-import { buildAuthHeaders } from '../../utils/api';
+import { buildAuthHeaders, checkSessionExpired } from '../../utils/api';
 import { getErrorMessage } from '../../utils/errorMessage';
 
 interface BankAccount {
@@ -77,6 +77,7 @@ export default function MobileMyBankAccounts() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const result = await res.json();
       if (res.ok) {
         setKycStatus(result);
@@ -93,6 +94,7 @@ export default function MobileMyBankAccounts() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch accounts');
       setAccounts(data.accounts || []);
@@ -109,6 +111,7 @@ export default function MobileMyBankAccounts() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) {
         setUserProfile(data);
@@ -141,6 +144,7 @@ export default function MobileMyBankAccounts() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ ifsc: ifscCode }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Invalid IFSC code');
       setFormData(prev => ({ ...prev, bank_name: data.bank, branch_name: data.branch }));
@@ -193,6 +197,7 @@ export default function MobileMyBankAccounts() {
           pan_number: userProfile.pan_number,
         }),
       });
+      await checkSessionExpired(response);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to save bank account');
       setSuccess('Bank account added successfully!');
@@ -215,6 +220,7 @@ export default function MobileMyBankAccounts() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, accountId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to set default');
       fetchAccounts();

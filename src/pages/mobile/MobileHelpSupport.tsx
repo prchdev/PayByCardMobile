@@ -6,7 +6,7 @@ import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
-import { buildAuthHeaders } from '../../utils/api';
+import { buildAuthHeaders, checkSessionExpired } from '../../utils/api';
 import { getSessionItem } from '../../utils/secureStorage';
 import { getErrorMessage } from '../../utils/errorMessage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -204,6 +204,7 @@ export default function MobileHelpSupport() {
         method: 'GET',
         headers: await buildAuthHeaders(),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch tickets');
       setTickets(data.tickets || []);
@@ -219,6 +220,7 @@ export default function MobileHelpSupport() {
         method: 'GET',
         headers: await buildAuthHeaders(),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch ticket details');
       setTicketDetail(data.ticket);
@@ -241,6 +243,7 @@ export default function MobileHelpSupport() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId, category: selectedCategory, sub_category: selectedSubCategory, description: description.trim(), ip: 'user' }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create ticket');
 
@@ -268,6 +271,7 @@ export default function MobileHelpSupport() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ ticketId: selectedTicketId, userId, message: replyMessage, ip: 'user' }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to send reply');
 

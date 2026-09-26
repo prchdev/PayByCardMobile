@@ -16,7 +16,7 @@ import { impact, selection } from '../../utils/haptics';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
 import { getErrorMessage } from '../../utils/errorMessage';
 import { getDeviceId } from '../../utils/deviceId';
-import { buildAuthHeaders } from '../../utils/api';
+import { buildAuthHeaders, checkSessionExpired } from '../../utils/api';
 import { getSessionItem } from '../../utils/secureStorage';
 
 interface Beneficiary {
@@ -204,6 +204,7 @@ export default function MobileMakePayment() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setKycStatus({ isVerified: data.isVerified === true || data.status === 'verified', status: data.status, isRestricted: data.isRestricted, businessCategorySurgeCharge: data.businessCategorySurgeCharge || 0 });
     } catch {}
@@ -216,6 +217,7 @@ export default function MobileMakePayment() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setBeneficiaries((data.beneficiaries || []).filter((b: Beneficiary) => b.status === 'Active'));
     } catch {}
@@ -228,6 +230,7 @@ export default function MobileMakePayment() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setCategories(data.categories || []);
     } catch {}
@@ -239,6 +242,7 @@ export default function MobileMakePayment() {
         method: 'GET',
         headers: await buildAuthHeaders(),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setPaymentOptions(data.paymentOptions || []);
     } catch {}
@@ -251,6 +255,7 @@ export default function MobileMakePayment() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setPaymentLimits({ minimum_amount: data.minimum_amount, maximum_amount: data.maximum_amount });
     } catch {}
@@ -273,6 +278,7 @@ export default function MobileMakePayment() {
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ amount: amt, categoryId: selectedOption, gatewayId: selectedOpt.gateway_id, isBusiness, userId }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setChargeBreakdown(data);
       else setChargeBreakdown(null);
@@ -308,6 +314,7 @@ export default function MobileMakePayment() {
           headers: await buildAuthHeaders(),
           body: JSON.stringify({ userId, beneficiaryId: selectedBeneficiary, categoryId: selectedCategory, amount: amountValue }),
         });
+        await checkSessionExpired(res);
         const data = await res.json();
         if (res.ok) {
           setInvoiceCheck(data);
@@ -339,6 +346,7 @@ export default function MobileMakePayment() {
           headers: await buildAuthHeaders(),
           body: JSON.stringify({ userId, beneficiaryId: selectedBeneficiary, categoryId: selectedCategory }),
         });
+        await checkSessionExpired(res);
         const data = await res.json();
         if (res.ok) {
           setMonthlyLimitExceeded(data.limitExceeded);
@@ -559,6 +567,7 @@ export default function MobileMakePayment() {
           headers: await buildAuthHeaders(),
           body: JSON.stringify({ paymentId: paymentInfo.id, userId }),
         });
+        await checkSessionExpired(res);
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.error || 'Status check failed');
 
@@ -598,7 +607,7 @@ export default function MobileMakePayment() {
     const payRef = payment?.reference || payment?.payment_reference || '';
     const payAmt = String(payment?.totalAmount || payment?.total_amount || chargeBreakdown?.totalAmount || amount);
     try {
-      await fetch(`${SUPABASE_URL}/functions/v1/save-transaction-status`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/save-transaction-status`, {
         method: 'POST',
         headers: await buildAuthHeaders(),
         body: JSON.stringify({
@@ -613,6 +622,7 @@ export default function MobileMakePayment() {
           gatewayName: selectedOpt?.gateway_name || null,
         }),
       });
+      await checkSessionExpired(res);
     } catch {}
 
     setPaymentResult({
@@ -706,6 +716,7 @@ export default function MobileMakePayment() {
           refundAfterHours: selectedCat?.refund_after_hours || 0,
         }),
       });
+      await checkSessionExpired(res);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to initiate payment');
 
