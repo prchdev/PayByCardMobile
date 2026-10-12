@@ -361,17 +361,57 @@ async function createGatewayPaymentConfig(
         throw new Error("Razorpay credentials not configured");
       }
 
-      // Create Razorpay order
       const authString = btoa(`${keyId}:${keySecret}`);
-      const orderData = {
+
+      // Determine allowed payment methods based on card type
+      const detectedCardType = (payment.card_type || "").toLowerCase();
+      let allowedMethods: string[] = [];
+      let allowedCardTypes: string[] = [];
+
+      if (detectedCardType.includes("amex") || detectedCardType.includes("american express") || detectedCardType.includes("diners")) {
+        allowedMethods = ["amex"];
+        allowedCardTypes = ["amex", "diners"];
+      } else if (detectedCardType.includes("visa") || detectedCardType.includes("master") || detectedCardType.includes("rupay")) {
+        allowedMethods = ["card"];
+        allowedCardTypes = ["visa", "mastercard", "rupay"];
+      } else {
+        allowedMethods = ["card"];
+        allowedCardTypes = allowedCards;
+      }
+
+      const orderMethod = allowedMethods[0] || "card";
+
+      // Look up per-payment-option Razorpay checkout configuration
+      let checkoutConfigId: string | null = null;
+      if (payment.payment_category_id) {
+        const { data: razorpayConfig } = await supabase
+          .from("razorpay_payment_configs")
+          .select("checkout_config_id")
+          .eq("payment_gateway_id", gatewaySettings.id)
+          .eq("payment_option_id", payment.payment_category_id)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (razorpayConfig?.checkout_config_id) {
+          checkoutConfigId = razorpayConfig.checkout_config_id;
+        }
+      }
+
+      const orderData: any = {
         amount: Math.round(payment.total_amount * 100),
         currency: "INR",
         receipt: payment.payment_reference,
         notes: {
           payment_id: payment.id,
-          user_id: payment.user_id
-        }
+          user_id: payment.user_id,
+          card_type: allowedCardTypes.join(",")
+        },
+        method: orderMethod
       };
+
+      if (checkoutConfigId) {
+        orderData.checkout_config_id = checkoutConfigId;
+      }
 
       const orderResponse = await fetch("https://api.razorpay.com/v1/orders", {
         method: "POST",
@@ -389,12 +429,6 @@ async function createGatewayPaymentConfig(
 
       const orderResult = await orderResponse.json();
 
-      // Razorpay card network filtering:
-      // - Domestic/International card filtering is controlled at the merchant dashboard level
-      // - To accept only Indian cards, disable "International Payments" in Razorpay Dashboard
-      // - Checkout configuration only allows hiding methods, not filtering by card BIN/network
-      // - Card type validation (Visa/Master/RuPay/Amex) happens at payment gateway
-
       const options: any = {
         key: keyId,
         amount: orderResult.amount,
@@ -410,6 +444,7 @@ async function createGatewayPaymentConfig(
         theme: {
           color: "#2563eb"
         },
+        method: orderMethod,
         modal: {
           ondismiss: function() {
             console.log('Checkout form closed');
@@ -422,7 +457,10 @@ async function createGatewayPaymentConfig(
         keyId: keyId,
         sdkUrl: "https://checkout.razorpay.com/v1/checkout.js",
         options: options,
-        cardType: payment.card_type
+        cardType: payment.card_type,
+        allowedMethods: allowedMethods,
+        allowedCardTypes: allowedCardTypes,
+        checkoutConfigId: checkoutConfigId
       };
     }
 

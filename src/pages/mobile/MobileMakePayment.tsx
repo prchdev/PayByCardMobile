@@ -71,6 +71,15 @@ interface PaymentOption {
   receiver_kyc_required: boolean;
 }
 
+interface PaymentGateway {
+  id: string;
+  gateway_name: string;
+  status: string;
+  payout_mode: string;
+  registered_name: string;
+  gst_number: string;
+}
+
 interface ChargeBreakdown {
   amount: number;
   charges: string;
@@ -96,6 +105,7 @@ export default function MobileMakePayment() {
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
   const [categories, setCategories] = useState<PaymentCategory[]>([]);
   const [paymentOptions, setPaymentOptions] = useState<PaymentOption[]>([]);
+  const [gateways, setGateways] = useState<PaymentGateway[]>([]);
   const [selectedBeneficiary, setSelectedBeneficiary] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedOption, setSelectedOption] = useState('');
@@ -194,7 +204,7 @@ export default function MobileMakePayment() {
 
   useEffect(() => {
     if (!userId) { navigate('/mobile/login'); return; }
-    Promise.all([fetchBeneficiaries(), fetchCategories(), fetchPaymentOptions(), fetchPaymentLimits(), fetchKycStatus()]).finally(() => setLoading(false));
+    Promise.all([fetchBeneficiaries(), fetchCategories(), fetchPaymentOptions(), fetchGateways(), fetchPaymentLimits(), fetchKycStatus()]).finally(() => setLoading(false));
   }, [userId]);
 
   const fetchKycStatus = async () => {
@@ -212,7 +222,7 @@ export default function MobileMakePayment() {
 
   const fetchBeneficiaries = async () => {
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-beneficiaries`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-active-beneficiaries`, {
         method: 'POST',
         headers: await buildAuthHeaders(),
         body: JSON.stringify({ userId }),
@@ -248,6 +258,18 @@ export default function MobileMakePayment() {
     } catch {}
   };
 
+  const fetchGateways = async () => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-payment-gateways`, {
+        method: 'GET',
+        headers: await buildAuthHeaders(),
+      });
+      await checkSessionExpired(res);
+      const data = await res.json();
+      if (res.ok) setGateways(data.gateways || []);
+    } catch {}
+  };
+
   const fetchPaymentLimits = async () => {
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-payment-limits`, {
@@ -264,6 +286,7 @@ export default function MobileMakePayment() {
   const selectedOpt = paymentOptions.find(o => o.id === selectedOption);
   const selectedBen = beneficiaries.find(b => b.id === selectedBeneficiary);
   const isBusiness = selectedBen?.account_type === 'Current';
+  const selectedGateway = selectedOpt ? gateways.find(g => g.id === selectedOpt.gateway_id) : undefined;
 
   const calculateCharges = useCallback(async () => {
     const amt = parseFloat(amount);
@@ -273,10 +296,17 @@ export default function MobileMakePayment() {
     }
     setCalculating(true);
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/calculate-payment-charges`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/calculate-payment-option-charges`, {
         method: 'POST',
         headers: await buildAuthHeaders(),
-        body: JSON.stringify({ amount: amt, categoryId: selectedOption, gatewayId: selectedOpt.gateway_id, isBusiness, userId }),
+        body: JSON.stringify({
+          amount: amt,
+          categoryId: selectedOption,
+          gatewayId: selectedOpt.gateway_id,
+          isBusiness,
+          userId,
+          businessCategorySurgeCharge: kycStatus?.businessCategorySurgeCharge || 0,
+        }),
       });
       await checkSessionExpired(res);
       const data = await res.json();
@@ -284,7 +314,7 @@ export default function MobileMakePayment() {
       else setChargeBreakdown(null);
     } catch { setChargeBreakdown(null); }
     finally { setCalculating(false); }
-  }, [amount, selectedOption, selectedOpt, isBusiness, userId]);
+  }, [amount, selectedOption, selectedOpt, isBusiness, userId, kycStatus]);
 
   useEffect(() => {
     const timeout = setTimeout(() => { if (amount && selectedOption && selectedOpt?.gateway_id) calculateCharges(); }, 500);
@@ -480,14 +510,25 @@ export default function MobileMakePayment() {
 
     if (gatewayName === 'razorpay') {
       const sdkUrl = gatewayConfig.sdkUrl || 'https://checkout.razorpay.com/v1/checkout.js';
-      const razorpayKey = options.key || gatewayConfig.keyId;
-      const orderId = options.order_id;
-      const amt = options.amount;
-      const currency = options.currency || 'INR';
-      const name = options.name || 'PayByCard';
-      const description = options.description || `Payment: ${paymentInfo.reference || ''}`;
-      const prefill = options.prefill || {};
-      const theme = options.theme || { color: '#2563eb' };
+      // Spread all options from the backend config, then add handler and modal for WebView communication
+      const backendOptions = options;
+      const checkoutOptions: any = {
+        key: backendOptions.key || gatewayConfig.keyId,
+        amount: backendOptions.amount,
+        currency: backendOptions.currency || 'INR',
+        name: backendOptions.name || 'PayByCard',
+        description: backendOptions.description || `Payment: ${paymentInfo.reference || ''}`,
+        order_id: backendOptions.order_id,
+        prefill: backendOptions.prefill || {},
+        theme: backendOptions.theme || { color: '#2563eb' },
+      };
+      // Pass through method and allowed card types from backend for card filtering
+      if (backendOptions.method) {
+        checkoutOptions.method = backendOptions.method;
+      }
+      if (gatewayConfig.allowedCardTypes && gatewayConfig.allowedCardTypes.length > 0) {
+        checkoutOptions._allowedCardTypes = gatewayConfig.allowedCardTypes;
+      }
 
       return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">${loadingHtml}</head><body>
   <div class="loading"><div class="spinner"></div><div class="text">Opening payment gateway...</div></div>
@@ -495,9 +536,9 @@ export default function MobileMakePayment() {
   <script>
     (function(){
       function openCheckout(){
-        var opt={key:${JSON.stringify(razorpayKey)},amount:${JSON.stringify(amt)},currency:${JSON.stringify(currency)},name:${JSON.stringify(name)},description:${JSON.stringify(description)},order_id:${JSON.stringify(orderId)},prefill:${JSON.stringify(prefill)},theme:${JSON.stringify(theme)},
-        handler:function(r){window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAYMENT_SUCCESS',data:r}));document.title='PAYMENT_SUCCESS';document.body.innerHTML='<div class="loading"><div class="text">Payment successful!</div></div>';},
-        modal:{ondismiss:function(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAYMENT_DISMISSED'}));document.title='PAYMENT_DISMISSED';document.body.innerHTML='<div class="loading"><div class="text">Payment cancelled.</div></div>';}}};
+        var opt=${JSON.stringify(checkoutOptions)};
+        opt.handler=function(r){window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAYMENT_SUCCESS',data:r}));document.title='PAYMENT_SUCCESS';document.body.innerHTML='<div class="loading"><div class="text">Payment successful!</div></div>';};
+        opt.modal={ondismiss:function(){window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAYMENT_DISMISSED'}));document.title='PAYMENT_DISMISSED';document.body.innerHTML='<div class="loading"><div class="text">Payment cancelled.</div></div>';}};
         var rzp=new Razorpay(opt);
         rzp.on('payment.failed',function(r){window.ReactNativeWebView.postMessage(JSON.stringify({type:'PAYMENT_FAILED',message:r.error.description}));document.title='PAYMENT_FAILED';document.body.innerHTML='<div class="loading"><div class="text">Payment failed.</div></div>';});
         rzp.open();
@@ -711,7 +752,7 @@ export default function MobileMakePayment() {
             terms_and_conditions: selectedOpt.terms_and_conditions,
             receiver_kyc_required: selectedOpt.receiver_kyc_required || false,
           } : {},
-          payoutMode: selectedOpt?.payout_mode || 'payment_split',
+          payoutMode: selectedOpt?.payout_mode || selectedGateway?.payout_mode || 'payment_split',
           receiverKycRequired: selectedCat?.receiver_kyc_required || false,
           refundAfterHours: selectedCat?.refund_after_hours || 0,
         }),
