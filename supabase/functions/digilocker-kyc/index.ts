@@ -1236,20 +1236,45 @@ Deno.serve(async (req: Request) => {
     // ── get_auth_url ──────────────────────────────────────────────────────────
     if (action === 'get_auth_url') {
       if (provider.provider_name === 'CashFree DigiLocker') {
-        const originHeader = req.headers.get('origin') || req.headers.get('referer') || '';
-        let appOrigin = '';
-        try { appOrigin = originHeader ? new URL(originHeader).origin : ''; } catch { /* ignore */ }
-        if (!appOrigin || appOrigin.includes('supabase')) appOrigin = 'https://paybycard.in';
-        const redirectUrl = `${appOrigin}/kyc-verification`;
+        if (platform === 'mobile') {
+          // Mobile: redirect through the digilocker-redirect bridge so CashFree
+          // redirects to the bridge URL, which then 302-redirects to the
+          // paybycard:// custom scheme that openAuthSessionAsync intercepts.
+          // Append platform=mobile so the bridge knows to use the 302 path
+          // even if CashFree doesn't pass back the state parameter.
+          const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+          const bridgeUrl = `${supabaseUrl}/functions/v1/digilocker-redirect?platform=mobile`;
+          const redirectUrl = bridgeUrl;
 
-        const { url, verificationId } = await createCashFreeVerification(
-          apiKey, apiSecret, publicKey, provider.environment, userId, redirectUrl,
-        );
+          const { url, verificationId } = await createCashFreeVerification(
+            apiKey, apiSecret, publicKey, provider.environment, userId, redirectUrl,
+          );
 
-        return new Response(
-          JSON.stringify({ authUrl: url, verificationId, provider_name: provider.provider_name }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+          return new Response(
+            JSON.stringify({
+              authUrl: url,
+              verificationId,
+              redirectUri: 'paybycard://digilocker-callback',
+              provider_name: provider.provider_name,
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          const originHeader = req.headers.get('origin') || req.headers.get('referer') || '';
+          let appOrigin = '';
+          try { appOrigin = originHeader ? new URL(originHeader).origin : ''; } catch { /* ignore */ }
+          if (!appOrigin || appOrigin.includes('supabase')) appOrigin = 'https://paybycard.in';
+          const redirectUrl = `${appOrigin}/kyc-verification`;
+
+          const { url, verificationId } = await createCashFreeVerification(
+            apiKey, apiSecret, publicKey, provider.environment, userId, redirectUrl,
+          );
+
+          return new Response(
+            JSON.stringify({ authUrl: url, verificationId, provider_name: provider.provider_name }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       } else {
         const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
         const bridgeUrl = `${supabaseUrl}/functions/v1/digilocker-redirect`;

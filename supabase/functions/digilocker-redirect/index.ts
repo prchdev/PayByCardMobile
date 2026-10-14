@@ -3,7 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, x-pbc-session, x-pbc-admin-session",
 };
 
 /**
@@ -16,8 +16,11 @@ const corsHeaders = {
  *   Android's Chrome Custom Tab (opened via openAuthSessionAsync) intercepts
  *   HTTP redirects to custom schemes — it does NOT intercept JS redirects.
  *
- * Web: The state starts with "uw". Returns an HTML page that sends postMessage
- *   to the opener window with { code, state } and then closes the popup.
+ * Web: The state starts with "uw" (or "m" for merchant). Returns an HTML page
+ *   that sends postMessage to the opener window with { code, state } and then
+ *   closes the popup. If no opener, falls back to redirecting to the app URL
+ *   with code/state as query params (the website's KYCVerification page
+ *   captures these from URL params).
  */
 
 Deno.serve(async (req: Request) => {
@@ -29,18 +32,23 @@ Deno.serve(async (req: Request) => {
   const code = url.searchParams.get("code") || "";
   const state = url.searchParams.get("state") || "";
   const error = url.searchParams.get("error") || "";
+  const verificationId = url.searchParams.get("verification_id") || "";
+  const platformParam = url.searchParams.get("platform") || "";
 
   const params = new URLSearchParams();
   if (code) params.set("code", code);
   if (state) params.set("state", state);
   if (error) params.set("error", error);
+  if (verificationId && !code) params.set("code", verificationId);
 
-  const isMobile = state.startsWith("um");
+  // Mobile detection: state prefixed with "um" (DigiLocker direct) or
+  // platform=mobile query param (CashFree, which may not pass state back).
+  const isMobile = state.startsWith("um") || platformParam === "mobile";
 
+  // Mobile: HTTP 302 redirect to the paybycard:// custom scheme.
+  // Chrome Custom Tab intercepts this at the OS level via intent filters,
+  // causing openAuthSessionAsync to capture the URL and return it to the app.
   if (isMobile) {
-    // HTTP 302 redirect to the paybycard:// custom scheme.
-    // Chrome Custom Tab intercepts this at the OS level via intent filters,
-    // causing openAuthSessionAsync to capture the URL and return it to the app.
     const appScheme = `paybycard://digilocker-callback?${params.toString()}`;
     return new Response(null, {
       status: 302,
@@ -52,40 +60,72 @@ Deno.serve(async (req: Request) => {
   }
 
   // Web: return HTML that sends postMessage to the opener popup window.
+  // Matches the website's develop-branch approach: if no opener, fall back
+  // to redirecting to the app URL with code/state as query params.
+  const isMerchant = state.startsWith("m");
+  const fallbackPath = isMerchant ? "/merchant-onboarding" : "/kyc-verification";
+
+  const origin = req.headers.get("origin") || req.headers.get("referer") || "";
+  let appUrl = "https://paybycard.in";
+  if (origin) {
+    try { appUrl = new URL(origin).origin; } catch { /* keep default */ }
+  }
+  if (appUrl.includes("supabase")) appUrl = "https://paybycard.in";
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Redirecting...</title>
+<title>DigiLocker Redirect</title>
 <style>
-  body { font-family: -apple-system, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9fafb; }
-  .container { text-align: center; }
-  .spinner { width: 32px; height: 32px; border: 3px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9fafb; }
+  .card { text-align: center; padding: 2rem; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #e5e7eb; border-top-color: #8c76f0; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  p { color: #6b7280; font-size: 14px; }
+  p { color: #6b7280; font-size: 0.875rem; }
 </style>
 </head>
 <body>
-<div class="container">
+<div class="card">
   <div class="spinner"></div>
-  <p>Completing DigiLocker authorization...</p>
+  <p>Completing DigiLocker authorization…</p>
 </div>
 <script>
+(function() {
   var code = ${JSON.stringify(code)};
-  var state = ${JSON.stringify(state)};
   var error = ${JSON.stringify(error)};
+  var state = ${JSON.stringify(state)};
+  var fallbackPath = ${JSON.stringify(fallbackPath)};
+  var appUrl = ${JSON.stringify(appUrl)};
+
+  function redirectFallback() {
+    var sep = fallbackPath.indexOf('?') >= 0 ? '&' : '?';
+    var params = [];
+    if (code) params.push('code=' + encodeURIComponent(code));
+    if (state) params.push('state=' + encodeURIComponent(state));
+    if (error) params.push('error=' + encodeURIComponent(error));
+    window.location.href = appUrl + fallbackPath + sep + params.join('&');
+  }
 
   if (window.opener && !window.opener.closed) {
-    var msg = { type: 'digilocker_callback' };
-    if (code) msg.code = code;
-    if (state) msg.state = state;
-    if (error) msg.error = error;
-    window.opener.postMessage(msg, '*');
-    setTimeout(function() { window.close(); }, 500);
-  } else {
-    document.querySelector('p').textContent = 'Authorization complete. You may close this window.';
+    try {
+      window.opener.postMessage({ type: 'digilocker_callback', code: code, state: state, error: error }, '*');
+      setTimeout(function() {
+        try { window.close(); } catch (e) {}
+        setTimeout(function() {
+          if (!window.closed) redirectFallback();
+        }, 300);
+      }, 200);
+      return;
+    } catch (e) {
+      redirectFallback();
+      return;
+    }
   }
+
+  redirectFallback();
+})();
 </script>
 </body>
 </html>`;
