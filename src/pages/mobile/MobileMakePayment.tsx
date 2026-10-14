@@ -825,8 +825,11 @@ export default function MobileMakePayment() {
             <View className="bg-amber-50 border border-amber-300 rounded-xl p-4 w-full mt-3 gap-1">
               <Text className="text-sm font-semibold text-amber-800">Awaiting Receiver KYC / Merchant Onboarding</Text>
               <Text className="text-xs text-amber-700 mt-1">
+                A verification link will be sent to the receiver. Settlement will be completed once the receiver verifies their identity.
+              </Text>
+              <Text className="text-xs text-amber-700 mt-1">
                 The receiver has been notified via email and SMS to complete their Merchant KYC verification. Once verified, the payout will be processed automatically.
-                {selectedCat?.refund_after_hours ? ` If KYC is not completed within ${selectedCat.refund_after_hours} hours, the payment will be refunded.` : ''}
+                {selectedCat?.refund_after_hours ? ` If KYC is not completed within ${selectedCat.refund_after_hours} hours, the payment will be refunded after deducting convenience charges.` : ''}
               </Text>
             </View>
           )}
@@ -1042,27 +1045,15 @@ export default function MobileMakePayment() {
                 </Modal>
               </View>
 
-              {/* KYC / settlement info for selected category (single consolidated message) */}
-              {selectedCat && (selectedCat.receiver_kyc_required || (selectedCat.new_card_payment_delay_hours || 0) > 0) && (
+              {/* Settlement info for new card payments */}
+              {selectedCat && (selectedCat.new_card_payment_delay_hours || 0) > 0 && (
                 <View className="bg-amber-50 border border-amber-300 rounded-xl p-3 gap-2">
                   <View className="flex-row items-start gap-2">
                     <AlertCircle size={16} color="#d97706" />
                     <View className="flex-1 gap-1.5">
-                      {selectedCat.receiver_kyc_required && (
-                        <Text className="text-xs text-amber-800 leading-relaxed">
-                          A verification link will be sent to the receiver after payment. Settlement will be completed once the receiver verifies their identity.
-                        </Text>
-                      )}
-                      {(selectedCat.new_card_payment_delay_hours || 0) > 0 && (
-                        <Text className="text-xs text-amber-800 leading-relaxed">
-                          As per RBI guidelines, payments made using a new credit card will be settled after {selectedCat.new_card_payment_delay_hours} hours.
-                        </Text>
-                      )}
-                      {selectedCat.receiver_kyc_required && (selectedCat.refund_after_hours || 0) > 0 && (
-                        <Text className="text-xs text-amber-800 leading-relaxed">
-                          If KYC is not completed within {selectedCat.refund_after_hours} hours, the payment will be refunded after deducting convenience charges.
-                        </Text>
-                      )}
+                      <Text className="text-xs text-amber-800 leading-relaxed">
+                        As per RBI guidelines, payments made using a new credit card will be settled after {selectedCat.new_card_payment_delay_hours} hours.
+                      </Text>
                     </View>
                   </View>
                 </View>
