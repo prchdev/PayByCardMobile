@@ -40,12 +40,13 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Fetch active push tokens for this user
+    // Fetch active, non-expired push tokens for this user
     const { data: tokens, error: tokenError } = await supabase
       .from("mobile_push_tokens")
       .select("push_token, platform")
       .eq("user_id", userId)
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .or(`expires_at.is.null,expires_at.gte.${new Date().toISOString()}`);
 
     if (tokenError) {
       return new Response(
