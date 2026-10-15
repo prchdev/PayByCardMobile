@@ -34,6 +34,8 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const now = new Date().toISOString();
+
     // ── Unregister: mark token as inactive ──────────────────────────────
     if (action === "unregister") {
       if (!push_token) {
@@ -44,7 +46,7 @@ Deno.serve(async (req: Request) => {
       }
       const { error } = await supabase
         .from("mobile_push_tokens")
-        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .update({ is_active: false, updated_at: now })
         .eq("user_id", userId)
         .eq("push_token", push_token);
       if (error) {
@@ -59,6 +61,30 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // ── Check: return whether token is expired/invalid so client can recreate ──
+    if (action === "check") {
+      if (!push_token) {
+        return new Response(
+          JSON.stringify({ error: "Push token is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const { data: existing } = await supabase
+        .from("mobile_push_tokens")
+        .select("id, is_active, expires_at")
+        .eq("user_id", userId)
+        .eq("push_token", push_token)
+        .maybeSingle();
+
+      const isExpired = !existing || !existing.is_active ||
+        (existing.expires_at && new Date(existing.expires_at) < new Date(now));
+
+      return new Response(
+        JSON.stringify({ success: true, expired: isExpired }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ── Register: upsert token with 6-month expiry ─────────────────────
     if (!push_token) {
       return new Response(
@@ -67,7 +93,6 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const now = new Date().toISOString();
     const expiresAt = getExpiryDate();
 
     // Check if token already exists for this user
