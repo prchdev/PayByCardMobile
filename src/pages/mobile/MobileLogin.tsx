@@ -3,7 +3,6 @@ import { View, Text, TextInput, TouchableOpacity, Image, Pressable, KeyboardAvoi
 import { Eye, EyeOff, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { impact, notification } from '../../utils/haptics';
-import { registerPushToken } from '../../utils/pushNotifications';
 import { setSessionItem } from '../../utils/secureStorage';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
@@ -62,7 +61,6 @@ export default function MobileLogin() {
         if (data.isRestricted) await setSessionItem('isRestricted', 'true');
         else await setSessionItem('isRestricted', 'false');
         await notification('success');
-        registerPushToken(data.userId);
         if (!data.kycCompleted) {
           navigate('/mobile/kyc-verification', { state: { userId: data.userId, userEmail: data.email } });
         } else {

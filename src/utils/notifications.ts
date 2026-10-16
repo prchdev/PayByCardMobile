@@ -1,6 +1,16 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import * as TaskManager from 'expo-task-manager';
+import { getItem, setItem } from './secureStorage';
+
+const EXPO_PROJECT_ID = process.env.EXPO_PUBLIC_EXPO_PROJECT_ID || '7bdf2f35-5688-4c1a-bfb0-4c624da0654a';
+const PUSH_TOKEN_KEY = 'pbc_expo_push_token';
+
+let cachedPushToken: string | null = null;
+
+export function getCachedPushToken(): string | null {
+  return cachedPushToken;
+}
 
 const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND_NOTIFICATION';
 
@@ -97,4 +107,37 @@ export async function requestNotificationPermission(): Promise<boolean> {
   }
 
   return true;
+}
+
+export async function registerForPushNotifications(): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
+
+  try {
+    const granted = await requestNotificationPermission();
+    if (!granted) return null;
+
+    const { data: token } = await Notifications.getExpoPushTokenAsync({
+      projectId: EXPO_PROJECT_ID,
+    });
+
+    if (token) {
+      cachedPushToken = token;
+      await setItem(PUSH_TOKEN_KEY, token);
+      return token;
+    }
+  } catch (e) {
+    console.warn('Failed to get Expo push token:', e);
+  }
+
+  return null;
+}
+
+export async function getStoredPushToken(): Promise<string | null> {
+  if (cachedPushToken) return cachedPushToken;
+  const stored = await getItem(PUSH_TOKEN_KEY);
+  if (stored) {
+    cachedPushToken = stored;
+    return stored;
+  }
+  return null;
 }

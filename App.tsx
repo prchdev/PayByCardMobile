@@ -11,7 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { setNativeNavigationRef } from './src/utils/navigation';
-import { setupNotifications, requestNotificationPermission, registerNotificationListeners, unregisterNotificationListeners } from './src/utils/notifications';
+import { setupNotifications, requestNotificationPermission, registerForPushNotifications, registerNotificationListeners, unregisterNotificationListeners } from './src/utils/notifications';
 import { useAppStatusGuard, AppBlockModal } from './src/utils/appStatusGuard';
 import type { RootStackParamList } from './src/types/navigation';
 
@@ -46,7 +46,10 @@ export default function App() {
     (async () => {
       try {
         await setupNotifications();
-        await requestNotificationPermission();
+        const granted = await requestNotificationPermission();
+        if (granted) {
+          await registerForPushNotifications();
+        }
       } catch {}
       setAppReady(true);
     })();
