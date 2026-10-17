@@ -87,10 +87,9 @@ interface CouponResult {
   discountType?: string;
   discountValue?: number;
   maximumDiscountValue?: number | null;
-  discountAmount?: string;
-  originalTotal?: string;
-  finalTotal?: string;
-  message?: string;
+  discountAmount?: number;
+  newTotal?: number;
+  error?: string;
 }
 
 interface ChargeBreakdown {
@@ -372,18 +371,18 @@ export default function MobileMakePayment() {
         body: JSON.stringify({
           userId,
           couponCode: code,
-          totalAmount: chargeBreakdown.totalAmount,
+          totalAmount: parseFloat(chargeBreakdown.totalAmount),
         }),
       });
       await checkSessionExpired(res);
       const data = await res.json();
-      if (res.ok && data.valid) {
+      if (data.valid) {
         setAppliedCoupon(data);
-        setCouponMessage(data.message || 'Coupon applied successfully!');
+        setCouponMessage(`Coupon applied! You save \u20B9${data.discountAmount.toFixed(2)}`);
         setCouponMessageType('success');
       } else {
         setAppliedCoupon(null);
-        setCouponMessage(data.message || 'Invalid coupon code.');
+        setCouponMessage(data.error || 'Invalid coupon');
         setCouponMessageType('error');
       }
     } catch {
@@ -400,10 +399,8 @@ export default function MobileMakePayment() {
     setCouponMessageType('');
   };
 
-  const couponDiscountAmount = appliedCoupon ? parseFloat(appliedCoupon.discountAmount || '0') : 0;
-  const finalTotalAfterCoupon = chargeBreakdown
-    ? parseFloat(chargeBreakdown.totalAmount) - couponDiscountAmount
-    : 0;
+  const couponDiscountAmount = appliedCoupon ? (appliedCoupon.discountAmount || 0) : 0;
+  const finalTotalAfterCoupon = appliedCoupon ? (appliedCoupon.newTotal || 0) : (chargeBreakdown ? parseFloat(chargeBreakdown.totalAmount) : 0);
 
   const selectedCat = categories.find(c => c.id === selectedCategory);
 
@@ -797,6 +794,7 @@ export default function MobileMakePayment() {
           gst: chargeBreakdown ? parseFloat(chargeBreakdown.gst) : 0,
           discount: chargeBreakdown ? parseFloat(chargeBreakdown.discount) : 0,
           totalAmount: appliedCoupon ? finalTotalAfterCoupon : (chargeBreakdown ? parseFloat(chargeBreakdown.totalAmount) : amt),
+          couponId: appliedCoupon?.couponId || null,
           couponCode: appliedCoupon?.couponCode || null,
           isBusiness,
           deviceId,
@@ -1319,7 +1317,7 @@ export default function MobileMakePayment() {
                         </TouchableOpacity>
                       </View>
                       <Text className="text-xs text-green-700">
-                        {couponMessageType === 'success' ? couponMessage : `You saved ₹${fmtAmt(couponDiscountAmount)} on this payment.`}
+                        You save {`\u20B9${fmtAmt(appliedCoupon.discountAmount || 0)}`} on this payment
                       </Text>
                     </View>
                   ) : (

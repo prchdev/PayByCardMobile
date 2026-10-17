@@ -1,6 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
-import { SESSION_HEADER } from "../_shared/session.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -117,33 +116,65 @@ Deno.serve(async (req: Request) => {
     const parsedDiscount = parseFloat(chargesData.discount || 0);
     let parsedTotal = parsedAmount + parsedCharges + parsedGst;
 
-    // ── Coupon validation (server-side, never trust the browser) ──────────────
-    let couponId: string | null = null;
-    let couponCodeStored: string | null = null;
+    // ── Coupon validation and discount (server-side) ───────────────────────────
     let couponDiscountAmount = 0;
-    if (couponCode && typeof couponCode === "string" && couponCode.trim().length > 0) {
+    let validatedCouponId: string | null = null;
+    let validatedCouponCode: string | null = null;
+
+    if (couponCode && typeof couponCode === "string" && couponCode.trim()) {
       const couponRes = await fetch(`${supabaseUrl}/functions/v1/validate-coupon`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${supabaseKey}`,
           "Content-Type": "application/json",
-          [SESSION_HEADER]: req.headers.get(SESSION_HEADER) || "",
         },
         body: JSON.stringify({
           userId,
           couponCode: couponCode.trim(),
-          totalAmount: parsedTotal.toFixed(2),
+          totalAmount: parsedTotal,
         }),
       });
-      const couponData = await couponRes.json();
-      if (!couponRes.ok || !couponData.valid) {
-        return err(couponData?.message || "Invalid coupon.");
+      if (couponRes.ok) {
+        const couponData = await couponRes.json();
+        if (couponData.valid) {
+          couponDiscountAmount = parseFloat(couponData.discountAmount || 0);
+          validatedCouponId = couponData.couponId;
+          validatedCouponCode = couponData.couponCode;
+        }
       }
-      couponId = couponData.couponId;
-      couponCodeStored = couponData.couponCode;
-      couponDiscountAmount = parseFloat(couponData.discountAmount || 0);
-      parsedTotal = parseFloat(couponData.finalTotal);
+    } else if (couponId) {
+      const { data: couponRow } = await supabase
+        .from("coupons")
+        .select("id, coupon_code, is_active, is_deleted, start_date, end_date, minimum_total, discount_type, discount_value, maximum_discount_value, per_account_limit, applicable_to, total_usage_limit")
+        .eq("id", couponId)
+        .eq("is_deleted", false)
+        .maybeSingle();
+      if (couponRow && couponRow.is_active) {
+        const couponRes = await fetch(`${supabaseUrl}/functions/v1/validate-coupon`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${supabaseKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId,
+            couponCode: couponRow.coupon_code,
+            totalAmount: parsedTotal,
+          }),
+        });
+        if (couponRes.ok) {
+          const couponData = await couponRes.json();
+          if (couponData.valid) {
+            couponDiscountAmount = parseFloat(couponData.discountAmount || 0);
+            validatedCouponId = couponData.couponId;
+            validatedCouponCode = couponData.couponCode;
+          }
+        }
+      }
     }
+
+    const finalTotal = Math.max(0, parsedTotal - couponDiscountAmount);
+    parsedTotal = finalTotal;
 
     // ── Duplicate payment guard ───────────────────────────────────────────────
     // Detects double-submit within 30 s: same user + beneficiary + amount.
@@ -223,8 +254,8 @@ Deno.serve(async (req: Request) => {
       allowed_cards: allowedCards,
       initiated_at: new Date().toISOString(),
       ip_address: ipAddress,
-      coupon_code: couponCodeStored,
-      coupon_discount_amount: couponDiscountAmount.toFixed(2),
+      coupon_code: validatedCouponCode,
+      coupon_discount_amount: couponDiscountAmount,
     };
 
     const validCardType = cardType ? extractSingleCardType(cardType) : null;
@@ -257,9 +288,9 @@ Deno.serve(async (req: Request) => {
         beneficiary_details: beneficiaryDetails || {},
         category_details: categoryDetails || {},
         selected_payment_option: paymentOptionDetails || {},
-        coupon_id: couponId,
-        coupon_code: couponCodeStored,
-        coupon_discount_amount: couponDiscountAmount || null,
+        coupon_id: validatedCouponId,
+        coupon_code: validatedCouponCode,
+        coupon_discount_amount: couponDiscountAmount,
       })
       .select()
       .single();
@@ -299,17 +330,13 @@ Deno.serve(async (req: Request) => {
       console.error("Error creating payment log:", logError);
     }
 
-    // ── Record coupon usage (only after payment row is committed) ────────────
-    if (couponId && couponCodeStored) {
+    if (validatedCouponId && validatedCouponCode) {
       await supabase.from("coupon_usages").insert({
-        coupon_id: couponId,
+        coupon_id: validatedCouponId,
         user_id: userId,
         payment_id: payment.id,
         discount_amount: couponDiscountAmount,
       });
-      await supabase.from("coupons")
-        .update({ total_usage_count: (await supabase.from("coupons").select("total_usage_count").eq("id", couponId).maybeSingle()).data?.total_usage_count || 0 })
-        .eq("id", couponId);
     }
 
     const gatewayConfig = await createGatewayPaymentConfig(
