@@ -831,6 +831,9 @@ export default function MobileMakePayment() {
                 The receiver has been notified via email and SMS to complete their Merchant KYC verification. Once verified, the payout will be processed automatically.
                 {selectedCat?.refund_after_hours ? ` If KYC is not completed within ${selectedCat.refund_after_hours} hours, the payment will be refunded after deducting convenience charges.` : ''}
               </Text>
+              <Text className="text-xs text-amber-700 mt-2">
+                Merchant KYC collection is carried out in accordance with applicable RBI guidelines. We maintain the confidentiality of merchant information and <Text className="font-bold">do not share it with the Income Tax Department</Text> or any other government agency, except where disclosure is required by applicable law or a lawful order.
+              </Text>
             </View>
           )}
           <View className="flex-row gap-3 mt-5 w-full">
