@@ -301,3 +301,6 @@ verify_jwt = false
 
 [functions.check-invoice-verification]
 verify_jwt = false
+
+[functions.validate-coupon]
+verify_jwt = false

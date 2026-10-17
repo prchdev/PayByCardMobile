@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   CreditCard, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Info, ArrowUpRight,
   Landmark, FileText, Wallet, Calculator, CheckCircle, Search, Clock, Circle as XCircle,
-  X, Upload,
+  X, Upload, Ticket, Tag,
 } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -80,6 +80,19 @@ interface PaymentGateway {
   gst_number: string;
 }
 
+interface CouponResult {
+  valid: boolean;
+  couponId?: string;
+  couponCode?: string;
+  discountType?: string;
+  discountValue?: number;
+  maximumDiscountValue?: number | null;
+  discountAmount?: string;
+  originalTotal?: string;
+  finalTotal?: string;
+  message?: string;
+}
+
 interface ChargeBreakdown {
   amount: number;
   charges: string;
@@ -139,6 +152,11 @@ export default function MobileMakePayment() {
     lastConfirmedAt?: string;
   } | null>(null);
   const [checkingInvoice, setCheckingInvoice] = useState(false);
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponResult | null>(null);
+  const [couponMessage, setCouponMessage] = useState('');
+  const [couponMessageType, setCouponMessageType] = useState<'success' | 'error' | ''>('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
   const webViewRef = useRef<any>(null);
   const insets = useSafeAreaInsets();
   const [checkoutHtml, setCheckoutHtml] = useState<string | null>(null);
@@ -321,7 +339,71 @@ export default function MobileMakePayment() {
     return () => clearTimeout(timeout);
   }, [amount, selectedOption, selectedOpt, calculateCharges, userId]);
 
+  // Clear coupon when amount or payment option changes
+  useEffect(() => {
+    if (appliedCoupon) {
+      setAppliedCoupon(null);
+      setCouponMessage('');
+      setCouponMessageType('');
+    }
+  }, [amount, selectedOption]);
+
   const handleLogout = () => { logout(); reset('/mobile/login'); };
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) {
+      setCouponMessage('Please enter a coupon code.');
+      setCouponMessageType('error');
+      return;
+    }
+    if (!chargeBreakdown) {
+      setCouponMessage('Please select a payment option and enter an amount first.');
+      setCouponMessageType('error');
+      return;
+    }
+    setApplyingCoupon(true);
+    setCouponMessage('');
+    setCouponMessageType('');
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/validate-coupon`, {
+        method: 'POST',
+        headers: await buildAuthHeaders(),
+        body: JSON.stringify({
+          userId,
+          couponCode: code,
+          totalAmount: chargeBreakdown.totalAmount,
+        }),
+      });
+      await checkSessionExpired(res);
+      const data = await res.json();
+      if (res.ok && data.valid) {
+        setAppliedCoupon(data);
+        setCouponMessage(data.message || 'Coupon applied successfully!');
+        setCouponMessageType('success');
+      } else {
+        setAppliedCoupon(null);
+        setCouponMessage(data.message || 'Invalid coupon code.');
+        setCouponMessageType('error');
+      }
+    } catch {
+      setAppliedCoupon(null);
+      setCouponMessage('Failed to validate coupon. Please try again.');
+      setCouponMessageType('error');
+    } finally { setApplyingCoupon(false); }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput('');
+    setCouponMessage('');
+    setCouponMessageType('');
+  };
+
+  const couponDiscountAmount = appliedCoupon ? parseFloat(appliedCoupon.discountAmount || '0') : 0;
+  const finalTotalAfterCoupon = chargeBreakdown
+    ? parseFloat(chargeBreakdown.totalAmount) - couponDiscountAmount
+    : 0;
 
   const selectedCat = categories.find(c => c.id === selectedCategory);
 
@@ -714,7 +796,8 @@ export default function MobileMakePayment() {
           charges: chargeBreakdown ? parseFloat(chargeBreakdown.charges) : 0,
           gst: chargeBreakdown ? parseFloat(chargeBreakdown.gst) : 0,
           discount: chargeBreakdown ? parseFloat(chargeBreakdown.discount) : 0,
-          totalAmount: chargeBreakdown ? parseFloat(chargeBreakdown.totalAmount) : amt,
+          totalAmount: appliedCoupon ? finalTotalAfterCoupon : (chargeBreakdown ? parseFloat(chargeBreakdown.totalAmount) : amt),
+          couponCode: appliedCoupon?.couponCode || null,
           isBusiness,
           deviceId,
           billFileUrl: uploadedBillUrl || null,
@@ -789,6 +872,10 @@ export default function MobileMakePayment() {
     setError('');
     setBillFile(null);
     setBillFileUrl('');
+    setCouponInput('');
+    setAppliedCoupon(null);
+    setCouponMessage('');
+    setCouponMessageType('');
   };
 
   if (paymentResult) {
@@ -820,6 +907,12 @@ export default function MobileMakePayment() {
               <Text className="text-sm text-gray-500">Amount</Text>
               <Text className="text-sm font-semibold text-gray-900">{`\u20B9${fmtAmt(paymentResult.totalAmount)}`}</Text>
             </View>
+            {appliedCoupon && couponDiscountAmount > 0 && (
+              <View className="flex-row justify-between">
+                <Text className="text-sm text-green-600">Coupon Saved ({appliedCoupon.couponCode})</Text>
+                <Text className="text-sm font-semibold text-green-600">- {`\u20B9${fmtAmt(couponDiscountAmount)}`}</Text>
+              </View>
+            )}
           </View>
           {isKycPending && (
             <View className="bg-amber-50 border border-amber-300 rounded-xl p-4 w-full mt-3 gap-1">
@@ -1211,7 +1304,61 @@ export default function MobileMakePayment() {
                 </View>
               ) : null}
 
-              {/* Charge breakdown */}
+              {/* Coupon Section */}
+              {chargeBreakdown && (
+                <View className="gap-2">
+                  {appliedCoupon ? (
+                    <View className="bg-green-50 border border-green-300 rounded-xl p-3 gap-2">
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-row items-center gap-2 flex-1">
+                          <Tag size={18} color="#16a34a" />
+                          <Text className="text-sm font-semibold text-green-800 flex-1">{appliedCoupon.couponCode}</Text>
+                        </View>
+                        <TouchableOpacity onPress={removeCoupon} activeOpacity={0.7} delayPressIn={0}>
+                          <X size={18} color="#16a34a" />
+                        </TouchableOpacity>
+                      </View>
+                      <Text className="text-xs text-green-700">
+                        {couponMessageType === 'success' ? couponMessage : `You saved ₹${fmtAmt(couponDiscountAmount)} on this payment.`}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View className="flex-row items-center gap-2">
+                      <View className="flex-row items-center flex-1 px-3 py-3 border border-gray-300 rounded-xl bg-white gap-2">
+                        <Ticket size={18} color="#9ca3af" />
+                        <TextInput
+                          value={couponInput}
+                          onChangeText={(v) => setCouponInput(v.toUpperCase())}
+                          className="flex-1 text-sm text-gray-900"
+                          placeholder="Enter coupon code"
+                          placeholderTextColor="#9ca3af"
+                          autoCapitalize="characters"
+                          autoCorrect={false}
+                        />
+                      </View>
+                      <TouchableOpacity
+                        onPress={applyCoupon}
+                        disabled={applyingCoupon}
+                        className="px-4 py-3 bg-[#8c76f0] rounded-xl"
+                        style={{ opacity: applyingCoupon ? 0.5 : 1 }}
+                        activeOpacity={0.7} delayPressIn={0}
+                      >
+                        <Text className="text-white font-semibold text-sm">
+                          {applyingCoupon ? '...' : 'Apply'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  {couponMessageType === 'error' && couponMessage && !appliedCoupon && (
+                    <View className="bg-red-50 border border-red-300 rounded-xl p-2.5 flex-row items-center gap-2">
+                      <AlertCircle size={14} color="#dc2626" />
+                      <Text className="text-xs text-red-700 flex-1">{couponMessage}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* Charge breakdown with coupon discount */}
               {calculating ? (
                 <View className="bg-gray-50 rounded-xl p-3 flex-row items-center gap-2">
                   <ActivityIndicator size="small" color="#8c76f0" />
@@ -1241,9 +1388,15 @@ export default function MobileMakePayment() {
                       <Text className="text-sm font-medium text-green-600">- {`\u20B9${fmtAmt(chargeBreakdown.discount)}`}</Text>
                     </View>
                   )}
+                  {appliedCoupon && couponDiscountAmount > 0 && (
+                    <View className="flex-row justify-between">
+                      <Text className="text-sm text-green-600">Coupon Discount ({appliedCoupon.couponCode})</Text>
+                      <Text className="text-sm font-medium text-green-600">- {`\u20B9${fmtAmt(couponDiscountAmount)}`}</Text>
+                    </View>
+                  )}
                   <View className="flex-row justify-between pt-2 border-t border-gray-200">
                     <Text className="text-base font-bold text-gray-900">Total Payable</Text>
-                    <Text className="text-base font-bold text-[#8c76f0]">{`\u20B9${fmtAmt(chargeBreakdown.totalAmount)}`}</Text>
+                    <Text className="text-base font-bold text-[#8c76f0]">{`\u20B9${fmtAmt(appliedCoupon ? finalTotalAfterCoupon.toFixed(2) : chargeBreakdown.totalAmount)}`}</Text>
                   </View>
                 </View>
               ) : null}
@@ -1347,9 +1500,15 @@ export default function MobileMakePayment() {
                     <Text className="text-sm text-gray-500">GST on Charges</Text>
                     <Text className="text-sm font-medium text-gray-900">{`\u20B9${fmtAmt(chargeBreakdown.gst)}`}</Text>
                   </View>
+                  {appliedCoupon && couponDiscountAmount > 0 && (
+                    <View className="flex-row justify-between">
+                      <Text className="text-sm text-green-600">Coupon Discount ({appliedCoupon.couponCode})</Text>
+                      <Text className="text-sm font-medium text-green-600">- {`\u20B9${fmtAmt(couponDiscountAmount)}`}</Text>
+                    </View>
+                  )}
                   <View className="flex-row justify-between pt-2 border-t border-gray-100">
                     <Text className="text-base font-semibold text-gray-900">Total Amount</Text>
-                    <Text className="text-base font-bold text-[#8c76f0]">{`\u20B9${fmtAmt(chargeBreakdown.totalAmount)}`}</Text>
+                    <Text className="text-base font-bold text-[#8c76f0]">{`\u20B9${fmtAmt(appliedCoupon ? finalTotalAfterCoupon.toFixed(2) : chargeBreakdown.totalAmount)}`}</Text>
                   </View>
                 </>
               )}
