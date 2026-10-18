@@ -155,10 +155,10 @@ export default function MobileMyBeneficiaries() {
     if (!formData.ifsc.trim()) { setError('IFSC Code is required.'); return; }
     if (!/^[A-Z0-9]{11}$/.test(formData.ifsc)) { setError('IFSC Code must be exactly 11 characters (letters A-Z and numbers only).'); return; }
 
-    const accountDigits = formData.bank_account.replace(/[\s\-]/g, '');
-    if (!accountDigits) { setError('Account Number is required.'); return; }
-    if (!/^\d+$/.test(accountDigits)) { setError('Account Number must contain only digits.'); return; }
-    if (accountDigits.length < 6 || accountDigits.length > 20) { setError('Account Number must be 6–20 digits.'); return; }
+    const accountClean = formData.bank_account.replace(/[\s\-]/g, '');
+    if (!accountClean) { setError('Account Number is required.'); return; }
+    if (!/^[A-Za-z0-9]+$/.test(accountClean)) { setError('Account Number may only contain letters, numbers, spaces, and hyphens.'); return; }
+    if (accountClean.length < 6 || accountClean.length > 20) { setError('Account Number must be 6–20 characters.'); return; }
 
     if (!formData.bank_name || !formData.branch_name) { setError('Please validate IFSC code before submitting'); return; }
     if (ifscError) { setError('Please fix IFSC code errors before submitting'); return; }
@@ -598,7 +598,7 @@ export default function MobileMyBeneficiaries() {
                     <Text className="text-sm font-medium text-gray-700 mb-1.5">Bank Account Number <Text className="text-red-600">*</Text></Text>
                     <TextInput
                       value={formData.bank_account}
-                      onChangeText={(v) => setFormData({ ...formData, bank_account: v.replace(/[^\d\- ]/g, '') })}
+                      onChangeText={(v) => setFormData({ ...formData, bank_account: v.replace(/[^A-Za-z0-9\- ]/g, '') })}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl text-base"
                       placeholder="Enter account number"
                       maxLength={20}
