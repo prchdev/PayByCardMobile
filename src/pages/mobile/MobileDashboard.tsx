@@ -295,32 +295,32 @@ export default function MobileDashboard() {
         </View>
 
         {referral && (
-          <View className="bg-gradient-to-r from-[#8c76f0] to-[#a78bfa] rounded-2xl p-3.5">
+          <View className="rounded-2xl p-3.5" style={{ backgroundColor: '#7c3aed' }}>
             <View className="flex-row items-center gap-2 mb-1.5">
-              <Gift size={16} color="white" />
-              <Text className="text-sm font-bold text-white">Refer & Earn</Text>
+              <Gift size={16} color="#ffffff" />
+              <Text className="text-sm font-bold" style={{ color: '#ffffff' }}>Refer & Earn</Text>
               {referral.totalReferrals > 0 && (
-                <View className="bg-white/20 rounded-full px-2 py-0.5">
-                  <Text className="text-[10px] text-white font-medium">{referral.totalReferrals} joined</Text>
+                <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: 'rgba(255,255,255,0.25)' }}>
+                  <Text className="text-[10px] font-medium" style={{ color: '#ffffff' }}>{referral.totalReferrals} joined</Text>
                 </View>
               )}
             </View>
-            <Text className="text-xs text-white/70 mb-2">Share your referral code with friends.</Text>
-            <View className="flex-row items-center justify-between bg-white/15 rounded-lg px-3 py-2 mb-2">
-              <Text className="text-base font-bold text-white font-mono tracking-widest">{referral.referralCode}</Text>
+            <Text className="text-xs mb-2" style={{ color: '#ddd6fe' }}>Share your referral code with friends.</Text>
+            <View className="flex-row items-center justify-between rounded-lg px-3 py-2 mb-2" style={{ backgroundColor: 'rgba(255,255,255,0.18)' }}>
+              <Text className="text-base font-bold font-mono tracking-widest" style={{ color: '#ffffff' }}>{referral.referralCode}</Text>
               <TouchableOpacity onPress={handleCopyCode} className="flex-row items-center gap-1" activeOpacity={0.7} delayPressIn={0}>
-                {copiedCode ? <Check size={14} color="#4ade80" /> : <Copy size={14} color="white" />}
-                <Text className="text-xs font-medium text-white">{copiedCode ? 'Copied!' : 'Copy Code'}</Text>
+                {copiedCode ? <Check size={14} color="#4ade80" /> : <Copy size={14} color="#ffffff" />}
+                <Text className="text-xs font-medium" style={{ color: '#ffffff' }}>{copiedCode ? 'Copied!' : 'Copy Code'}</Text>
               </TouchableOpacity>
             </View>
             <View className="flex-row gap-2">
-              <TouchableOpacity onPress={handleCopyLink} className="flex-1 flex-row items-center justify-center gap-1.5 bg-white/15 rounded-lg py-2" activeOpacity={0.7} delayPressIn={0}>
-                {copiedLink ? <Check size={14} color="#4ade80" /> : <Copy size={14} color="white" />}
-                <Text className="text-xs font-medium text-white">{copiedLink ? 'Link Copied!' : 'Copy Link'}</Text>
+              <TouchableOpacity onPress={handleCopyLink} className="flex-1 flex-row items-center justify-center gap-1.5 rounded-lg py-2" style={{ backgroundColor: 'rgba(255,255,255,0.18)' }} activeOpacity={0.7} delayPressIn={0}>
+                {copiedLink ? <Check size={14} color="#4ade80" /> : <Copy size={14} color="#ffffff" />}
+                <Text className="text-xs font-medium" style={{ color: '#ffffff' }}>{copiedLink ? 'Link Copied!' : 'Copy Link'}</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleShareReferral} className="flex-1 flex-row items-center justify-center gap-1.5 bg-green-500 rounded-lg py-2" activeOpacity={0.8} delayPressIn={0}>
-                <ShareIcon size={14} color="white" />
-                <Text className="text-xs font-semibold text-white">Share</Text>
+                <ShareIcon size={14} color="#ffffff" />
+                <Text className="text-xs font-semibold" style={{ color: '#ffffff' }}>Share</Text>
               </TouchableOpacity>
             </View>
           </View>
