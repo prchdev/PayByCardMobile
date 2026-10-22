@@ -120,7 +120,10 @@ export default function MobileDashboard() {
     } catch {}
   };
 
-  const [copiedReferral, setCopiedReferral] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const referralLink = referral ? `https://paybycard.in/?ref=${referral.referralCode}` : '';
 
   const buildReferralMessage = () => {
     if (!referral?.referralCode) return '';
@@ -130,19 +133,27 @@ export default function MobileDashboard() {
     return customMsg ? `${baseMsg}\n${customMsg}` : baseMsg;
   };
 
-  const handleCopyReferral = () => {
+  const handleCopyCode = () => {
     if (!referral?.referralCode) return;
-    Clipboard.setString(buildReferralMessage());
-    setCopiedReferral(true);
+    Clipboard.setString(referral.referralCode);
+    setCopiedCode(true);
     impact('light');
-    setTimeout(() => setCopiedReferral(false), 2000);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  const handleCopyLink = () => {
+    if (!referralLink) return;
+    Clipboard.setString(referralLink);
+    setCopiedLink(true);
+    impact('light');
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const handleShareReferral = async () => {
     if (!referral?.referralCode) return;
     const message = buildReferralMessage();
     try {
-      const result = await Share.share({ message });
+      await Share.share({ message });
       impact('light');
     } catch {}
   };
@@ -284,29 +295,34 @@ export default function MobileDashboard() {
         </View>
 
         {referral && (
-          <View className="bg-gradient-to-r from-[#8c76f0] to-[#a78bfa] rounded-2xl p-4">
-            <View className="flex-row items-center gap-2 mb-2">
-              <Gift size={18} color="white" />
-              <Text className="text-base font-bold text-white">Refer & Earn</Text>
+          <View className="bg-gradient-to-r from-[#8c76f0] to-[#a78bfa] rounded-2xl p-3.5">
+            <View className="flex-row items-center gap-2 mb-1.5">
+              <Gift size={16} color="white" />
+              <Text className="text-sm font-bold text-white">Refer & Earn</Text>
+              {referral.totalReferrals > 0 && (
+                <View className="bg-white/20 rounded-full px-2 py-0.5">
+                  <Text className="text-[10px] text-white font-medium">{referral.totalReferrals} joined</Text>
+                </View>
+              )}
             </View>
-            <Text className="text-sm text-white/80 mb-3">Share your referral code with friends.</Text>
-            <View className="flex-row items-center justify-between bg-white/15 rounded-xl px-4 py-2.5 mb-3">
-              <View className="flex-row items-center gap-2">
-                <Text className="text-xs text-white/70">Your code</Text>
-                <Text className="text-lg font-bold text-white font-mono tracking-wider">{referral.referralCode}</Text>
-              </View>
-              <TouchableOpacity onPress={handleCopyReferral} className="flex-row items-center gap-1.5" activeOpacity={0.7} delayPressIn={0}>
-                {copiedReferral ? <Check size={16} color="white" /> : <Copy size={16} color="white" />}
-                <Text className="text-sm font-medium text-white">{copiedReferral ? 'Copied!' : 'Copy'}</Text>
+            <Text className="text-xs text-white/70 mb-2">Share your referral code with friends.</Text>
+            <View className="flex-row items-center justify-between bg-white/15 rounded-lg px-3 py-2 mb-2">
+              <Text className="text-base font-bold text-white font-mono tracking-widest">{referral.referralCode}</Text>
+              <TouchableOpacity onPress={handleCopyCode} className="flex-row items-center gap-1" activeOpacity={0.7} delayPressIn={0}>
+                {copiedCode ? <Check size={14} color="#4ade80" /> : <Copy size={14} color="white" />}
+                <Text className="text-xs font-medium text-white">{copiedCode ? 'Copied!' : 'Copy Code'}</Text>
               </TouchableOpacity>
             </View>
-            {referral.totalReferrals > 0 && (
-              <Text className="text-xs text-white/70 mb-2">{referral.totalReferrals} joined via your code</Text>
-            )}
-            <TouchableOpacity onPress={handleShareReferral} className="flex-row items-center justify-center gap-2 bg-green-500 rounded-xl py-2.5" activeOpacity={0.8} delayPressIn={0}>
-              <ShareIcon size={16} color="white" />
-              <Text className="text-sm font-semibold text-white">Share on WhatsApp</Text>
-            </TouchableOpacity>
+            <View className="flex-row gap-2">
+              <TouchableOpacity onPress={handleCopyLink} className="flex-1 flex-row items-center justify-center gap-1.5 bg-white/15 rounded-lg py-2" activeOpacity={0.7} delayPressIn={0}>
+                {copiedLink ? <Check size={14} color="#4ade80" /> : <Copy size={14} color="white" />}
+                <Text className="text-xs font-medium text-white">{copiedLink ? 'Link Copied!' : 'Copy Link'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleShareReferral} className="flex-1 flex-row items-center justify-center gap-1.5 bg-green-500 rounded-lg py-2" activeOpacity={0.8} delayPressIn={0}>
+                <ShareIcon size={14} color="white" />
+                <Text className="text-xs font-semibold text-white">Share</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
