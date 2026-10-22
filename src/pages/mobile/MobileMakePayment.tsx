@@ -711,30 +711,32 @@ export default function MobileMakePayment() {
     const payId = payment?.id || '';
     const payRef = payment?.reference || payment?.payment_reference || '';
     const payAmt = String(payment?.totalAmount || payment?.total_amount || chargeBreakdown?.totalAmount || amount);
+
+    // The server rejects 'success' status from non-internal callers (403).
+    // Use check-payment-status which verifies with the gateway and internally
+    // calls save-transaction-status with the service role key, so the payment
+    // status is updated immediately instead of waiting for a cron job.
+    let resolvedStatus: string | null = null;
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/save-transaction-status`, {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/check-payment-status`, {
         method: 'POST',
         headers: await buildAuthHeaders(),
-        body: JSON.stringify({
-          userId,
-          paymentId: payId,
-          transactionReference: payRef,
-          status: 'success',
-          amount: payAmt,
-          gatewayResponse: response || {},
-          paymentMethod: 'card',
-          cardType: selectedOpt?.category_name || selectedOpt?.card_type || null,
-          gatewayName: selectedOpt?.gateway_name || null,
-        }),
+        body: JSON.stringify({ paymentId: payId, userId }),
       });
       await checkSessionExpired(res);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        resolvedStatus = data.payment?.status || null;
+      }
     } catch {}
 
     setPaymentResult({
       success: true,
       reference: payRef,
       totalAmount: payAmt,
-      message: 'Your payment has been processed successfully!',
+      message: resolvedStatus === 'kyc_pending'
+        ? 'Your payment was received successfully. Payout to the beneficiary will be processed after Merchant KYC / Onboarding is completed by the receiver.'
+        : 'Your payment has been processed successfully!',
     });
   };
 
@@ -912,8 +914,8 @@ export default function MobileMakePayment() {
     const isSuccess = paymentResult.success;
     const isPending = !isSuccess && paymentResult.message.includes('being processed');
     const isKycPending = isSuccess &&
-      selectedCat?.receiver_kyc_required === true &&
-      selectedBen?.is_verified_merchant !== true;
+      (paymentResult.message.includes('KYC / Onboarding') ||
+        (selectedCat?.receiver_kyc_required === true && selectedBen?.is_verified_merchant !== true));
     return (
       <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout}>
         <View className="px-4 py-6 items-center">
