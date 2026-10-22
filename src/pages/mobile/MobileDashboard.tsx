@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { CircleCheck as CheckCircle, ArrowUpRight, Users, Clock, CircleAlert as AlertCircle, Circle as XCircle, RefreshCw, Factory as History, TrendingUp, Hourglass, Hash, Landmark, Bell, Info } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Share, Clipboard } from 'react-native';
+import { CircleCheck as CheckCircle, ArrowUpRight, Users, Clock, CircleAlert as AlertCircle, Circle as XCircle, RefreshCw, Factory as History, TrendingUp, Hourglass, Hash, Landmark, Bell, Info, Gift, Copy, Share as ShareIcon } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { impact } from '../../utils/haptics';
@@ -41,7 +41,7 @@ export default function MobileDashboard() {
   const [isCheckingKyc, setIsCheckingKyc] = useState(true);
   const [recentTxns, setRecentTxns] = useState<RecentTxn[]>([]);
   const [loadingTxns, setLoadingTxns] = useState(true);
-  const [stats, setStats] = useState<{ amount_processed: number; amount_in_settlement: number; total_transactions: number } | null>(null);
+  const [stats, setStats] = useState<{ amount_processed: number; amount_in_settlement: number; total_transactions: number; referral_code?: string | null } | null>(null);
   const [unreadNotifs, setUnreadNotifs] = useState(0);
   const [dashboardNotifs, setDashboardNotifs] = useState<{ id: string; title: string; message: string; notification_type: string }[]>([]);
 
@@ -116,6 +116,25 @@ export default function MobileDashboard() {
       await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setDashboardNotifs(data.notifications || []);
+    } catch {}
+  };
+
+  const [copiedReferral, setCopiedReferral] = useState(false);
+
+  const handleCopyReferral = () => {
+    if (!stats?.referral_code) return;
+    Clipboard.setString(stats.referral_code);
+    setCopiedReferral(true);
+    impact('light');
+    setTimeout(() => setCopiedReferral(false), 2000);
+  };
+
+  const handleShareReferral = async () => {
+    if (!stats?.referral_code) return;
+    const message = `I've been using PayByCard for fast and secure card payments. Sign up using my referral code ${stats.referral_code} and get started! Download the app now.`;
+    try {
+      const result = await Share.share({ message });
+      impact('light');
     } catch {}
   };
 
@@ -242,6 +261,27 @@ export default function MobileDashboard() {
             </View>
           ))}
         </View>
+
+        {stats?.referral_code && (
+          <View className="bg-gradient-to-r from-[#8c76f0] to-[#a78bfa] rounded-2xl p-4">
+            <View className="flex-row items-center gap-2 mb-2">
+              <Gift size={18} color="white" />
+              <Text className="text-base font-bold text-white">Your Referral Code</Text>
+            </View>
+            <Text className="text-sm text-white/80 mb-3">Share this code with friends. They get a great start on PayByCard!</Text>
+            <View className="flex-row items-center justify-between bg-white/15 rounded-xl px-4 py-2.5 mb-3">
+              <Text className="text-lg font-bold text-white font-mono tracking-wider">{stats.referral_code}</Text>
+              <TouchableOpacity onPress={handleCopyReferral} className="flex-row items-center gap-1.5" activeOpacity={0.7} delayPressIn={0}>
+                {copiedReferral ? <CheckCircle size={16} color="white" /> : <Copy size={16} color="white" />}
+                <Text className="text-sm font-medium text-white">{copiedReferral ? 'Copied!' : 'Copy'}</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity onPress={handleShareReferral} className="flex-row items-center justify-center gap-2 bg-white rounded-xl py-2.5" activeOpacity={0.8} delayPressIn={0}>
+              <ShareIcon size={16} color="#8c76f0" />
+              <Text className="text-sm font-semibold text-[#8c76f0]">Share on WhatsApp</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View>
           <Text className="text-base font-bold text-gray-900 mb-2">Quick Actions</Text>

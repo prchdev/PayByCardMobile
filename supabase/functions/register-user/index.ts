@@ -16,6 +16,7 @@ interface RegisterRequest {
   mobileNumber: string;
   email: string;
   password: string;
+  referralCode?: string;
 }
 
 function generateOTP(): string {
@@ -36,7 +37,7 @@ Deno.serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const requestData: RegisterRequest = await req.json();
-    const { firstName, middleName, lastName, fullName, mobileNumber, email, password } = requestData;
+    const { firstName, middleName, lastName, fullName, mobileNumber, email, password, referralCode } = requestData;
 
     if (!firstName || !lastName || !mobileNumber || !email || !password) {
       return new Response(
@@ -119,9 +120,43 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // ── Referral code validation ─────────────────────────────────────────────
+    let referredBy: string | null = null;
+    if (referralCode && typeof referralCode === 'string' && referralCode.trim()) {
+      const code = referralCode.trim().toUpperCase();
+      const { data: referrer } = await supabase
+        .from('users')
+        .select('id, is_disabled')
+        .eq('referral_code', code)
+        .maybeSingle();
+      if (!referrer) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid referral code. Please check and try again.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (referrer.is_disabled) {
+        return new Response(
+          JSON.stringify({ error: 'This referral code is no longer active.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      referredBy = referrer.id;
+    }
+
     const passwordHash = await bcrypt.hash(password, 8);
 
     const computedFullName = fullName || [firstName, middleName, lastName].filter(Boolean).join(' ');
+
+    // Generate a unique referral code for the new user
+    const generateReferralCode = (): string => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+      const arr = new Uint32Array(8);
+      crypto.getRandomValues(arr);
+      for (let i = 0; i < 8; i++) code += chars[arr[i] % chars.length];
+      return code;
+    };
 
     const { data: newUser, error: userError } = await supabase
       .from('users')
@@ -133,6 +168,8 @@ Deno.serve(async (req: Request) => {
         mobile_number: mobileNumber,
         email: email,
         password_hash: passwordHash,
+        referral_code: generateReferralCode(),
+        referred_by: referredBy,
       })
       .select()
       .single();

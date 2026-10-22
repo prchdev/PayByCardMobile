@@ -62,7 +62,7 @@ Deno.serve(async (req: Request) => {
 
     if (userError || !user) {
       return new Response(
-        JSON.stringify({ error: 'Invalid email or password' }),
+        JSON.stringify({ error: 'No account found with this email. Please check your email or register first.', accountNotFound: true }),
         {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

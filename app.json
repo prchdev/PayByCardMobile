@@ -110,7 +110,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./public/splash-icon.png",
+          "image": "./public/splash-icon-2x.png",
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }

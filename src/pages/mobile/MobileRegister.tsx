@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, Pressable, ScrollView, Modal, KeyboardAvoidingView, Platform, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Eye, EyeOff, CircleAlert as AlertCircle, X, FileText, Shield } from 'lucide-react-native';
+import { Eye, EyeOff, CircleAlert as AlertCircle, X, FileText, Shield, Gift } from 'lucide-react-native';
 import { useNav } from '../../hooks/useNav';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
 import { getErrorMessage } from '../../utils/errorMessage';
@@ -13,6 +13,7 @@ import PrivacyPolicyContent from '../../components/mobile/PrivacyPolicyContent';
 interface FormData {
   firstName: string; middleName: string; lastName: string;
   mobileNumber: string; email: string; password: string; confirmPassword: string;
+  referralCode: string;
   agreeToTerms: boolean;
 }
 
@@ -23,7 +24,7 @@ export default function MobileRegister() {
   const insets = useSafeAreaInsets();
   const [formData, setFormData] = useState<FormData>({
     firstName: '', middleName: '', lastName: '', mobileNumber: '', email: '',
-    password: '', confirmPassword: '', agreeToTerms: false,
+    password: '', confirmPassword: '', referralCode: '', agreeToTerms: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
@@ -81,6 +82,7 @@ export default function MobileRegister() {
           firstName: capFirst, middleName: capMiddle || undefined,
           lastName: capLast, fullName,
           mobileNumber: `+91${formData.mobileNumber}`, email: formData.email, password: formData.password,
+          referralCode: formData.referralCode.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -214,6 +216,19 @@ export default function MobileRegister() {
               </TouchableOpacity>
             </View>
             {errors.confirmPassword ? <Text className="text-red-600 text-xs mt-1">{errors.confirmPassword}</Text> : null}
+          </View>
+
+          <View>
+            <Text className="text-sm font-semibold text-gray-700 mb-1.5">Referral Code <Text className="text-gray-400">(optional)</Text></Text>
+            <View className="flex-row items-center">
+              <TextInput
+                value={formData.referralCode}
+                onChangeText={(v) => setFormData({ ...formData, referralCode: v.replace(/[^A-Za-z0-9]/g, '').toUpperCase() })}
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-base pr-10"
+                placeholder="Enter referral code" maxLength={20} autoCapitalize="characters"
+              />
+              <Gift size={16} color="#9ca3af" style={{ position: 'absolute', right: 12 }} />
+            </View>
           </View>
 
           <View className="bg-gray-50 border border-gray-200 rounded-xl p-3">

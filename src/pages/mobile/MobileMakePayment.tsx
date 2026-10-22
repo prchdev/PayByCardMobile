@@ -535,15 +535,10 @@ export default function MobileMakePayment() {
         if (checkoutPaymentInfo) handlePaymentSuccess(msg.data || {}, checkoutPaymentInfo);
       } else if (msg.type === 'PAYMENT_FAILED') {
         closeCheckout();
-        setPaymentResult({
-          success: false,
-          reference: checkoutPaymentInfo?.reference || '',
-          totalAmount: String(checkoutPaymentInfo?.totalAmount || chargeBreakdown?.totalAmount || amount),
-          message: msg.message || 'Payment failed. Please try again.',
-        });
+        if (checkoutPaymentInfo) handlePaymentFailed(checkoutPaymentInfo, msg.message);
       } else if (msg.type === 'PAYMENT_DISMISSED') {
         closeCheckout();
-        handlePaymentDismiss(checkoutPaymentInfo);
+        if (checkoutPaymentInfo) handlePaymentDismiss(checkoutPaymentInfo);
       }
     } catch {}
   };
@@ -555,15 +550,10 @@ export default function MobileMakePayment() {
       if (checkoutPaymentInfo) handlePaymentSuccess({}, checkoutPaymentInfo);
     } else if (title === 'PAYMENT_FAILED') {
       closeCheckout();
-      setPaymentResult({
-        success: false,
-        reference: checkoutPaymentInfo?.reference || '',
-        totalAmount: String(checkoutPaymentInfo?.totalAmount || chargeBreakdown?.totalAmount || amount),
-        message: 'Payment failed. Please try again.',
-      });
+      if (checkoutPaymentInfo) handlePaymentFailed(checkoutPaymentInfo);
     } else if (title === 'PAYMENT_DISMISSED') {
       closeCheckout();
-      handlePaymentDismiss(checkoutPaymentInfo);
+      if (checkoutPaymentInfo) handlePaymentDismiss(checkoutPaymentInfo);
     }
   };
 
@@ -698,12 +688,7 @@ export default function MobileMakePayment() {
           return;
         }
         if (paymentStatus === 'failed') {
-          setPaymentResult({
-            success: false,
-            reference: paymentInfo.reference || '',
-            totalAmount: String(paymentInfo.totalAmount || chargeBreakdown?.totalAmount || amount),
-            message: data.payment?.failure_reason || 'Payment failed. Please try again.',
-          });
+          handlePaymentFailed(paymentInfo, data.payment?.failure_reason || 'Payment failed. Please try again.');
           return;
         }
         // Still pending/processing - wait and retry
@@ -753,11 +738,58 @@ export default function MobileMakePayment() {
     });
   };
 
-  const handlePaymentDismiss = (payment: any) => {
+  const handlePaymentFailed = async (payment: any, failureReason?: string) => {
+    const payId = payment?.id || '';
+    const payRef = payment?.reference || payment?.payment_reference || '';
+    const payAmt = String(payment?.totalAmount || payment?.total_amount || chargeBreakdown?.totalAmount || amount);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/save-transaction-status`, {
+        method: 'POST',
+        headers: await buildAuthHeaders(),
+        body: JSON.stringify({
+          userId,
+          paymentId: payId,
+          transactionReference: payRef,
+          status: 'failed',
+          amount: payAmt,
+          gatewayResponse: { failure_reason: failureReason || 'Payment failed at gateway' },
+          gatewayName: selectedOpt?.gateway_name || null,
+        }),
+      });
+      await checkSessionExpired(res);
+    } catch {}
     setPaymentResult({
       success: false,
-      reference: payment?.reference || '',
-      totalAmount: String(payment?.totalAmount || chargeBreakdown?.totalAmount || amount),
+      reference: payRef,
+      totalAmount: payAmt,
+      message: failureReason || 'Payment failed. Please try again.',
+    });
+  };
+
+  const handlePaymentDismiss = async (payment: any) => {
+    const payId = payment?.id || '';
+    const payRef = payment?.reference || payment?.payment_reference || '';
+    const payAmt = String(payment?.totalAmount || payment?.total_amount || chargeBreakdown?.totalAmount || amount);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/save-transaction-status`, {
+        method: 'POST',
+        headers: await buildAuthHeaders(),
+        body: JSON.stringify({
+          userId,
+          paymentId: payId,
+          transactionReference: payRef,
+          status: 'cancelled',
+          amount: payAmt,
+          gatewayResponse: { reason: 'User dismissed payment gateway' },
+          gatewayName: selectedOpt?.gateway_name || null,
+        }),
+      });
+      await checkSessionExpired(res);
+    } catch {}
+    setPaymentResult({
+      success: false,
+      reference: payRef,
+      totalAmount: payAmt,
       message: 'Payment was cancelled. You can retry the payment from your transaction history.',
     });
   };

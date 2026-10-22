@@ -27,20 +27,28 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data, error } = await supabase
+    const { data: payments, error: paymentsError } = await supabase
       .from("payments")
       .select("total_amount, amount, status")
       .eq("user_id", userId);
 
-    if (error) throw new Error(error.message);
+    if (paymentsError) throw new Error(paymentsError.message);
 
-    const payments = data || [];
+    const { data: userRow, error: userError } = await supabase
+      .from("users")
+      .select("referral_code")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (userError) throw new Error(userError.message);
+
+    const paymentData = payments || [];
 
     let amountProcessed = 0;
     let amountInSettlement = 0;
     const totalTransactions = payments.length;
 
-    for (const p of payments) {
+    for (const p of paymentData) {
       const amt = parseFloat(p.total_amount || p.amount || "0");
       if (p.status === "completed" || p.status === "settlement_pending") {
         amountProcessed += amt;
@@ -55,6 +63,7 @@ Deno.serve(async (req: Request) => {
         amount_processed: amountProcessed,
         amount_in_settlement: amountInSettlement,
         total_transactions: totalTransactions,
+        referral_code: userRow?.referral_code || null,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
