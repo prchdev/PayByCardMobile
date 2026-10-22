@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Share, Clipboard } from 'react-native';
-import { CircleCheck as CheckCircle, ArrowUpRight, Users, Clock, CircleAlert as AlertCircle, Circle as XCircle, RefreshCw, Factory as History, TrendingUp, Hourglass, Hash, Landmark, Bell, Info, Gift, Copy, Share as ShareIcon } from 'lucide-react-native';
+import { CircleCheck as CheckCircle, ArrowUpRight, Users, Clock, CircleAlert as AlertCircle, Circle as XCircle, RefreshCw, Factory as History, TrendingUp, Hourglass, Hash, Landmark, Bell, Info, Gift, Copy, Check, Share as ShareIcon } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { impact } from '../../utils/haptics';
@@ -41,13 +41,14 @@ export default function MobileDashboard() {
   const [isCheckingKyc, setIsCheckingKyc] = useState(true);
   const [recentTxns, setRecentTxns] = useState<RecentTxn[]>([]);
   const [loadingTxns, setLoadingTxns] = useState(true);
-  const [stats, setStats] = useState<{ amount_processed: number; amount_in_settlement: number; total_transactions: number; referral_code?: string | null } | null>(null);
+  const [stats, setStats] = useState<{ amount_processed: number; amount_in_settlement: number; total_transactions: number } | null>(null);
+  const [referral, setReferral] = useState<{ referralCode: string; totalReferrals: number; referredBy: { name: string | null } | null; referralMessage: string | null } | null>(null);
   const [unreadNotifs, setUnreadNotifs] = useState(0);
   const [dashboardNotifs, setDashboardNotifs] = useState<{ id: string; title: string; message: string; notification_type: string }[]>([]);
 
   useEffect(() => {
     if (!userId) { navigate('/mobile/login'); return; }
-    checkKycStatus(); fetchRecentTransactions(); fetchStats(); fetchUnreadNotifs(); fetchDashboardNotifs();
+    checkKycStatus(); fetchRecentTransactions(); fetchStats(); fetchReferralInfo(); fetchUnreadNotifs(); fetchDashboardNotifs();
   }, [userId]);
 
   useFocusEffect(
@@ -121,20 +122,40 @@ export default function MobileDashboard() {
 
   const [copiedReferral, setCopiedReferral] = useState(false);
 
+  const buildReferralMessage = () => {
+    if (!referral?.referralCode) return '';
+    const link = `https://paybycard.in/?ref=${referral.referralCode}`;
+    const baseMsg = `Hi! I'm using PayByCard to manage my rent, tuition fees, vendor payment using credit card effortlessly by transferring money in bank account. Join me using my referral code ${referral.referralCode} and sign up here: ${link}`;
+    const customMsg = referral.referralMessage?.trim() || '';
+    return customMsg ? `${baseMsg}\n${customMsg}` : baseMsg;
+  };
+
   const handleCopyReferral = () => {
-    if (!stats?.referral_code) return;
-    Clipboard.setString(stats.referral_code);
+    if (!referral?.referralCode) return;
+    Clipboard.setString(buildReferralMessage());
     setCopiedReferral(true);
     impact('light');
     setTimeout(() => setCopiedReferral(false), 2000);
   };
 
   const handleShareReferral = async () => {
-    if (!stats?.referral_code) return;
-    const message = `I've been using PayByCard for fast and secure card payments. Sign up using my referral code ${stats.referral_code} and get started! Download the app now.`;
+    if (!referral?.referralCode) return;
+    const message = buildReferralMessage();
     try {
       const result = await Share.share({ message });
       impact('light');
+    } catch {}
+  };
+
+  const fetchReferralInfo = async () => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-referral-info`, {
+        method: 'POST', headers: await buildAuthHeaders(),
+        body: JSON.stringify({ userId }),
+      });
+      await checkSessionExpired(res);
+      const data = await res.json();
+      if (res.ok && data.referralCode) setReferral(data);
     } catch {}
   };
 
@@ -262,23 +283,29 @@ export default function MobileDashboard() {
           ))}
         </View>
 
-        {stats?.referral_code && (
+        {referral && (
           <View className="bg-gradient-to-r from-[#8c76f0] to-[#a78bfa] rounded-2xl p-4">
             <View className="flex-row items-center gap-2 mb-2">
               <Gift size={18} color="white" />
-              <Text className="text-base font-bold text-white">Your Referral Code</Text>
+              <Text className="text-base font-bold text-white">Refer & Earn</Text>
             </View>
-            <Text className="text-sm text-white/80 mb-3">Share this code with friends. They get a great start on PayByCard!</Text>
+            <Text className="text-sm text-white/80 mb-3">Share your referral code with friends.</Text>
             <View className="flex-row items-center justify-between bg-white/15 rounded-xl px-4 py-2.5 mb-3">
-              <Text className="text-lg font-bold text-white font-mono tracking-wider">{stats.referral_code}</Text>
+              <View className="flex-row items-center gap-2">
+                <Text className="text-xs text-white/70">Your code</Text>
+                <Text className="text-lg font-bold text-white font-mono tracking-wider">{referral.referralCode}</Text>
+              </View>
               <TouchableOpacity onPress={handleCopyReferral} className="flex-row items-center gap-1.5" activeOpacity={0.7} delayPressIn={0}>
-                {copiedReferral ? <CheckCircle size={16} color="white" /> : <Copy size={16} color="white" />}
+                {copiedReferral ? <Check size={16} color="white" /> : <Copy size={16} color="white" />}
                 <Text className="text-sm font-medium text-white">{copiedReferral ? 'Copied!' : 'Copy'}</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={handleShareReferral} className="flex-row items-center justify-center gap-2 bg-white rounded-xl py-2.5" activeOpacity={0.8} delayPressIn={0}>
-              <ShareIcon size={16} color="#8c76f0" />
-              <Text className="text-sm font-semibold text-[#8c76f0]">Share on WhatsApp</Text>
+            {referral.totalReferrals > 0 && (
+              <Text className="text-xs text-white/70 mb-2">{referral.totalReferrals} joined via your code</Text>
+            )}
+            <TouchableOpacity onPress={handleShareReferral} className="flex-row items-center justify-center gap-2 bg-green-500 rounded-xl py-2.5" activeOpacity={0.8} delayPressIn={0}>
+              <ShareIcon size={16} color="white" />
+              <Text className="text-sm font-semibold text-white">Share on WhatsApp</Text>
             </TouchableOpacity>
           </View>
         )}

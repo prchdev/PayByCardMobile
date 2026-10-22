@@ -772,6 +772,37 @@ export default function MobileMakePayment() {
     const payId = payment?.id || '';
     const payRef = payment?.reference || payment?.payment_reference || '';
     const payAmt = String(payment?.totalAmount || payment?.total_amount || chargeBreakdown?.totalAmount || amount);
+
+    // Like the website: when the gateway window is dismissed, poll check-payment-status
+    // a few times before marking as cancelled — the user may have completed the payment
+    // even though the webview was closed.
+    if (payId) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/check-payment-status`, {
+            method: 'POST',
+            headers: await buildAuthHeaders(),
+            body: JSON.stringify({ paymentId: payId, userId }),
+          });
+          await checkSessionExpired(res);
+          const data = await res.json();
+          if (res.ok && data.success) {
+            const status = data.payment?.status;
+            if (status === 'completed' || status === 'settlement_pending' || status === 'kyc_pending') {
+              handlePaymentSuccess(data.payment, payment);
+              return;
+            }
+            if (status === 'failed' || status === 'cancelled') {
+              handlePaymentFailed(payment, data.payment?.failure_reason || 'Payment failed.');
+              return;
+            }
+          }
+        } catch {}
+        if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+
+    // After polling, if still no definitive status, mark as cancelled
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/save-transaction-status`, {
         method: 'POST',

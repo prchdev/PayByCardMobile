@@ -42,7 +42,7 @@ Deno.serve(async (req: Request) => {
 
     if (!user) {
       return new Response(
-        JSON.stringify({ error: "No account found with this email. Please check your email or register first." }),
+        JSON.stringify({ error: "Email Id is not registered. Please check your email address or sign up to create an account." }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

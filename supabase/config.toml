@@ -304,3 +304,6 @@ verify_jwt = false
 
 [functions.validate-coupon]
 verify_jwt = false
+
+[functions.get-referral-info]
+verify_jwt = false
