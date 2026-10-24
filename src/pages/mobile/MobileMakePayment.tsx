@@ -598,6 +598,9 @@ export default function MobileMakePayment() {
       if (gatewayConfig.allowedCardTypes && gatewayConfig.allowedCardTypes.length > 0) {
         checkoutOptions._allowedCardTypes = gatewayConfig.allowedCardTypes;
       }
+      if (backendOptions.config) {
+        checkoutOptions.config = backendOptions.config;
+      }
 
       return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">${loadingHtml}</head><body>
   <div class="loading"><div class="spinner"></div><div class="text">Opening payment gateway...</div></div>
