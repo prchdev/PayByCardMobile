@@ -185,6 +185,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserEmail(parsed.email);
       if (parsed.sessionToken) setSessionToken(parsed.sessionToken);
 
+      // Validate the session token is still active before proceeding.
+      // If expired, clear the session and redirect to login instead of
+      // showing a dashboard with empty data.
+      if (parsed.sessionToken) {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/functions/v1/get-user-stats`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+              'x-pbc-session': parsed.sessionToken,
+            },
+            body: JSON.stringify({ userId: parsed.userId }),
+          });
+          if (res.status === 401) {
+            await removeSessionItem(SESSION_USER_ID);
+            await removeSessionItem(SESSION_USER_EMAIL);
+            await removeSessionItem(SESSION_TOKEN_KEY);
+            await removeSessionItem('isRestricted');
+            setIsAuthenticated(false);
+            setUserId(null);
+            setUserEmail(null);
+            setSessionToken(null);
+            return null;
+          }
+        } catch {
+          // Network error — allow unlock, the dashboard will handle errors
+        }
+      }
+
       // Re-register push token after biometric unlock
       registerPushTokenWithBackend(parsed.userId, parsed.sessionToken ?? null);
 

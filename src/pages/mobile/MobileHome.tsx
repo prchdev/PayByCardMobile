@@ -39,7 +39,11 @@ export default function MobileHome() {
         if (session) {
           navigate('/mobile/dashboard', { state: { userId: session.userId, userEmail: session.email } });
         } else {
-          navigate('/mobile/login');
+          setUnlockError('Your session has expired. Please login again.');
+          setTimeout(() => {
+            clearRememberedSession();
+            navigate('/mobile/login');
+          }, 1500);
         }
       } else {
         await notification('error');
