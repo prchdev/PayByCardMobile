@@ -78,7 +78,7 @@ export default function MobileMyBeneficiaries() {
       const result = await res.json();
       if (res.ok) {
         setKycStatus(result);
-        if (result.isVerified) fetchBeneficiaries();
+        fetchBeneficiaries();
       }
     } catch {} finally { setIsCheckingKyc(false); }
   };
@@ -239,34 +239,6 @@ export default function MobileMyBeneficiaries() {
       <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout} showBack>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#8c76f0" />
-        </View>
-      </MobileLayout>
-    );
-  }
-
-  if (kycStatus && !kycStatus.isVerified) {
-    return (
-      <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout} showBack>
-        <View className="flex-1 items-center justify-center px-4">
-          <View className="bg-white rounded-2xl border-2 border-yellow-300 p-6 items-center w-full max-w-sm">
-            <View className="w-16 h-16 bg-yellow-100 rounded-full items-center justify-center mb-4">
-              <AlertCircle size={32} color="#ca8a04" />
-            </View>
-            <Text className="text-xl font-bold text-gray-900 mb-3 text-center">KYC Verification Required</Text>
-            <Text className="text-sm text-gray-700 mb-6 text-center">
-              {kycStatus.status === 'not_submitted' && 'Please complete your KYC verification to manage beneficiaries. You need to submit your PAN and Address details.'}
-              {kycStatus.status === 'incomplete' && 'Your KYC submission is incomplete. Please complete all required sections to proceed.'}
-              {kycStatus.status === 'pending' && 'Your KYC documents are under review. Please wait for admin approval before managing beneficiaries.'}
-              {kycStatus.status === 'rejected' && 'Your KYC verification was rejected. Please review the feedback and resubmit your documents.'}
-            </Text>
-            <TouchableOpacity
-              onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })}
-              className="px-6 py-3 bg-[#8c76f0] rounded-xl"
-              activeOpacity={0.8}
-            >
-              <Text className="text-white font-semibold">Go to KYC Verification</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </MobileLayout>
     );

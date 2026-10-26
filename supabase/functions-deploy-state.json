@@ -219,11 +219,11 @@
     },
     "digilocker-kyc": {
       "hasChanged": false,
-      "hash": "11eaa25f294763071a67390143dddf05a571c1630e9a67c40d70a3ac8745dae1e837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
+      "hash": "f7a84adc22530838eba083d920de76dbb3e2310f15b7896cd525da3bc5000b9ae837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
     },
     "digilocker-redirect": {
       "hasChanged": false,
-      "hash": "00b559e6108d0ffd1aee62d13077aa0fdc7cd922a6e198e062d1d0581c9b1ddee837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
+      "hash": "907dfff05f2241bbad65e3b24e8feb4a12fcbb68193be6839abd73b7f23d8156e837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
     },
     "download-ticket-attachment": {
       "hasChanged": false,
@@ -296,6 +296,10 @@
     "get-payout-settings": {
       "hasChanged": false,
       "hash": "64e3ab404efe68a1fffa7ae81a8dafe114ef18083ee5340d3743cb75980f2174e837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
+    },
+    "get-referral-info": {
+      "hasChanged": false,
+      "hash": "ed687f2ce7e1914986446baeff2dd11e357c9ba3266bd4665f38bafe02b9966fe837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
     },
     "get-role-permissions": {
       "hasChanged": false,
@@ -572,10 +576,6 @@
     "waf-validate": {
       "hasChanged": false,
       "hash": "421938a57e2f55fe2bd842e8c271790cf258efac57cbee686f39a9e4be3a21c6e837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
-    },
-    "get-referral-info": {
-      "hasChanged": false,
-      "hash": "ed687f2ce7e1914986446baeff2dd11e357c9ba3266bd4665f38bafe02b9966fe837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
     }
   }
 }

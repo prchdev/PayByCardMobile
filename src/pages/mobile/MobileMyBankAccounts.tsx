@@ -81,7 +81,7 @@ export default function MobileMyBankAccounts() {
       const result = await res.json();
       if (res.ok) {
         setKycStatus(result);
-        if (result.isVerified) fetchAccounts();
+        fetchAccounts();
       }
     } catch {} finally { setIsCheckingKyc(false); }
   };
@@ -269,34 +269,6 @@ export default function MobileMyBankAccounts() {
     );
   }
 
-  if (kycStatus && !kycStatus.isVerified) {
-    return (
-      <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout} showBack>
-        <View className="flex-1 items-center justify-center px-4">
-          <View className="bg-white rounded-2xl border-2 border-yellow-300 p-6 items-center w-full max-w-sm">
-            <View className="w-16 h-16 bg-yellow-100 rounded-full items-center justify-center mb-4">
-              <AlertCircle size={32} color="#ca8a04" />
-            </View>
-            <Text className="text-xl font-bold text-gray-900 mb-3 text-center">KYC Verification Required</Text>
-            <Text className="text-sm text-gray-700 mb-6 text-center">
-              {kycStatus.status === 'not_submitted' && 'Please complete your KYC verification to manage bank accounts. You need to submit your PAN and Address details.'}
-              {kycStatus.status === 'incomplete' && 'Your KYC submission is incomplete. Please complete all required sections to proceed.'}
-              {kycStatus.status === 'pending' && 'Your KYC documents are under review. Please wait for admin approval before managing bank accounts.'}
-              {kycStatus.status === 'rejected' && 'Your KYC verification was rejected. Please review the feedback and resubmit your documents.'}
-            </Text>
-            <TouchableOpacity
-              onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })}
-              className="px-6 py-3 bg-[#8c76f0] rounded-xl"
-              activeOpacity={0.8}
-            >
-              <Text className="text-white font-semibold">Go to KYC Verification</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </MobileLayout>
-    );
-  }
-
   if (kycStatus?.isRestricted) {
     return (
       <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout} showBack>
@@ -334,7 +306,9 @@ export default function MobileMyBankAccounts() {
           </View>
           <TouchableOpacity
             onPress={openAddModal}
+            disabled={kycStatus ? !kycStatus.isVerified : false}
             className="flex-row items-center gap-2 px-4 py-2.5 bg-[#8c76f0] rounded-xl"
+            style={{ opacity: kycStatus && !kycStatus.isVerified ? 0.5 : 1 }}
             activeOpacity={0.7} delayPressIn={0}
           >
             <Plus size={18} color="white" />
@@ -363,7 +337,9 @@ export default function MobileMyBankAccounts() {
             <Text className="text-sm text-gray-400 mt-1 text-center">Add your bank account to receive payments and settlements</Text>
             <TouchableOpacity
               onPress={openAddModal}
+              disabled={kycStatus ? !kycStatus.isVerified : false}
               className="flex-row items-center gap-2 px-6 py-3 bg-[#8c76f0] rounded-xl mt-4"
+              style={{ opacity: kycStatus && !kycStatus.isVerified ? 0.5 : 1 }}
               activeOpacity={0.7} delayPressIn={0}
             >
               <Plus size={18} color="white" />
@@ -444,6 +420,17 @@ export default function MobileMyBankAccounts() {
                 )}
               </View>
             ))}
+          </View>
+        )}
+
+        {kycStatus && !kycStatus.isVerified && (
+          <View className="bg-amber-50 border border-amber-300 rounded-xl p-3 flex-row items-start gap-2">
+            <AlertCircle size={16} color="#d97706" />
+            <Text className="text-sm text-amber-800 flex-1">
+              {(kycStatus.status === 'not_submitted' || kycStatus.status === 'incomplete' || kycStatus.status === 'rejected')
+                ? 'Please complete your KYC verification to add bank accounts.'
+                : 'Your KYC documents are under review. Please wait for admin approval before adding bank accounts.'}
+            </Text>
           </View>
         )}
 

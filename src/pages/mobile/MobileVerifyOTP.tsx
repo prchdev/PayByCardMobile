@@ -90,7 +90,7 @@ export default function MobileVerifyOTP() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'OTP verification failed');
       login(userId!, email!, data.sessionToken);
-      navigate('/mobile/kyc-verification', { state: { userId, userEmail: email } });
+      navigate('/mobile/dashboard', { state: { userId, userEmail: email } });
     } catch (err) {
       setError(getErrorMessage(err, 'OTP verification failed. Please try again.'));
     } finally {

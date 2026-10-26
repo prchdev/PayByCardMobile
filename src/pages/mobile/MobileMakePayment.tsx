@@ -356,8 +356,8 @@ export default function MobileMakePayment() {
       setCouponMessageType('error');
       return;
     }
-    if (!chargeBreakdown) {
-      setCouponMessage('Please select a payment option and enter an amount first.');
+    if (!selectedOption) {
+      setCouponMessage('Please select a payment option before applying coupon.');
       setCouponMessageType('error');
       return;
     }
@@ -371,7 +371,7 @@ export default function MobileMakePayment() {
         body: JSON.stringify({
           userId,
           couponCode: code,
-          totalAmount: parseFloat(chargeBreakdown.totalAmount),
+          totalAmount: parseFloat(chargeBreakdown?.totalAmount || amount || '0'),
         }),
       });
       await checkSessionExpired(res);
@@ -1032,28 +1032,6 @@ export default function MobileMakePayment() {
               <ActivityIndicator size="large" color="#8c76f0" />
               <Text className="text-base text-gray-500 mt-2">Loading payment details...</Text>
             </View>
-          ) : kycStatus && !kycStatus.isVerified ? (
-            <View className="items-center justify-center py-8">
-              <View className="bg-white rounded-2xl border-2 border-yellow-300 p-6 items-center w-full max-w-sm">
-                <View className="w-16 h-16 bg-yellow-100 rounded-full items-center justify-center mb-4">
-                  <AlertCircle size={32} color="#ca8a04" />
-                </View>
-                <Text className="text-xl font-bold text-gray-900 mb-3 text-center">KYC Verification Required</Text>
-                <Text className="text-sm text-gray-700 mb-6 text-center">
-                  {kycStatus.status === 'not_submitted' && 'Please complete your KYC verification to make payments. You need to submit your PAN and Address details.'}
-                  {kycStatus.status === 'incomplete' && 'Your KYC submission is incomplete. Please complete all required sections to proceed.'}
-                  {kycStatus.status === 'pending' && 'Your KYC documents are under review. Please wait for admin approval before making payments.'}
-                  {kycStatus.status === 'rejected' && 'Your KYC verification was rejected. Please review the feedback and resubmit your documents.'}
-                </Text>
-                <TouchableOpacity
-                  onPress={() => navigate('/mobile/kyc-verification', { state: { userId, userEmail } })}
-                  className="px-6 py-3 bg-[#8c76f0] rounded-xl"
-                  activeOpacity={0.8}
-                >
-                  <Text className="text-white font-semibold">Go to KYC Verification</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
           ) : (
             <View className="gap-4 pb-24">
               {/* Step 1: Beneficiary */}
@@ -1371,8 +1349,7 @@ export default function MobileMakePayment() {
               ) : null}
 
               {/* Coupon Section */}
-              {chargeBreakdown && (
-                <View className="gap-2">
+              <View className="gap-2">
                   {appliedCoupon ? (
                     <View className="bg-green-50 border border-green-300 rounded-xl p-3 gap-2">
                       <View className="flex-row items-center justify-between">
@@ -1422,7 +1399,6 @@ export default function MobileMakePayment() {
                     </View>
                   )}
                 </View>
-              )}
 
               {/* Charge breakdown with coupon discount */}
               {calculating ? (
@@ -1467,12 +1443,24 @@ export default function MobileMakePayment() {
                 </View>
               ) : null}
 
+              {/* KYC notice above Pay Now */}
+              {kycStatus && !kycStatus.isVerified && (
+                <View className="bg-amber-50 border border-amber-300 rounded-xl p-3 flex-row items-start gap-2">
+                  <AlertCircle size={16} color="#d97706" />
+                  <Text className="text-sm text-amber-800 flex-1">
+                    {(kycStatus.status === 'not_submitted' || kycStatus.status === 'incomplete' || kycStatus.status === 'rejected')
+                      ? 'Please complete your KYC verification to make payments.'
+                      : 'Your KYC documents are under review. Please wait for admin approval before making payments.'}
+                  </Text>
+                </View>
+              )}
+
               {/* Submit */}
               <TouchableOpacity
                 onPress={handleConfirm}
-                disabled={submitting || calculating || uploadingBill}
+                disabled={submitting || calculating || uploadingBill || (kycStatus ? !kycStatus.isVerified : false)}
                 className="w-full bg-[#8c76f0] rounded-xl py-3.5"
-                style={{ opacity: submitting || calculating || uploadingBill ? 0.5 : 1 }}
+                style={{ opacity: submitting || calculating || uploadingBill || (kycStatus ? !kycStatus.isVerified : false) ? 0.5 : 1 }}
                 activeOpacity={0.7} delayPressIn={0}
               >
                 <Text className="text-white font-semibold text-center text-base">

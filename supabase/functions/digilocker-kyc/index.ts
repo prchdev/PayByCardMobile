@@ -1277,7 +1277,9 @@ Deno.serve(async (req: Request) => {
         }
       } else {
         const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-        const bridgeUrl = `${supabaseUrl}/functions/v1/digilocker-redirect`;
+        const bridgeUrl = platform === 'mobile'
+          ? `${supabaseUrl}/functions/v1/digilocker-redirect?platform=mobile`
+          : `${supabaseUrl}/functions/v1/digilocker-redirect`;
 
         // The redirect_uri sent to DigiLocker must match what's registered in
         // the DigiLocker dashboard — that's the saved redirect URI (bridge URL).

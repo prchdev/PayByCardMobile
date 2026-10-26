@@ -43,7 +43,10 @@ Deno.serve(async (req: Request) => {
 
   // Mobile detection: state prefixed with "um" (DigiLocker direct) or
   // platform=mobile query param (CashFree, which may not pass state back).
-  const isMobile = state.startsWith("um") || platformParam === "mobile";
+  // Also handle pre-authorized DigiLocker sessions where the consent step
+  // is skipped and state may not be echoed back — if we have a code but no
+  // state, treat it as mobile (web flow always includes state from get_auth_url).
+  const isMobile = state.startsWith("um") || platformParam === "mobile" || (!state && code && !verificationId);
 
   // Mobile: HTTP 302 redirect to the paybycard:// custom scheme.
   // Chrome Custom Tab intercepts this at the OS level via intent filters,
