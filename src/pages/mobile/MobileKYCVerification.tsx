@@ -781,8 +781,8 @@ export default function MobileKYCVerification() {
         });
         setDigiStep('success');
         removeItem(CODE_VERIFIER_KEY);
-        fetchKycStatus();
-        fetchKycData();
+        fetchKycStatus(true);
+        fetchKycData(true);
       } else if (data.error === 'DRIVING_LICENSE_UNAVAILABLE' || data.error === 'ADDRESS_PROOF_UNAVAILABLE') {
         logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'auto_approve_addr_unavailable', false, { error_code: data.error });
         setDigiAddrError(data.error);

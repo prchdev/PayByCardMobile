@@ -12,9 +12,12 @@ const corsHeaders = {
  * DigiLocker redirects to this HTTPS URL after the user authorizes.
  *
  * Mobile: The state starts with "um" (encoded by digilocker-kyc for mobile
- *   callers). Returns an HTTP 302 redirect to the paybycard:// custom scheme.
- *   Android's Chrome Custom Tab (opened via openAuthSessionAsync) intercepts
- *   HTTP redirects to custom schemes — it does NOT intercept JS redirects.
+ *   callers). Returns an HTML page that does a JavaScript redirect to the
+ *   paybycard:// custom scheme. Chrome Custom Tabs (opened via
+ *   openAuthSessionAsync) intercept JS-initiated navigations to custom
+ *   schemes, closing the tab and returning the URL to the app. A bare 302
+ *   redirect does NOT work reliably for chained redirects (DigiLocker →
+ *   bridge → app) because Chrome Custom Tabs may not follow the second hop.
  *
  * Web: The state starts with "uw" (or "m" for merchant). Returns an HTML page
  *   that sends postMessage to the opener window with { code, state } and then
@@ -48,16 +51,44 @@ Deno.serve(async (req: Request) => {
   // state, treat it as mobile (web flow always includes state from get_auth_url).
   const isMobile = state.startsWith("um") || platformParam === "mobile" || (!state && code && !verificationId);
 
-  // Mobile: HTTP 302 redirect to the paybycard:// custom scheme.
-  // Chrome Custom Tab intercepts this at the OS level via intent filters,
-  // causing openAuthSessionAsync to capture the URL and return it to the app.
+  // Mobile: return an HTML page that does a JS redirect to the paybycard://
+  // custom scheme. Chrome Custom Tabs intercept JS-initiated navigations to
+  // custom schemes, which closes the tab and returns the URL to
+  // openAuthSessionAsync. A bare 302 does not work for chained redirects.
   if (isMobile) {
     const appScheme = `paybycard://digilocker-callback?${params.toString()}`;
-    return new Response(null, {
-      status: 302,
+    const mobileHtml = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Completing...</title>
+<style>
+  body { font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9fafb; }
+  .card { text-align: center; padding: 2rem; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #e5e7eb; border-top-color: #8c76f0; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  p { color: #6b7280; font-size: 0.875rem; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="spinner"></div>
+  <p>Completing DigiLocker authorization...</p>
+</div>
+<script>
+(function() {
+  var appScheme = ${JSON.stringify(appScheme)};
+  window.location.replace(appScheme);
+})();
+</script>
+</body>
+</html>`;
+    return new Response(mobileHtml, {
+      status: 200,
       headers: {
         ...corsHeaders,
-        "Location": appScheme,
+        "Content-Type": "text/html; charset=utf-8",
       },
     });
   }
