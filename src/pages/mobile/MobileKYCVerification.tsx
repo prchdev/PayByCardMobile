@@ -231,8 +231,15 @@ async function logEvent(userId: string, provider: string, action: string, succes
 // ── Main Component ─────────────────────────────────────────────────────────────
 export default function MobileKYCVerification() {
   const { navigate, reset, route } = useNav();
-  const { userId, userEmail } = (route.params || {}) as { userId?: string; userEmail?: string };
+  const routeParams = (route.params || {}) as { userId?: string; userEmail?: string };
+  const { userId, userEmail } = routeParams;
   const { logout, sessionToken } = useAuth();
+
+  // Persist userId in a ref so it survives session-expiry clearing AuthContext.
+  // The DigiLocker browser flow can outlive the session token, and the
+  // fallback re-check (AppState listener / cancel handler) still needs the id.
+  const userIdRef = useRef<string | undefined>(userId);
+  useEffect(() => { if (userId) userIdRef.current = userId; }, [userId]);
 
   const [kycStatus, setKycStatus] = useState<string>('loading');
   const [loading, setLoading] = useState(true);
@@ -317,11 +324,11 @@ export default function MobileKYCVerification() {
       if (nextState === 'active' && browserOpenRef.current && !codeReceivedRef.current) {
         browserOpenRef.current = false;
         // The browser session may have been dismissed without intercepting the
-        // custom scheme redirect. Re-fetch KYC status in case the backend already
-        // processed the auto-approve via the bridge redirect.
-        fetchKycStatus();
-        fetchKycData();
-        // Reset the DigiLocker UI so the user sees the current status
+        // custom scheme redirect. Re-fetch KYC status using the ref userId so
+        // it works even if the session expired during the browser flow.
+        // Suppress session-expiry checks to avoid redirecting to login.
+        fetchKycStatus(true);
+        fetchKycData(true);
         if (stepRef.current === 'waiting_popup') {
           setDigiStep('idle');
           setDigiError('');
@@ -355,7 +362,15 @@ export default function MobileKYCVerification() {
 
   // ── Data fetching ───────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!userId) { navigate('/mobile/login'); return; }
+    if (!userId) {
+      // Don't redirect to login if the DigiLocker flow is mid-processing —
+      // the session may have expired during the browser tab, but we still
+      // have the route-param userId and can recover.
+      if (digiStep === 'idle' && !browserOpenRef.current && !codeReceivedRef.current) {
+        navigate('/mobile/login');
+      }
+      return;
+    }
     fetchKycStatus();
     fetchKycSettings();
     fetchKycProvider();
@@ -376,14 +391,16 @@ export default function MobileKYCVerification() {
     }
   }, [userId, kycStatus]);
 
-  const fetchKycStatus = async () => {
+  const fetchKycStatus = async (suppressSessionCheck = false) => {
+    const effectiveUserId = userId || userIdRef.current;
+    if (!effectiveUserId) return;
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/check-kyc-status`, {
         method: 'POST',
         headers: await buildAuthHeaders(),
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId: effectiveUserId }),
       });
-      await checkSessionExpired(res);
+      if (!suppressSessionCheck) await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setKycStatus(data.isVerified ? 'verified' : data.status || 'not_started');
       else setKycStatus('not_started');
@@ -416,14 +433,16 @@ export default function MobileKYCVerification() {
     } catch {}
   };
 
-  const fetchKycData = async () => {
+  const fetchKycData = async (suppressSessionCheck = false) => {
+    const effectiveUserId = userId || userIdRef.current;
+    if (!effectiveUserId) return;
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-kyc-data`, {
         method: 'POST',
         headers: await buildAuthHeaders(),
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId: effectiveUserId }),
       });
-      await checkSessionExpired(res);
+      if (!suppressSessionCheck) await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) {
         setKycData(data);
@@ -647,10 +666,11 @@ export default function MobileKYCVerification() {
       } else if (result.type === 'cancel' || result.type === 'dismiss') {
         // Browser was closed without intercepting the redirect. The bridge
         // function may have already processed the auto-approve server-side.
-        // Re-check KYC status instead of blindly resetting to idle.
+        // Re-check KYC status using ref userId, suppressing session-expiry
+        // checks so we don't redirect to login during the DigiLocker flow.
         if (!codeReceivedRef.current) {
-          fetchKycStatus();
-          fetchKycData();
+          fetchKycStatus(true);
+          fetchKycData(true);
           setDigiStep('idle');
           setDigiError('');
         }
