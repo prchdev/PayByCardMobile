@@ -1103,26 +1103,6 @@ export default function MobileMakePayment() {
             <View className="gap-4 pb-24">
               {/* Step 1: Beneficiary */}
               <View>
-                {!allowCreditCard && beneficiaries.some(isCreditCardBeneficiary) && (
-                  <View className="bg-amber-50 border border-amber-300 rounded-xl px-3 py-2.5 mb-2">
-                    <View className="flex-row items-start gap-2.5">
-                      <AlertCircle size={18} color="#d97706" />
-                      <Text className="text-sm font-medium text-amber-800 leading-relaxed flex-1">
-                        Credit Card Bill Payments Are Not Allowed. Credit card beneficiaries have been hidden from the list.
-                      </Text>
-                    </View>
-                  </View>
-                )}
-                {!allowSelfTransfer && beneficiaries.some(isSelfTransferBeneficiary) && (
-                  <View className="bg-amber-50 border border-amber-300 rounded-xl px-3 py-2.5 mb-2">
-                    <View className="flex-row items-start gap-2.5">
-                      <AlertCircle size={18} color="#d97706" />
-                      <Text className="text-sm font-medium text-amber-800 leading-relaxed flex-1">
-                        Self-account transfers are not allowed. Beneficiaries matching your own account details have been hidden from the list.
-                      </Text>
-                    </View>
-                  </View>
-                )}
                 <Text className="text-sm font-semibold text-gray-700 mb-2">1. Select Beneficiary *</Text>
                 <TouchableOpacity
                   onPress={() => { setShowBeneficiaryList(!showBeneficiaryList); setShowCategoryList(false); setShowOptionList(false); }}
