@@ -947,9 +947,7 @@ export default function MobileMakePayment() {
   if (paymentResult) {
     const isSuccess = paymentResult.success;
     const isPending = !isSuccess && paymentResult.message.includes('being processed');
-    const isKycPending = isSuccess &&
-      (paymentResult.message.includes('KYC / Onboarding') ||
-        (selectedCat?.receiver_kyc_required === true && selectedBen?.is_verified_merchant !== true));
+    const isKycPending = isSuccess && paymentResult.message.includes('KYC / Onboarding');
     return (
       <MobileLayout userId={userId} userEmail={userEmail} onLogout={handleLogout}>
         <View className="px-4 py-6 items-center">
