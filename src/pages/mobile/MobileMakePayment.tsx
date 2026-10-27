@@ -18,6 +18,7 @@ import { getErrorMessage } from '../../utils/errorMessage';
 import { getDeviceId } from '../../utils/deviceId';
 import { buildAuthHeaders, checkSessionExpired } from '../../utils/api';
 import { getSessionItem } from '../../utils/secureStorage';
+import { isCreditCardIfsc, looksLikeCreditCardNumber } from '../../utils/beneficiaryValidation';
 
 interface Beneficiary {
   id: string;
@@ -161,6 +162,7 @@ export default function MobileMakePayment() {
   const [checkoutHtml, setCheckoutHtml] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutPaymentInfo, setCheckoutPaymentInfo] = useState<any>(null);
+  const [allowCreditCard, setAllowCreditCard] = useState(true);
 
   const pickBillFile = async () => {
     try {
@@ -221,8 +223,21 @@ export default function MobileMakePayment() {
 
   useEffect(() => {
     if (!userId) { navigate('/mobile/login'); return; }
+    fetchCompanySettings();
     Promise.all([fetchBeneficiaries(), fetchCategories(), fetchPaymentOptions(), fetchGateways(), fetchPaymentLimits(), fetchKycStatus()]).finally(() => setLoading(false));
   }, [userId]);
+
+  const fetchCompanySettings = async () => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-company-settings`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (data.settings) setAllowCreditCard(!!data.settings.allow_credit_card_payment);
+    } catch {}
+  };
 
   const fetchKycStatus = async () => {
     try {
@@ -301,6 +316,9 @@ export default function MobileMakePayment() {
   };
 
   const selectedOpt = paymentOptions.find(o => o.id === selectedOption);
+  const isCreditCardBeneficiary = (b: Beneficiary): boolean =>
+    isCreditCardIfsc(b.ifsc) || looksLikeCreditCardNumber(b.bank_account);
+  const visibleBeneficiaries = beneficiaries.filter((b) => allowCreditCard || !isCreditCardBeneficiary(b));
   const selectedBen = beneficiaries.find(b => b.id === selectedBeneficiary);
   const isBusiness = selectedBen?.account_type === 'Current';
   const selectedGateway = selectedOpt ? gateways.find(g => g.id === selectedOpt.gateway_id) : undefined;
@@ -1034,6 +1052,16 @@ export default function MobileMakePayment() {
             <View className="gap-4 pb-24">
               {/* Step 1: Beneficiary */}
               <View>
+                {!allowCreditCard && beneficiaries.some(isCreditCardBeneficiary) && (
+                  <View className="bg-amber-50 border border-amber-300 rounded-xl px-3 py-2.5 mb-2">
+                    <View className="flex-row items-start gap-2.5">
+                      <AlertCircle size={18} color="#d97706" />
+                      <Text className="text-sm font-medium text-amber-800 leading-relaxed flex-1">
+                        Credit Card Bill Payments Are Not Allowed. Credit card beneficiaries have been hidden from the list.
+                      </Text>
+                    </View>
+                  </View>
+                )}
                 <Text className="text-sm font-semibold text-gray-700 mb-2">1. Select Beneficiary *</Text>
                 <TouchableOpacity
                   onPress={() => { setShowBeneficiaryList(!showBeneficiaryList); setShowCategoryList(false); setShowOptionList(false); }}
@@ -1055,14 +1083,14 @@ export default function MobileMakePayment() {
                         </TouchableOpacity>
                       </View>
                       <ScrollView nestedScrollEnabled>
-                        {beneficiaries.length === 0 ? (
+                        {visibleBeneficiaries.length === 0 ? (
                           <View className="p-4 items-center">
                             <Text className="text-base text-gray-500">No active beneficiaries yet</Text>
                             <TouchableOpacity onPress={() => { setShowBeneficiaryList(false); navigate('/mobile/my-beneficiaries', { state: { userId, userEmail } }); }} activeOpacity={0.7} delayPressIn={0}>
                               <Text className="text-sm text-[#8c76f0] font-semibold mt-1.5">Add Payee</Text>
                             </TouchableOpacity>
                           </View>
-                        ) : beneficiaries.map((b) => (
+                        ) : visibleBeneficiaries.map((b) => (
                           <TouchableOpacity
                             key={b.id}
                             onPress={() => { selection(); setSelectedBeneficiary(b.id); setShowBeneficiaryList(false); }}
