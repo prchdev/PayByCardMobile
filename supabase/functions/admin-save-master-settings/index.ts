@@ -31,6 +31,8 @@ Deno.serve(async (req: Request) => {
       bank_branch_name,
       bank_name,
       bank_account_type,
+      allow_self_transfer,
+      allow_credit_card_payment,
     } = await req.json();
 
     if (!adminId) {
@@ -75,6 +77,8 @@ Deno.serve(async (req: Request) => {
       bank_branch_name: bank_branch_name || "",
       bank_name: bank_name || "",
       bank_account_type: bank_account_type || "current",
+      allow_self_transfer: !!allow_self_transfer,
+      allow_credit_card_payment: !!allow_credit_card_payment,
       updated_by: adminId,
       updated_at: new Date().toISOString(),
     };

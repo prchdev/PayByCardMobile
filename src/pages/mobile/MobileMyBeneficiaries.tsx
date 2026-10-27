@@ -44,6 +44,8 @@ export default function MobileMyBeneficiaries() {
   const [kycStatus, setKycStatus] = useState<{ isVerified: boolean; status: string; isRestricted?: boolean } | null>(null);
   const [isCheckingKyc, setIsCheckingKyc] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [allowCreditCard, setAllowCreditCard] = useState(false);
+  const [allowSelfTransfer, setAllowSelfTransfer] = useState(false);
 
   const [formData, setFormData] = useState({
     full_name: '',
@@ -63,8 +65,24 @@ export default function MobileMyBeneficiaries() {
 
   useEffect(() => {
     if (!userId) { navigate('/mobile/login'); return; }
+    fetchCompanySettings();
     checkKycStatus();
   }, [userId]);
+
+  const fetchCompanySettings = async () => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-company-settings`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (data.settings) {
+        setAllowCreditCard(!!data.settings.allow_credit_card_payment);
+        setAllowSelfTransfer(!!data.settings.allow_self_transfer);
+      }
+    } catch {}
+  };
 
   const checkKycStatus = async () => {
     try {
@@ -163,11 +181,11 @@ export default function MobileMyBeneficiaries() {
     if (!formData.bank_name || !formData.branch_name) { setError('Please validate IFSC code before submitting'); return; }
     if (ifscError) { setError('Please fix IFSC code errors before submitting'); return; }
 
-    if (isCreditCardIfsc(formData.ifsc)) {
+    if (!allowCreditCard && isCreditCardIfsc(formData.ifsc)) {
       setError('This IFSC code is for credit card bill payments. Adding credit card accounts as beneficiaries is not allowed.');
       return;
     }
-    if (looksLikeCreditCardNumber(formData.bank_account)) {
+    if (!allowCreditCard && looksLikeCreditCardNumber(formData.bank_account)) {
       setError('The account number entered appears to be a credit card number. Credit card bill payments are not allowed through this platform.');
       return;
     }
@@ -523,14 +541,20 @@ export default function MobileMyBeneficiaries() {
                   <Text className="text-sm font-semibold text-gray-900">Bank Details</Text>
                 </View>
 
-                <View className="bg-amber-50 border border-amber-300 rounded-xl px-3 py-2.5 mb-4">
-                  <View className="flex-row items-start gap-2.5">
-                    <AlertCircle size={18} color="#d97706" />
-                    <Text className="text-sm font-medium text-amber-800 leading-relaxed flex-1">
-                      Transfer of Money to Your Own Bank Account and Credit Card Bill Payments Are Not Allowed.
-                    </Text>
+                {(!allowSelfTransfer || !allowCreditCard) ? (
+                  <View className="bg-amber-50 border border-amber-300 rounded-xl px-3 py-2.5 mb-4">
+                    <View className="flex-row items-start gap-2.5">
+                      <AlertCircle size={18} color="#d97706" />
+                      <Text className="text-sm font-medium text-amber-800 leading-relaxed flex-1">
+                        {!allowSelfTransfer && !allowCreditCard
+                          ? 'Transfer of Money to Your Own Bank Account and Credit Card Bill Payments Are Not Allowed.'
+                          : !allowSelfTransfer
+                            ? 'Transfer of Money to Your Own Bank Account Is Not Allowed.'
+                            : 'Credit Card Bill Payments Are Not Allowed.'}
+                      </Text>
+                    </View>
                   </View>
-                </View>
+                ) : null}
 
                 <View className="gap-4">
                   <View>

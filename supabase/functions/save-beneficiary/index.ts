@@ -120,41 +120,33 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // ── Fetch master settings for feature flags ───────────────────────────────
+    const { data: masterSettings } = await supabase
+      .from('master_settings')
+      .select('allow_self_transfer, allow_credit_card_payment')
+      .limit(1)
+      .maybeSingle();
+    const allowCreditCard = !!masterSettings?.allow_credit_card_payment;
+    const allowSelfTransfer = !!masterSettings?.allow_self_transfer;
+
     // ── Credit card bill payment detection ─────────────────────────────────────
-    const CREDIT_CARD_IFSCS = new Set([
-      'ICIC0000104', 'ICIC0000105', 'ICIC0000106',
-      'HDFC0000207', 'HDFC0000208',
-      'SBIN0003833',
-      'UTIB0000450',
-      'YESB0000001',
-      'KKBK0000801', 'KKBK0000802',
-      'SCBL0032001',
-      'BARB0VIPCARD',
-      'CIUB0000001',
-    ]);
+    if (!allowCreditCard) {
+      const CREDIT_CARD_IFSCS = new Set([
+        'ICIC0000104', 'ICIC0000105', 'ICIC0000106',
+        'HDFC0000207', 'HDFC0000208',
+        'SBIN0003833',
+        'UTIB0000450',
+        'YESB0000001',
+        'KKBK0000801', 'KKBK0000802',
+        'SCBL0032001',
+        'BARB0VIPCARD',
+        'CIUB0000001',
+      ]);
 
-    if (CREDIT_CARD_IFSCS.has(ifscUpper)) {
-      return new Response(
-        JSON.stringify({
-          error: 'This IFSC code is for credit card bill payments. Adding credit card accounts as beneficiaries is not allowed.',
-          credit_card: true,
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    const accountDigits = bank_account.replace(/[\s-]/g, '');
-    if (/^\d{15,16}$/.test(accountDigits)) {
-      const first = accountDigits[0];
-      const len = accountDigits.length;
-      const isCreditCard = first === '4' || (first === '5' && len === 16) || (first === '6' && len === 16);
-      if (isCreditCard) {
+      if (CREDIT_CARD_IFSCS.has(ifscUpper)) {
         return new Response(
           JSON.stringify({
-            error: 'The account number entered appears to be a credit card number. Credit card bill payments are not allowed through this platform.',
+            error: 'This IFSC code is for credit card bill payments. Adding credit card accounts as beneficiaries is not allowed.',
             credit_card: true,
           }),
           {
@@ -162,6 +154,25 @@ Deno.serve(async (req: Request) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         );
+      }
+
+      const accountDigits = bank_account.replace(/[\s-]/g, '');
+      if (/^\d{15,16}$/.test(accountDigits)) {
+        const first = accountDigits[0];
+        const len = accountDigits.length;
+        const isCreditCard = first === '4' || (first === '5' && len === 16) || (first === '6' && len === 16);
+        if (isCreditCard) {
+          return new Response(
+            JSON.stringify({
+              error: 'The account number entered appears to be a credit card number. Credit card bill payments are not allowed through this platform.',
+              credit_card: true,
+            }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          );
+        }
       }
     }
 
@@ -250,7 +261,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Block if any individual identity field matches the logged-in user
-    if (nameMatch || emailMatch || mobileMatch || panMatch) {
+    if (!allowSelfTransfer && (nameMatch || emailMatch || mobileMatch || panMatch)) {
       const matchedField = nameMatch ? 'name'
         : panMatch ? 'PAN number'
         : emailMatch ? 'email address'
