@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Share, Clipboard } from 'react-native';
-import { CircleCheck as CheckCircle, ArrowUpRight, Users, Clock, CircleAlert as AlertCircle, Circle as XCircle, RefreshCw, Factory as History, TrendingUp, Hourglass, Hash, Landmark, Bell, Info, Gift, Copy, Check, Share as ShareIcon } from 'lucide-react-native';
+import { ArrowUpRight, Users, Clock, CircleAlert as AlertCircle, Circle as XCircle, RefreshCw, Factory as History, TrendingUp, Hourglass, Hash, Landmark, Bell, Info, Gift, Copy, Check, Share as ShareIcon } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { impact } from '../../utils/haptics';
@@ -204,15 +204,7 @@ export default function MobileDashboard() {
 
         {!isCheckingKyc && kycStatus && (
           <>
-            {kycStatus.isVerified ? (
-              <View className="bg-green-50 border border-green-400 rounded-xl p-3 flex-row items-start gap-2.5">
-                <CheckCircle size={20} color="#16a34a" />
-                <View>
-                  <Text className="text-base font-semibold text-green-900">Account Verified</Text>
-                  <Text className="text-sm text-green-700 mt-1">KYC complete. All features unlocked.</Text>
-                </View>
-              </View>
-            ) : kycStatus.status === 'pending' ? (
+            {kycStatus.isVerified ? null : kycStatus.status === 'pending' ? (
               <View className="bg-blue-50 border border-blue-400 rounded-xl p-3 flex-row items-start gap-2.5">
                 <Clock size={20} color="#2563eb" />
                 <View className="flex-1">
