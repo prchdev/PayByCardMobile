@@ -34,7 +34,7 @@
       }
     },
     "android": {
-      "versionCode": 99,
+      "versionCode": 100,
       "compileSdkVersion": 36,
       "targetSdkVersion": 36,
       "adaptiveIcon": {
