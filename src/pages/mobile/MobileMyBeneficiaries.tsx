@@ -178,6 +178,9 @@ export default function MobileMyBeneficiaries() {
     if (!/^[A-Za-z0-9]+$/.test(accountClean)) { setError('Account Number may only contain letters, numbers, spaces, and hyphens.'); return; }
     if (accountClean.length < 6 || accountClean.length > 20) { setError('Account Number must be 6–20 characters.'); return; }
 
+    if (!formData.pan_number.trim()) { setError('PAN Number is required.'); return; }
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(formData.pan_number.trim())) { setError('Please enter a valid 10-character PAN number (e.g. ABCDE1234F).'); return; }
+
     if (!formData.bank_name || !formData.branch_name) { setError('Please validate IFSC code before submitting'); return; }
     if (ifscError) { setError('Please fix IFSC code errors before submitting'); return; }
 
@@ -521,7 +524,7 @@ export default function MobileMyBeneficiaries() {
                   </View>
 
                   <View>
-                    <Text className="text-sm font-medium text-gray-700 mb-1.5">PAN Number (Optional)</Text>
+                    <Text className="text-sm font-medium text-gray-700 mb-1.5">PAN Number <Text className="text-red-600">*</Text></Text>
                     <TextInput
                       value={formData.pan_number}
                       onChangeText={(v) => setFormData({ ...formData, pan_number: v.toUpperCase() })}

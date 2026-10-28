@@ -247,6 +247,7 @@ export default function MobileKYCVerification() {
   const [kycMethod, setKycMethod] = useState<'select' | 'digilocker' | 'manual'>('select');
   const [error, setError] = useState('');
   const [kycSettings, setKycSettings] = useState<{ digilocker_enabled: boolean; manual_enabled: boolean }>({ digilocker_enabled: false, manual_enabled: true });
+  const [allowManualKyc, setAllowManualKyc] = useState(true);
   const [kycProvider, setKycProvider] = useState<{ provider_name: string } | null>(null);
   const [uploadingField, setUploadingField] = useState<string | null>(null);
 
@@ -374,6 +375,7 @@ export default function MobileKYCVerification() {
     fetchKycStatus();
     fetchKycSettings();
     fetchKycProvider();
+    fetchCompanySettings();
   }, [userId]);
 
   // Handle Android hardware back button — go to Dashboard, not Login
@@ -418,6 +420,18 @@ export default function MobileKYCVerification() {
       await checkSessionExpired(res);
       const data = await res.json();
       if (res.ok) setKycSettings(data);
+    } catch {}
+  };
+
+  const fetchCompanySettings = async () => {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/get-company-settings`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (res.ok && data.settings) setAllowManualKyc(data.settings.allow_manual_kyc ?? true);
     } catch {}
   };
 
@@ -1447,7 +1461,7 @@ export default function MobileKYCVerification() {
                 <ChevronRight size={20} color="#9ca3af" />
               </TouchableOpacity>
             )}
-            {kycSettings.manual_enabled && (
+            {kycSettings.manual_enabled && allowManualKyc && (
               <TouchableOpacity
                 onPress={() => { setError(''); setKycMethod('manual'); }}
                 className="flex-row items-center gap-3 p-4 bg-white rounded-2xl border border-gray-200"
@@ -1463,7 +1477,7 @@ export default function MobileKYCVerification() {
                 <ChevronRight size={20} color="#9ca3af" />
               </TouchableOpacity>
             )}
-            {!kycSettings.digilocker_enabled && !kycSettings.manual_enabled && (
+            {!kycSettings.digilocker_enabled && !(kycSettings.manual_enabled && allowManualKyc) && (
               <View className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                 <Text className="text-sm text-amber-700">KYC methods are currently unavailable. Please contact support.</Text>
               </View>
