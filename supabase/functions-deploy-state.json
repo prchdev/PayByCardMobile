@@ -459,7 +459,7 @@
     },
     "resend-otp": {
       "hasChanged": false,
-      "hash": "17b55c52093d4dc13a99bfd83ab9f9acaac9a7f9f56ee876e8923b30ca672b33"
+      "hash": "a9c562b3724c552a45aae719b813beda704eddf8f5d2f011264766babb1ec378"
     },
     "save-beneficiary": {
       "hasChanged": false,
@@ -571,7 +571,7 @@
     },
     "verify-otp": {
       "hasChanged": false,
-      "hash": "9817b4769b6eb18913c99a5292d4d53ba2d42be0452d97fdcbd01a812b37abb5e837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
+      "hash": "d0e79def87c2a15fdc77467890da10583fbc4b32e0fca074c7f4727e6f2fda36e837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
     },
     "waf-validate": {
       "hasChanged": false,
