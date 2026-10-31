@@ -57,6 +57,19 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const { data: fullUser } = await supabase
+      .from('users')
+      .select('is_disabled')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (fullUser?.is_disabled) {
+      return new Response(
+        JSON.stringify({ error: 'Your account has been disabled by our compliance team. Please raise a support ticket for assistance.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const newOTP = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 

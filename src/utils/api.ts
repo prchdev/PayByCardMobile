@@ -11,12 +11,9 @@ export function setSessionExpiredHandler(fn: () => void) {
 
 export async function checkSessionExpired(res: Response): Promise<void> {
   if (res.status !== 401) return;
-  try {
-    const data = await res.clone().json();
-    if (data?.code === 'SESSION_INVALID' && sessionExpiredHandler) {
-      sessionExpiredHandler();
-    }
-  } catch {}
+  if (sessionExpiredHandler) {
+    sessionExpiredHandler();
+  }
 }
 
 export interface ApiFetchOptions {

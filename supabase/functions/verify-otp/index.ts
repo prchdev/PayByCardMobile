@@ -57,6 +57,19 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    const { data: userRecord } = await supabase
+      .from('users')
+      .select('is_disabled')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userRecord?.is_disabled) {
+      return new Response(
+        JSON.stringify({ error: 'Your account has been disabled by our compliance team. Please raise a support ticket for assistance.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // F20: Reject after 5 failed attempts.
     if (otpRecord.attempts >= 5) {
       return new Response(

@@ -154,7 +154,6 @@ Deno.serve(async (req: Request) => {
     }
 
     const isFullyVerified = user.is_mobile_verified && user.is_email_verified;
-    const sessionToken = await issueSessionToken("user", user.id);
 
     if (!isFullyVerified) {
       const mobileOTP = generateOTP();
@@ -265,7 +264,6 @@ Deno.serve(async (req: Request) => {
           kycCompleted: user.kyc_completed,
           needsVerification: true,
           message: 'OTPs sent to mobile and email for verification.',
-          sessionToken,
         }),
         {
           status: 200,
@@ -273,6 +271,8 @@ Deno.serve(async (req: Request) => {
         }
       );
     }
+
+    const sessionToken = await issueSessionToken("user", user.id);
 
     return new Response(
       JSON.stringify({

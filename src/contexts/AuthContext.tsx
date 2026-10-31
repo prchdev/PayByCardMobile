@@ -19,7 +19,7 @@ interface AuthContextType {
   isRemembered: boolean;
   rememberedEmail: string | null;
   hasBiometric: boolean;
-  login: (userId: string, email: string, sessionToken?: string) => void;
+  login: (userId: string, email: string, sessionToken: string) => void;
   biometricUnlock: () => Promise<{ userId: string; email: string } | null>;
   logout: () => void;
   clearRememberedSession: () => void;
@@ -106,11 +106,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const storedEmail = await getSessionItem(SESSION_USER_EMAIL);
       const storedToken = await getSessionItem(SESSION_TOKEN_KEY);
 
-      if (mounted && storedUserId && storedEmail) {
+      if (mounted && storedUserId && storedEmail && storedToken) {
         setIsAuthenticated(true);
         setUserId(storedUserId);
         setUserEmail(storedEmail);
-        if (storedToken) setSessionToken(storedToken);
+        setSessionToken(storedToken);
 
         // Re-register push token on every app launch (Expo tokens can change)
         registerPushTokenWithBackend(storedUserId, storedToken);
@@ -149,21 +149,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const login = (id: string, email: string, token?: string) => {
+  const login = (id: string, email: string, token: string) => {
     (async () => {
       await setSessionItem(SESSION_USER_ID, id);
       await setSessionItem(SESSION_USER_EMAIL, email);
-      if (token) await setSessionItem(SESSION_TOKEN_KEY, token);
+      await setSessionItem(SESSION_TOKEN_KEY, token);
       await setItem(REMEMBERED_KEY, JSON.stringify({ userId: id, email, sessionToken: token }));
 
       // Register push token with backend after login
-      registerPushTokenWithBackend(id, token ?? null);
+      registerPushTokenWithBackend(id, token);
     })();
 
     setIsAuthenticated(true);
     setUserId(id);
     setUserEmail(email);
-    if (token) setSessionToken(token);
+    setSessionToken(token);
     setIsRemembered(true);
     setRememberedEmail(email);
 

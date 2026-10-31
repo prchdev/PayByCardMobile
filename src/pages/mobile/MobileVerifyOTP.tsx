@@ -61,6 +61,10 @@ export default function MobileVerifyOTP() {
         body: JSON.stringify({ userId, type }),
       });
       const data = await res.json();
+      if (res.status === 403) {
+        setError(data.error || 'Your account has been disabled. Please contact support.');
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to resend OTP');
       if (type === 'mobile') { setMobileTimer(30); setMobileOTP(['', '', '', '', '', '']); }
       else { setEmailTimer(30); setEmailOTP(['', '', '', '', '', '']); }
@@ -88,6 +92,10 @@ export default function MobileVerifyOTP() {
         body: JSON.stringify({ userId, mobileOTP: mStr, emailOTP: eStr }),
       });
       const data = await res.json();
+      if (res.status === 403) {
+        setError(data.error || 'Your account has been disabled. Please contact support.');
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'OTP verification failed');
       login(userId!, email!, data.sessionToken);
       navigate('/mobile/dashboard', { state: { userId, userEmail: email } });
