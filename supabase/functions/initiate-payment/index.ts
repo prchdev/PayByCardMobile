@@ -67,11 +67,12 @@ Deno.serve(async (req: Request) => {
     if (!userId) return err("Unauthorized: userId is required", 401);
     const { data: userRow, error: userErr } = await supabase
       .from("users")
-      .select("id, is_disabled")
+      .select("id, is_disabled, is_restricted")
       .eq("id", userId)
       .maybeSingle();
     if (userErr || !userRow) return err("Unauthorized", 401);
     if (userRow.is_disabled) return err("Account is disabled", 403);
+    if (userRow.is_restricted) return err("Your account has been restricted by our compliance team. Please raise a support ticket for assistance.", 403);
 
     if (!beneficiaryId || !paymentOptionId || !gatewayId || !cardType || !amount || !totalAmount) {
       return err("Required fields are missing");

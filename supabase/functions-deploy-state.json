@@ -347,7 +347,7 @@
     },
     "initiate-payment": {
       "hasChanged": false,
-      "hash": "4acfeaf55b02a1f38380e4abda2bccb5d5a107f3adaef92dee55cf99678da120"
+      "hash": "9683ff400295f68a63599f809b0af9c9549a12b4c347e294e2ec5fa2b5d1b768"
     },
     "log-digilocker-event": {
       "hasChanged": false,
@@ -463,7 +463,7 @@
     },
     "save-beneficiary": {
       "hasChanged": false,
-      "hash": "942a01d76ccc5cc327858f544f9eb354684d643332b923febfac14ea91cf9475"
+      "hash": "c660d248e99c43553ee3d075d932cb12b6be07fff4317f213b95f59ba3420242"
     },
     "save-kyc-data": {
       "hasChanged": false,
