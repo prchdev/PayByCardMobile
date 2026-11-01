@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Modal, Platform, Linking, AppState } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, Platform, Linking } from 'react-native';
 import Constants from 'expo-constants';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
 import { getItem, setItem } from './secureStorage';
@@ -148,15 +148,6 @@ export function useAppStatusGuard() {
     checkedRef.current = true;
     checkStatus();
   }, [checkStatus]);
-
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && !blockReason) {
-        checkStatus();
-      }
-    });
-    return () => sub.remove();
-  }, [blockReason, checkStatus]);
 
   return { blockReason, checking, retry: checkStatus };
 }
