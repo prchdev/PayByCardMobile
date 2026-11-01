@@ -80,6 +80,7 @@
         }
       ],
       "./plugins/withProguard",
+      "./plugins/withNetworkSecurity",
       [
         "expo-build-properties",
         {
@@ -89,7 +90,11 @@
             "minifyEnabled": true,
             "shrinkResources": true,
             "enableProguardInReleaseBuilds": true,
-            "enableMinifyInReleaseBuilds": true
+            "enableMinifyInReleaseBuilds": true,
+            "usesCleartextTraffic": false
+          },
+          "ios": {
+            "useFrameworks": "static"
           }
         }
       ],

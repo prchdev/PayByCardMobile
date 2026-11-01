@@ -344,6 +344,7 @@ export default function MobileKYCVerification() {
   useEffect(() => {
     if (Platform.OS !== 'web') return;
     const handler = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
       if (!event.data || event.data.type !== 'digilocker_callback') return;
       if (codeReceivedRef.current) return;
       const code: string = event.data.code || '';

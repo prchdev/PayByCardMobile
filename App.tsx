@@ -2,7 +2,7 @@
 
 import './src/native-styles.css';
 import { useRef, useEffect, useState } from 'react';
-import { Platform, BackHandler } from 'react-native';
+import { Platform, BackHandler, View, Text, TouchableOpacity, Modal } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Notifications from 'expo-notifications';
 import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
@@ -13,6 +13,7 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { setNativeNavigationRef } from './src/utils/navigation';
 import { setupNotifications, requestNotificationPermission, registerForPushNotifications, registerNotificationListeners, unregisterNotificationListeners } from './src/utils/notifications';
 import { useAppStatusGuard, AppBlockModal } from './src/utils/appStatusGuard';
+import { checkDeviceSecurity } from './src/utils/rootDetection';
 import type { RootStackParamList } from './src/types/navigation';
 
 import MobileHome from './src/pages/mobile/MobileHome';
@@ -40,7 +41,15 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function App() {
   const navRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
   const [appReady, setAppReady] = useState(false);
-  const { blockReason, checking } = useAppStatusGuard();
+  const [securityWarning, setSecurityWarning] = useState<string | null>(null);
+  const { blockReason, checking, retry } = useAppStatusGuard();
+
+  useEffect(() => {
+    (async () => {
+      const secState = await checkDeviceSecurity();
+      if (secState.message) setSecurityWarning(secState.message);
+    })();
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -130,12 +139,34 @@ export default function App() {
           </Stack.Navigator>
         </NavigationContainer>
       </AuthProvider>
+      {securityWarning && (
+        <Modal visible transparent animationType="fade" style={{ zIndex: 9998 }}>
+          <View className="flex-1 bg-black/60 justify-center items-center p-6">
+            <View className="bg-white rounded-2xl p-6 w-full max-w-sm gap-4">
+              <Text className="text-lg font-bold text-gray-900 text-center">Security Warning</Text>
+              <Text className="text-sm text-gray-600 text-center">{securityWarning}</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  if (Platform.OS !== 'web') {
+                    BackHandler.exitApp();
+                  }
+                }}
+                className="w-full bg-[#8c76f0] rounded-xl py-3.5"
+                activeOpacity={0.7}
+                delayPressIn={0}
+              >
+                <Text className="text-white font-semibold text-center text-base">Exit App</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
       {blockReason && (
         <AppBlockModal blockReason={blockReason} onOkay={() => {
           if (Platform.OS !== 'web') {
             BackHandler.exitApp();
           }
-        }} />
+        }} onRetry={retry} />
       )}
     </GestureHandlerRootView>
   );

@@ -31,6 +31,8 @@ const REMEMBERED_KEY = 'pbc_remembered_session';
 const SESSION_USER_ID = 'userId';
 const SESSION_USER_EMAIL = 'userEmail';
 const SESSION_TOKEN_KEY = 'pbc_session';
+const SESSION_TIMESTAMP_KEY = 'pbc_session_timestamp';
+const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 async function registerPushTokenWithBackend(userId: string, sessionToken: string | null): Promise<void> {
   try {
@@ -107,13 +109,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const storedToken = await getSessionItem(SESSION_TOKEN_KEY);
 
       if (mounted && storedUserId && storedEmail && storedToken) {
-        setIsAuthenticated(true);
-        setUserId(storedUserId);
-        setUserEmail(storedEmail);
-        setSessionToken(storedToken);
+        // Check if the stored session is older than 30 days — if so, clear it
+        const storedTimestamp = await getSessionItem(SESSION_TIMESTAMP_KEY);
+        const sessionAge = storedTimestamp ? Date.now() - parseInt(storedTimestamp, 10) : Infinity;
+        if (sessionAge >= SESSION_MAX_AGE_MS) {
+          await removeSessionItem(SESSION_USER_ID);
+          await removeSessionItem(SESSION_USER_EMAIL);
+          await removeSessionItem(SESSION_TOKEN_KEY);
+          await removeSessionItem(SESSION_TIMESTAMP_KEY);
+          await removeSessionItem('isRestricted');
+        } else {
+          setIsAuthenticated(true);
+          setUserId(storedUserId);
+          setUserEmail(storedEmail);
+          setSessionToken(storedToken);
 
-        // Re-register push token on every app launch (Expo tokens can change)
-        registerPushTokenWithBackend(storedUserId, storedToken);
+          // Re-register push token on every app launch (Expo tokens can change)
+          registerPushTokenWithBackend(storedUserId, storedToken);
+        }
       }
 
       try {
@@ -140,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await removeSessionItem(SESSION_USER_ID);
         await removeSessionItem(SESSION_USER_EMAIL);
         await removeSessionItem(SESSION_TOKEN_KEY);
+        await removeSessionItem(SESSION_TIMESTAMP_KEY);
         await removeSessionItem('isRestricted');
       })();
       setIsAuthenticated(false);
@@ -154,6 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await setSessionItem(SESSION_USER_ID, id);
       await setSessionItem(SESSION_USER_EMAIL, email);
       await setSessionItem(SESSION_TOKEN_KEY, token);
+      await setSessionItem(SESSION_TIMESTAMP_KEY, String(Date.now()));
       await setItem(REMEMBERED_KEY, JSON.stringify({ userId: id, email, sessionToken: token }));
 
       // Register push token with backend after login
@@ -200,10 +215,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             body: JSON.stringify({ userId: parsed.userId }),
           });
           if (res.status === 401) {
+            await removeItem(REMEMBERED_KEY);
             await removeSessionItem(SESSION_USER_ID);
             await removeSessionItem(SESSION_USER_EMAIL);
             await removeSessionItem(SESSION_TOKEN_KEY);
+            await removeSessionItem(SESSION_TIMESTAMP_KEY);
             await removeSessionItem('isRestricted');
+            setIsRemembered(false);
+            setRememberedEmail(null);
             setIsAuthenticated(false);
             setUserId(null);
             setUserEmail(null);
@@ -211,7 +230,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return null;
           }
         } catch {
-          // Network error — allow unlock, the dashboard will handle errors
+          // Network error — do NOT restore session; force re-login for safety
+          await removeSessionItem(SESSION_USER_ID);
+          await removeSessionItem(SESSION_USER_EMAIL);
+          await removeSessionItem(SESSION_TOKEN_KEY);
+          await removeSessionItem(SESSION_TIMESTAMP_KEY);
+          setIsAuthenticated(false);
+          setUserId(null);
+          setUserEmail(null);
+          setSessionToken(null);
+          return null;
         }
       }
 
@@ -239,6 +267,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await removeSessionItem(SESSION_USER_ID);
       await removeSessionItem(SESSION_USER_EMAIL);
       await removeSessionItem(SESSION_TOKEN_KEY);
+      await removeSessionItem(SESSION_TIMESTAMP_KEY);
       await removeSessionItem('isRestricted');
     })();
     setIsAuthenticated(false);

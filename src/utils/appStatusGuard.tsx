@@ -1,7 +1,8 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Modal, Platform, Linking, AppState } from 'react-native';
 import Constants from 'expo-constants';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config';
+import { getItem, setItem } from './secureStorage';
 
 type AppStatus = {
   mobile_app_enabled: boolean;
@@ -15,6 +16,9 @@ type BlockReason = {
   type: 'maintenance' | 'update';
   message: string;
 };
+
+const APP_STATUS_CACHE_KEY = 'pbc_app_status_cache';
+const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=in.paybycard.app';
 const APP_STORE_URL = 'https://apps.apple.com/app/paybycard/id';
@@ -100,30 +104,50 @@ export function useAppStatusGuard() {
   const [checking, setChecking] = useState(true);
   const checkedRef = useRef(false);
 
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async () => {
+    setChecking(true);
+    setBlockReason(null);
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/get-app-status`, {
         method: 'GET',
         headers: { Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
       });
-      if (!res.ok) return;
+      if (!res.ok) throw new Error('Status check failed');
       const data: AppStatus = await res.json();
       const reason = checkVersion(data);
+
+      await setItem(APP_STATUS_CACHE_KEY, JSON.stringify({ timestamp: Date.now(), status: data }));
+
       if (reason) {
         setBlockReason(reason);
       }
     } catch {
-      // On error, allow app to proceed
+      const cached = await getItem(APP_STATUS_CACHE_KEY);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          const ageMs = Date.now() - parsed.timestamp;
+          if (ageMs < TWENTY_FOUR_HOURS) {
+            const reason = checkVersion(parsed.status as AppStatus);
+            if (reason) setBlockReason(reason);
+            return;
+          }
+        } catch {}
+      }
+      setBlockReason({
+        type: 'maintenance',
+        message: 'Unable to verify app status. Please check your internet connection and try again.',
+      });
     } finally {
       setChecking(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (checkedRef.current) return;
     checkedRef.current = true;
     checkStatus();
-  }, []);
+  }, [checkStatus]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
@@ -132,20 +156,34 @@ export function useAppStatusGuard() {
       }
     });
     return () => sub.remove();
-  }, [blockReason]);
+  }, [blockReason, checkStatus]);
 
-  return { blockReason, checking };
+  return { blockReason, checking, retry: checkStatus };
 }
 
-export function AppBlockModal({ blockReason, onOkay }: { blockReason: BlockReason; onOkay: () => void }) {
+export function AppBlockModal({
+  blockReason,
+  onOkay,
+  onRetry,
+}: {
+  blockReason: BlockReason;
+  onOkay: () => void;
+  onRetry?: () => void;
+}) {
   const isUpdate = blockReason.type === 'update';
+  const isNetworkError =
+    blockReason.type === 'maintenance' && blockReason.message.includes('internet');
 
-  const handleOkay = () => {
-    if (isUpdate) {
+  const handlePress = () => {
+    if (isNetworkError && onRetry) {
+      onRetry();
+    } else if (isUpdate) {
       const url = Platform.OS === 'ios' ? APP_STORE_URL : PLAY_STORE_URL;
       Linking.openURL(url).catch(() => {});
+      onOkay();
+    } else {
+      onOkay();
     }
-    onOkay();
   };
 
   return (
@@ -153,16 +191,18 @@ export function AppBlockModal({ blockReason, onOkay }: { blockReason: BlockReaso
       <View className="flex-1 bg-black/60 justify-center items-center p-6">
         <View className="bg-white rounded-2xl p-6 w-full max-w-sm gap-4">
           <Text className="text-lg font-bold text-gray-900 text-center">
-            {isUpdate ? 'Update Required' : 'Under Maintenance'}
+            {isUpdate ? 'Update Required' : isNetworkError ? 'Connection Error' : 'Under Maintenance'}
           </Text>
           <Text className="text-sm text-gray-600 text-center">{blockReason.message}</Text>
           <TouchableOpacity
-            onPress={handleOkay}
+            onPress={handlePress}
             className="w-full bg-[#8c76f0] rounded-xl py-3.5"
             activeOpacity={0.7}
             delayPressIn={0}
           >
-            <Text className="text-white font-semibold text-center text-base">Okay</Text>
+            <Text className="text-white font-semibold text-center text-base">
+              {isNetworkError ? 'Retry' : 'Okay'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
