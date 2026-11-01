@@ -53,7 +53,11 @@ export default function MobileDashboard() {
 
   useFocusEffect(
     useCallback(() => {
-      if (userId) fetchUnreadNotifs();
+      if (userId) {
+        fetchUnreadNotifs();
+        fetchRecentTransactions();
+        fetchStats();
+      }
     }, [userId])
   );
 

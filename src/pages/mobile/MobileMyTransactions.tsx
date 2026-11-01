@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { Clock, CircleCheck as CheckCircle, Circle as XCircle, RefreshCw, CircleAlert as AlertCircle, ChevronDown, ChevronUp, Factory as History } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
@@ -50,8 +51,13 @@ export default function MobileMyTransactions() {
 
   useEffect(() => {
     if (!userId) { navigate('/mobile/login'); return; }
-    fetchTransactions();
   }, [userId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (userId) fetchTransactions();
+    }, [userId])
+  );
 
   const fetchTransactions = async (statusFilter?: string) => {
     const effectiveFilter = statusFilter !== undefined ? statusFilter : filter;

@@ -46,7 +46,10 @@ Deno.serve(async (req: Request) => {
 
     let amountProcessed = 0;
     let amountInSettlement = 0;
-    const totalTransactions = payments.length;
+    const excludedStatuses = new Set(["cancelled", "failed"]);
+    const totalTransactions = paymentData.filter(
+      (p: any) => !excludedStatuses.has(p.status)
+    ).length;
 
     for (const p of paymentData) {
       const amt = parseFloat(p.total_amount || p.amount || "0");
