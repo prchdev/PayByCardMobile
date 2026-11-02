@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Alert, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Modal, Alert, StyleSheet, AppState, AppStateStatus } from 'react-native';
 import { WebView } from 'react-native-webview';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
@@ -17,7 +17,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
 import { getErrorMessage } from '../../utils/errorMessage';
 import { getDeviceId } from '../../utils/deviceId';
 import { buildAuthHeaders, checkSessionExpired } from '../../utils/api';
-import { getSessionItem } from '../../utils/secureStorage';
+import { getSessionItem, setItem, removeItem } from '../../utils/secureStorage';
 import { isCreditCardIfsc, looksLikeCreditCardNumber, isSelfAccountName } from '../../utils/beneficiaryValidation';
 
 interface Beneficiary {
@@ -162,6 +162,8 @@ export default function MobileMakePayment() {
   const [checkoutHtml, setCheckoutHtml] = useState<string | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [checkoutPaymentInfo, setCheckoutPaymentInfo] = useState<any>(null);
+  const pendingPaymentRef = useRef<any>(null);
+  const pollOnForegroundRef = useRef(false);
   const [allowCreditCard, setAllowCreditCard] = useState(true);
   const [allowSelfTransfer, setAllowSelfTransfer] = useState(true);
   const [userProfile, setUserProfile] = useState<{ full_name: string; email: string; mobile: string; pan_number: string } | null>(null);
@@ -229,6 +231,62 @@ export default function MobileMakePayment() {
     fetchCompanySettings();
     fetchUserProfile();
     Promise.all([fetchBeneficiaries(), fetchCategories(), fetchPaymentOptions(), fetchGateways(), fetchPaymentLimits(), fetchKycStatus()]).finally(() => setLoading(false));
+
+    // Check for a pending payment from a previous checkout that was interrupted
+    // (e.g. Android killed the app while the bank OTP page was open).
+    (async () => {
+      try {
+        const stored = await getSessionItem('pbc_pending_payment');
+        if (!stored) return;
+        const pending = JSON.parse(stored);
+        if (!pending?.id) return;
+        // Clear it immediately so we don't re-trigger on every mount
+        await removeItem('pbc_pending_payment');
+        // Poll the payment status — the gateway webhook may have already updated it
+        for (let attempt = 0; attempt < 5; attempt++) {
+          try {
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/check-payment-status`, {
+              method: 'POST',
+              headers: await buildAuthHeaders(),
+              body: JSON.stringify({ paymentId: pending.id, userId }),
+            });
+            await checkSessionExpired(res);
+            const data = await res.json();
+            if (res.ok && data.success) {
+              const status = data.payment?.status;
+              if (status === 'completed' || status === 'settlement_pending' || status === 'kyc_pending') {
+                setPaymentResult({
+                  success: true,
+                  reference: pending.reference || '',
+                  totalAmount: pending.totalAmount || '',
+                  message: data.payment?.status === 'kyc_pending'
+                    ? 'Your payment was received successfully. Payout to the beneficiary will be processed after Merchant KYC / Onboarding is completed by the receiver.'
+                    : 'Your payment has been processed successfully!',
+                });
+                return;
+              }
+              if (status === 'failed' || status === 'cancelled') {
+                setPaymentResult({
+                  success: false,
+                  reference: pending.reference || '',
+                  totalAmount: pending.totalAmount || '',
+                  message: data.payment?.failure_reason || 'Payment failed. Please try again.',
+                });
+                return;
+              }
+            }
+          } catch {}
+          if (attempt < 4) await new Promise(r => setTimeout(r, 2000));
+        }
+        // Still pending after polling — show processing message
+        setPaymentResult({
+          success: false,
+          reference: pending.reference || '',
+          totalAmount: pending.totalAmount || '',
+          message: 'Payment is still being processed. Please check your transaction history for the final status.',
+        });
+      } catch {}
+    })();
   }, [userId]);
 
   const fetchCompanySettings = async () => {
@@ -416,6 +474,49 @@ export default function MobileMakePayment() {
     }
   }, [amount, selectedOption]);
 
+  // Poll payment status when app returns to foreground while checkout is open.
+  // The bank OTP page may open in an external app, sending our app to background.
+  // When the user returns, the Razorpay callback may have been lost.
+  useEffect(() => {
+    const handler = (nextState: AppStateStatus) => {
+      if (nextState !== 'active') return;
+      if (!showCheckout || !pendingPaymentRef.current) return;
+      if (pollOnForegroundRef.current) return;
+      pollOnForegroundRef.current = true;
+      const payment = pendingPaymentRef.current;
+      (async () => {
+        for (let attempt = 0; attempt < 5; attempt++) {
+          try {
+            const res = await fetch(`${SUPABASE_URL}/functions/v1/check-payment-status`, {
+              method: 'POST',
+              headers: await buildAuthHeaders(),
+              body: JSON.stringify({ paymentId: payment.id, userId }),
+            });
+            await checkSessionExpired(res);
+            const data = await res.json();
+            if (res.ok && data.success) {
+              const status = data.payment?.status;
+              if (status === 'completed' || status === 'settlement_pending' || status === 'kyc_pending') {
+                closeCheckout();
+                handlePaymentSuccess(data.payment, payment);
+                return;
+              }
+              if (status === 'failed' || status === 'cancelled') {
+                closeCheckout();
+                handlePaymentFailed(payment, data.payment?.failure_reason);
+                return;
+              }
+            }
+          } catch {}
+          if (attempt < 4) await new Promise(r => setTimeout(r, 2000));
+        }
+        pollOnForegroundRef.current = false;
+      })();
+    };
+    const sub = AppState.addEventListener('change', handler);
+    return () => sub.remove();
+  }, [showCheckout, userId]);
+
   const handleLogout = () => { logout(); reset('/mobile/login'); };
 
   const applyCoupon = async () => {
@@ -573,6 +674,10 @@ export default function MobileMakePayment() {
   const openGatewayCheckout = async (gatewayConfig: any, paymentInfo: any) => {
     setGatewayLoading(false);
     setCheckoutPaymentInfo(paymentInfo);
+    pendingPaymentRef.current = paymentInfo;
+    if (paymentInfo?.id) {
+      setItem('pbc_pending_payment', JSON.stringify({ id: paymentInfo.id, reference: paymentInfo.reference || paymentInfo.payment_reference || '', totalAmount: String(paymentInfo.totalAmount || paymentInfo.total_amount || chargeBreakdown?.totalAmount || amount) })).catch(() => {});
+    }
 
     const html = buildCheckoutHtml(gatewayConfig, paymentInfo);
     if (html) {
@@ -592,6 +697,8 @@ export default function MobileMakePayment() {
     setShowCheckout(false);
     setCheckoutHtml(null);
     setCheckoutPaymentInfo(null);
+    pendingPaymentRef.current = null;
+    removeItem('pbc_pending_payment').catch(() => {});
   };
 
   const onCheckoutMessage = (event: any) => {
