@@ -2,10 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Modal, Image, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
 import {
   CreditCard, CircleAlert as AlertCircle, CircleCheck as CheckCircle,
-  Clock, Upload, X, RefreshCw, Info, ChevronRight, Camera,
+  Clock, X, RefreshCw, Info, Camera,
 } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,7 +13,7 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../../utils/config';
 import { buildAuthHeaders, checkSessionExpired } from '../../utils/api';
 import { getErrorMessage } from '../../utils/errorMessage';
 import { getSessionItem } from '../../utils/secureStorage';
-import { impact } from '../../utils/haptics';
+import { impact, notification } from '../../utils/haptics';
 
 interface UserCard {
   id: string;
@@ -129,7 +128,7 @@ export default function MobileMyCards() {
         throw new Error(uploadResult.data?.error || 'Failed to upload photo');
       }
 
-      impact('notification' as any);
+      notification('success');
       await fetchCards();
     } catch (err) {
       Alert.alert('Upload Failed', getErrorMessage(err, 'Failed to upload card photo'));
