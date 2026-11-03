@@ -23,6 +23,7 @@ const routeMap: Record<string, RouteName> = {
   '/mobile/kyc-verification': 'KYCVerification',
   '/mobile/help-support': 'HelpSupport',
   '/mobile/change-password': 'ChangePassword',
+  '/mobile/my-cards': 'MyCards',
   '/mobile/more': 'More',
   '/mobile/notifications': 'Notifications',
 };

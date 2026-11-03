@@ -2,7 +2,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import Constants from 'expo-constants';
 import {
   ShieldCheck, Lock, MessageCircle, Landmark, CreditCard, Clock, Users,
-  LogOut, ChevronRight, Bell,
+  LogOut, ChevronRight, Bell, IdCard,
 } from 'lucide-react-native';
 import MobileLayout from '../../components/mobile/MobileLayout';
 import { useAuth } from '../../contexts/AuthContext';
@@ -25,6 +25,7 @@ export default function MobileMore() {
     { icon: ShieldCheck, label: 'My KYC Details', path: '/mobile/kyc-verification', color: 'bg-green-50', iconColor: '#16a34a' },
     { icon: Landmark, label: 'My Bank Accounts', path: '/mobile/my-bank-accounts', color: 'bg-blue-50', iconColor: '#2563eb' },
     { icon: Users, label: 'My Payee', path: '/mobile/my-beneficiaries', color: 'bg-purple-50', iconColor: '#8c76f0' },
+    { icon: IdCard, label: 'My Cards', path: '/mobile/my-cards', color: 'bg-indigo-50', iconColor: '#4f46e5' },
     { icon: Clock, label: 'Transaction History', path: '/mobile/my-transactions', color: 'bg-amber-50', iconColor: '#d97706' },
     { icon: CreditCard, label: 'Make Payment', path: '/mobile/make-payment', color: 'bg-rose-50', iconColor: '#e11d48' },
     { icon: Lock, label: 'Change Password', path: '/mobile/change-password', color: 'bg-gray-100', iconColor: '#4b5563' },

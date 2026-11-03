@@ -576,6 +576,14 @@
     "waf-validate": {
       "hasChanged": false,
       "hash": "421938a57e2f55fe2bd842e8c271790cf258efac57cbee686f39a9e4be3a21c6"
+    },
+    "get-user-cards": {
+      "hasChanged": false,
+      "hash": "cab87a8abacb4d7a55c9afda139e5f16505caeed8c2b5652c200a848862e2624e837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
+    },
+    "upload-card-photo": {
+      "hasChanged": false,
+      "hash": "349db122336b43c7b2ecb9d5ff21dcfef7dac9f4e004fd886a012c19e4553b9de837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
     }
   }
 }

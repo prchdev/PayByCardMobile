@@ -307,3 +307,9 @@ verify_jwt = false
 
 [functions.get-referral-info]
 verify_jwt = false
+
+[functions.get-user-cards]
+verify_jwt = false
+
+[functions.upload-card-photo]
+verify_jwt = false

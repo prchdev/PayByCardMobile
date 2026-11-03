@@ -29,6 +29,7 @@ import MobileMyBankAccounts from './src/pages/mobile/MobileMyBankAccounts';
 import MobileKYCVerification from './src/pages/mobile/MobileKYCVerification';
 import MobileHelpSupport from './src/pages/mobile/MobileHelpSupport';
 import MobileChangePassword from './src/pages/mobile/MobileChangePassword';
+import MobileMyCards from './src/pages/mobile/MobileMyCards';
 import MobileMore from './src/pages/mobile/MobileMore';
 import MobileNotifications from './src/pages/mobile/MobileNotifications';
 
@@ -134,6 +135,7 @@ export default function App() {
             <Stack.Screen name="KYCVerification" component={MobileKYCVerification} />
             <Stack.Screen name="HelpSupport" component={MobileHelpSupport} />
             <Stack.Screen name="ChangePassword" component={MobileChangePassword} />
+            <Stack.Screen name="MyCards" component={MobileMyCards} />
             <Stack.Screen name="More" component={MobileMore} />
             <Stack.Screen name="Notifications" component={MobileNotifications} />
           </Stack.Navigator>

@@ -12,6 +12,7 @@ export type RootStackParamList = {
   KYCVerification: { userId: string; userEmail: string } | undefined;
   HelpSupport: { userId: string; userEmail: string } | undefined;
   ChangePassword: { userId: string; userEmail: string } | undefined;
+  MyCards: { userId: string; userEmail: string } | undefined;
   More: { userId: string; userEmail: string } | undefined;
   Notifications: { userId: string; userEmail: string } | undefined;
 };
