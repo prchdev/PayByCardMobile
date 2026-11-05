@@ -119,6 +119,28 @@ async function verifyRazorpaySettlement(
   }
 }
 
+async function fetchRazorpayCapturedAmount(
+  gateway: any,
+  env: string,
+  gatewayTransactionId: string,
+): Promise<number | null> {
+  const { apiKey, apiSecret } = getCredentials(gateway, env);
+  if (!apiKey || !apiSecret || !gatewayTransactionId) return null;
+  const auth = `Basic ${btoa(`${apiKey}:${apiSecret}`)}`;
+  try {
+    const res = await fetch(
+      `https://api.razorpay.com/v1/payments/${gatewayTransactionId}`,
+      { headers: { "Authorization": auth } },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.status !== "captured") return null;
+    return typeof data.amount === "number" ? data.amount / 100 : parseFloat(String(data.amount || "0")) / 100;
+  } catch {
+    return null;
+  }
+}
+
 async function verifyCashfreeSettlement(
   gateway: any,
   env: string,
@@ -1220,7 +1242,7 @@ Deno.serve(async (req: Request) => {
     for (const payment of eligible) {
       const gateway     = payment.payment_gateway_settings;
       const beneficiary = payment.beneficiaries;
-      const amount      = parseFloat(payment.amount ?? "0");
+      let amount        = parseFloat(payment.amount ?? "0");
       const payoutMode  = payment.payout_mode ?? globalPayoutMode;
       const env         = payment.gateway_environment ?? globalEnv;
 
@@ -1331,6 +1353,19 @@ Deno.serve(async (req: Request) => {
       // but the JS object still has the stale value from the earlier SELECT.
       // Update it so the settlement re-verification block below doesn't fire unnecessarily.
       payment.status = "settlement_in_progress";
+
+      // ── Use Razorpay's actual captured amount instead of DB amount ──────
+      // When a coupon is applied, our DB amount is reduced, but Razorpay
+      // captured the full pre-discount amount. The payout must match what
+      // Razorpay actually holds so the withdrawal doesn't exceed available funds.
+      const gwName = (gateway.gateway_name ?? "").toLowerCase();
+      if (gwName.includes("razorpay") && payment.gateway_transaction_id) {
+        const razorpayAmount = await fetchRazorpayCapturedAmount(gateway, env, payment.gateway_transaction_id);
+        if (razorpayAmount !== null && razorpayAmount > 0) {
+          amount = razorpayAmount;
+          payment.amount = razorpayAmount.toFixed(2);
+        }
+      }
 
       const gwCacheKey = `${gateway.id}:${env}`;
 
