@@ -1084,6 +1084,17 @@ export default function MobileKYCVerification() {
   const businessRejected = kycData?.business?.status === 'rejected';
   const kycLocked = panLocked || addressLocked;
 
+  // PAN is verified but address proof is not — and admin has enabled manual address upload
+  const panVerifiedAddrPending = allowManualAddrProof
+    && kycData?.pan?.status === 'verified'
+    && (!kycData?.address || (kycData.address.status !== 'verified' && kycData.address.status !== 'verification_pending'));
+
+  useEffect(() => {
+    if (panVerifiedAddrPending) {
+      setKycMethod('manual');
+    }
+  }, [panVerifiedAddrPending]);
+
   const renderDataRow = (label: string, value: string) => (
     <View className="flex-row justify-between py-1.5">
       <Text className="text-sm text-gray-500">{label}</Text>
@@ -1505,6 +1516,7 @@ export default function MobileKYCVerification() {
   // ── KYC Method Selection ───────────────────────────────────────────────────
   const renderKycMethodSelection = () => {
     if (kycStatus === 'verified') return null;
+    if (panVerifiedAddrPending) return null;
     return (
       <View className="gap-4">
         {kycMethod === 'select' ? (
@@ -1575,13 +1587,37 @@ export default function MobileKYCVerification() {
     return (
       <View className="gap-4">
         <View className="flex-row items-center justify-between">
-          <Text className="text-base font-bold text-gray-900">Manual KYC Submission</Text>
-          <TouchableOpacity onPress={() => { setKycMethod('select'); setError(''); }} activeOpacity={0.7} delayPressIn={0}>
-            <Text className="text-sm text-[#8c76f0] font-semibold">Back</Text>
-          </TouchableOpacity>
+          <Text className="text-base font-bold text-gray-900">{panVerifiedAddrPending ? 'Upload Address Proof' : 'Manual KYC Submission'}</Text>
+          {!panVerifiedAddrPending && (
+            <TouchableOpacity onPress={() => { setKycMethod('select'); setError(''); }} activeOpacity={0.7} delayPressIn={0}>
+              <Text className="text-sm text-[#8c76f0] font-semibold">Back</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* ── PAN Card ── */}
+        {panVerifiedAddrPending && (
+          <View className="bg-blue-50 border border-blue-200 rounded-xl p-4 gap-3">
+            <View className="flex-row items-start gap-2">
+              <ShieldCheck size={20} color="#2563eb" />
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-blue-800">PAN Verified — Address Proof Required</Text>
+                <Text className="text-sm text-blue-700 mt-1">Your PAN is verified. Please upload your address proof document below to complete your KYC verification.</Text>
+              </View>
+            </View>
+            {kycSettings.digilocker_enabled && (
+              <TouchableOpacity
+                onPress={() => { setKycMethod('digilocker'); setError(''); }}
+                className="self-start"
+                activeOpacity={0.7} delayPressIn={0}
+              >
+                <Text className="text-sm text-blue-600 font-medium underline">Try DigiLocker instead</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* ── PAN Card ── (hidden when PAN already verified and only address proof is needed) */}
+        {!panVerifiedAddrPending && (
         <View className="bg-white rounded-2xl border-2 border-gray-200 p-4 gap-4">
           {renderSectionHeader(User, '#2563eb', '#eff6ff', 'PAN Verification', 'Permanent Account Number card details', kycData?.pan?.status, kycData?.pan?.digilocker_verified ? (
             <View className="flex-row items-center gap-1.5 px-2.5 py-1 bg-emerald-100 rounded-full">
@@ -1649,6 +1685,7 @@ export default function MobileKYCVerification() {
             </TouchableOpacity>
           )}
         </View>
+        )}
 
         {/* ── Address Proof ── */}
         <View className="bg-white rounded-2xl border-2 border-gray-200 p-4 gap-4">
@@ -1840,7 +1877,8 @@ export default function MobileKYCVerification() {
           )}
         </View>
 
-        {/* ── Business Details ── */}
+        {/* ── Business Details ── (hidden when only address proof is needed) */}
+        {!panVerifiedAddrPending && (
         <View className="bg-white rounded-2xl border-2 border-gray-200 p-4 gap-4">
           {renderSectionHeader(Building2, '#2563eb', '#eff6ff', 'Business Details', 'Optional — for business accounts', kycData?.business?.status)}
 
@@ -2033,6 +2071,7 @@ export default function MobileKYCVerification() {
             </View>
           )}
         </View>
+        )}
 
         {/* Remove business confirm modal */}
         <Modal visible={showRemoveConfirm} animationType="fade" transparent>
