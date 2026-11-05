@@ -219,7 +219,7 @@
     },
     "digilocker-kyc": {
       "hasChanged": false,
-      "hash": "b9c800887d09d23b5a6fbccb72b40325f22eb8da6be115f6e04a1eba320f0848e837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
+      "hash": "5ee4b458e840aec0ff296e094c0185dd24b51a68d32a7695265aa0d5f1c9e029e837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
     },
     "digilocker-redirect": {
       "hasChanged": false,
@@ -251,7 +251,7 @@
     },
     "get-company-settings": {
       "hasChanged": false,
-      "hash": "22b337eae76fab5af23b4326936fd2e9941728c5c9a077030db0bcfa6f26bd64"
+      "hash": "b303fecbb0303efcccab1c439749c2b0391855806e53efd3884cdccc7cd9a87a"
     },
     "get-gateway-charges": {
       "hasChanged": false,
@@ -320,6 +320,10 @@
     "get-user-bank-accounts": {
       "hasChanged": false,
       "hash": "bfbafe3e4fc66c3070b9d021c5b1186e76585d916316e0224a60d6bfb1916be6"
+    },
+    "get-user-cards": {
+      "hasChanged": false,
+      "hash": "cab87a8abacb4d7a55c9afda139e5f16505caeed8c2b5652c200a848862e2624e837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
     },
     "get-user-kyc-settings": {
       "hasChanged": false,
@@ -541,6 +545,10 @@
       "hasChanged": false,
       "hash": "2b7a7604ccb08a067a13762b3b295c42f03813f89fe987d850c898a05902d732"
     },
+    "upload-card-photo": {
+      "hasChanged": false,
+      "hash": "349db122336b43c7b2ecb9d5ff21dcfef7dac9f4e004fd886a012c19e4553b9de837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
+    },
     "upload-kyc-file": {
       "hasChanged": false,
       "hash": "4a386d40ce4da4f59dff08ba7c3b885aa3b716a873d7322757eb0275d771ff90e837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
@@ -576,14 +584,6 @@
     "waf-validate": {
       "hasChanged": false,
       "hash": "421938a57e2f55fe2bd842e8c271790cf258efac57cbee686f39a9e4be3a21c6"
-    },
-    "get-user-cards": {
-      "hasChanged": false,
-      "hash": "cab87a8abacb4d7a55c9afda139e5f16505caeed8c2b5652c200a848862e2624e837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
-    },
-    "upload-card-photo": {
-      "hasChanged": false,
-      "hash": "349db122336b43c7b2ecb9d5ff21dcfef7dac9f4e004fd886a012c19e4553b9de837daa8978cd40c0a9fa6606c0108cc74a2058b4d03277a068f312a16d6f74f"
     }
   }
 }

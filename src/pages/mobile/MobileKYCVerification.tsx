@@ -130,7 +130,7 @@ interface BusinessData {
   upload_ip: string | null;
 }
 
-type DigiStep = 'idle' | 'loading_url' | 'waiting_popup' | 'polling' | 'verifying' | 'success' | 'error' | 'name_mismatch' | 'dl_unavailable';
+type DigiStep = 'idle' | 'loading_url' | 'waiting_popup' | 'polling' | 'verifying' | 'success' | 'error' | 'name_mismatch' | 'dl_unavailable' | 'pan_verified_addr_pending';
 
 interface NameMismatch {
   registeredName: string;
@@ -248,6 +248,7 @@ export default function MobileKYCVerification() {
   const [error, setError] = useState('');
   const [kycSettings, setKycSettings] = useState<{ digilocker_enabled: boolean; manual_enabled: boolean }>({ digilocker_enabled: false, manual_enabled: true });
   const [allowManualKyc, setAllowManualKyc] = useState(true);
+  const [allowManualAddrProof, setAllowManualAddrProof] = useState(false);
   const [kycProvider, setKycProvider] = useState<{ provider_name: string } | null>(null);
   const [uploadingField, setUploadingField] = useState<string | null>(null);
 
@@ -432,7 +433,10 @@ export default function MobileKYCVerification() {
         body: JSON.stringify({}),
       });
       const data = await res.json();
-      if (res.ok && data.settings) setAllowManualKyc(data.settings.allow_manual_kyc ?? true);
+      if (res.ok && data.settings) {
+        setAllowManualKyc(data.settings.allow_manual_kyc ?? true);
+        setAllowManualAddrProof(data.settings.allow_manual_addr_proof_when_pan_verified ?? false);
+      }
     } catch {}
   };
 
@@ -798,6 +802,12 @@ export default function MobileKYCVerification() {
         removeItem(CODE_VERIFIER_KEY);
         fetchKycStatus(true);
         fetchKycData(true);
+      } else if (data.panVerified && data.addressProofPending) {
+        logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'auto_approve_pan_verified_addr_pending', true, { error_code: data.error });
+        setDigiAddrError(data.error === 'DRIVING_LICENSE_UNAVAILABLE' ? 'DRIVING_LICENSE_UNAVAILABLE' : 'ADDRESS_PROOF_UNAVAILABLE');
+        setDigiStep('pan_verified_addr_pending');
+        fetchKycStatus(true);
+        fetchKycData(true);
       } else if (data.error === 'DRIVING_LICENSE_UNAVAILABLE' || data.error === 'ADDRESS_PROOF_UNAVAILABLE') {
         logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'auto_approve_addr_unavailable', false, { error_code: data.error });
         setDigiAddrError(data.error);
@@ -848,6 +858,9 @@ export default function MobileKYCVerification() {
     });
     await checkSessionExpired(res);
     const json = await res.json();
+    if (res.status === 403) {
+      throw new Error(section === 'pan' ? 'PAN details cannot be changed after verification. Please contact support if needed.' : 'This section is locked and cannot be modified.');
+    }
     if (!res.ok) throw new Error(json.error || 'Save failed');
     return true;
   };
@@ -873,6 +886,7 @@ export default function MobileKYCVerification() {
       });
       await checkSessionExpired(res);
       const data = await res.json();
+      if (res.status === 403) { setPersonalError('Personal details cannot be changed after PAN verification. Please contact support if you need to update your name.'); return; }
       if (!res.ok) { setPersonalError(data.error || 'Failed to save.'); return; }
       setPersonalSuccess(true);
       setTimeout(() => setPersonalSuccess(false), 3000);
@@ -1212,6 +1226,57 @@ export default function MobileKYCVerification() {
     if (kycStatus === 'verified' || kycMethod !== 'digilocker') return null;
     const providerName = kycProvider?.provider_name || 'DigiLocker';
     const isCashFree = providerName === 'CashFree DigiLocker';
+
+    // PAN verified but address proof pending — partial DigiLocker success
+    if (digiStep === 'pan_verified_addr_pending') {
+      const isDlSpecific = digiAddrError === 'DRIVING_LICENSE_UNAVAILABLE';
+      return (
+        <View className="gap-4">
+          <View className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl px-4 py-4 flex-row items-start gap-3">
+            <CheckCircle size={22} color="#16a34a" />
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-emerald-800">PAN Verified Successfully</Text>
+              <Text className="text-sm text-emerald-700 mt-1">Your PAN has been automatically verified via {providerName}. Your personal details are now locked.</Text>
+            </View>
+          </View>
+          <View className="bg-white rounded-2xl border-2 border-amber-200 p-4 gap-4">
+            <View className="flex-row items-start gap-3">
+              <View className="w-9 h-9 bg-amber-100 rounded-xl items-center justify-center">
+                <AlertCircle size={20} color="#d97706" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-amber-800">{isDlSpecific ? 'Driving License Unavailable' : 'Address Proof Unavailable'}</Text>
+                <Text className="text-xs text-amber-600 mt-0.5">{isDlSpecific ? 'Your Driving License could not be retrieved from DigiLocker.' : 'Address proof documents could not be retrieved from DigiLocker.'}</Text>
+              </View>
+            </View>
+            <Text className="text-sm text-gray-700">
+              {isDlSpecific ? 'Your Driving License is not available in DigiLocker. Since your PAN is already verified, you can upload your address proof manually now.' : 'Address proof documents are not available in your DigiLocker account. Since your PAN is already verified, you can upload your address proof manually now.'}
+            </Text>
+            {allowManualAddrProof ? (
+              <TouchableOpacity
+                onPress={() => { setKycMethod('manual'); retryDigiLocker(); }}
+                className="w-full py-3 bg-blue-600 rounded-xl"
+                activeOpacity={0.7} delayPressIn={0}
+              >
+                <Text className="text-white text-sm font-semibold text-center">Upload Address Proof Manually</Text>
+              </TouchableOpacity>
+            ) : (
+              <View className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                <Text className="text-sm text-blue-700">Manual address proof upload is not currently enabled. Please try linking your documents to DigiLocker and retry, or contact support.</Text>
+              </View>
+            )}
+            <TouchableOpacity
+              onPress={retryDigiLocker}
+              className="w-full py-3 bg-white border-2 border-gray-200 rounded-xl flex-row items-center justify-center gap-2"
+              activeOpacity={0.7} delayPressIn={0}
+            >
+              <RefreshCwIcon size={16} color="#6b7280" />
+              <Text className="text-gray-700 text-sm font-semibold">{isDlSpecific ? 'Connect DL to DigiLocker & Retry' : 'Link Documents to DigiLocker & Retry'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
 
     // DL unavailable
     if (digiStep === 'dl_unavailable') {
@@ -1613,6 +1678,13 @@ export default function MobileKYCVerification() {
             <View className="flex-row items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2.5">
               <ShieldCheck size={18} color="#16a34a" />
               <Text className="text-sm text-emerald-700">Address proof verified electronically via DigiLocker{kycData.address.digilocker_provider ? ` (${kycData.address.digilocker_provider})` : ''}. Document photos are not required.</Text>
+            </View>
+          )}
+
+          {kycData?.pan?.digilocker_verified && kycData?.pan?.status === 'verified' && !kycData?.address?.digilocker_verified && !addressLocked && allowManualAddrProof && (
+            <View className="flex-row items-center gap-2 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2.5">
+              <ShieldCheck size={18} color="#2563eb" />
+              <Text className="text-sm text-blue-700">Your PAN is verified via DigiLocker. Please upload your address proof manually below to complete KYC.</Text>
             </View>
           )}
 

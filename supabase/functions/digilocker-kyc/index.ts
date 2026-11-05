@@ -1061,6 +1061,41 @@ async function fetchDigiLockerData(
   }
 
   if (!addrParsed) {
+    // PAN was retrieved but no address proof document is available.
+    // Save the PAN so the user doesn't need to re-verify it, then signal
+    // partial success so the client can prompt for manual address upload.
+    if (panParsed?.panNumber) {
+      const panXml = panRawXml;
+      const panPhotoUrl = panXml ? await storeXmlFile(supabase, panXml, userId, 'pan_photo') : null;
+      const panUpsert: Record<string, unknown> = {
+        user_id: userId,
+        pan_number: panParsed.panNumber.toUpperCase(),
+        status: 'verified',
+        digilocker_verified: true,
+        digilocker_provider: 'DigiLocker',
+        uploaded_at: new Date().toISOString(),
+        upload_ip: null,
+        approval_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      if (panPhotoUrl) panUpsert.pan_photo_url = panPhotoUrl;
+      await supabase
+        .from('kyc_pan_verification')
+        .upsert(panUpsert, { onConflict: 'user_id' });
+
+      const partialKyc: KycData = {
+        pan_number: panParsed.panNumber,
+        full_name: panParsed.name || aadhaarParsed?.name || userDetailsName || tokenName,
+        dob: panParsed.dob || aadhaarParsed?.dob || userDetailsDob || tokenDob,
+        address: '', city: '', state: '', pincode: '',
+        id_number: '', address_proof_type: 'aadhar',
+        pan_photo_url: panPhotoUrl || undefined,
+      };
+      throw new PartialDigiLockerError(
+        dlAttemptedButFailed ? 'DRIVING_LICENSE_UNAVAILABLE' : 'ADDRESS_PROOF_UNAVAILABLE',
+        partialKyc,
+      );
+    }
     throw new Error(dlAttemptedButFailed ? 'DRIVING_LICENSE_UNAVAILABLE' : 'ADDRESS_PROOF_UNAVAILABLE');
   }
 
@@ -1159,6 +1194,16 @@ async function writeKycRecords(supabase: ReturnType<typeof createClient>, userId
 
   await supabase.from('users').update({ kyc_completed: true, updated_at: now }).eq('id', userId);
   return { panRecord, addressRecord };
+}
+
+// ── Partial DigiLocker success: PAN verified but address proof unavailable ─────
+class PartialDigiLockerError extends Error {
+  partialKyc: KycData;
+  constructor(errorCode: string, partialKyc: KycData) {
+    super(errorCode);
+    this.name = 'PartialDigiLockerError';
+    this.partialKyc = partialKyc;
+  }
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -1374,6 +1419,22 @@ Deno.serve(async (req: Request) => {
         try {
           kycData = await fetchDigiLockerData(supabase, apiKey, apiSecret, code, redirectUri, userId, codeVerifier);
         } catch (e) {
+          if (e instanceof PartialDigiLockerError) {
+            const partial = e.partialKyc;
+            const partialNameResult = checkNameMatch(
+              userRow.first_name || '', userRow.middle_name || '', userRow.last_name || '', partial.full_name,
+            );
+            return new Response(
+              JSON.stringify({
+                success: false, autoApproved: false,
+                panVerified: true, addressProofPending: true,
+                error: e.message,
+                nameMatches: partialNameResult.matches,
+                kycData: partial,
+              }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
           const msg = (e as Error).message;
           if (msg === 'DRIVING_LICENSE_UNAVAILABLE' || msg === 'ADDRESS_PROOF_UNAVAILABLE') {
             return new Response(
