@@ -391,7 +391,7 @@ export default function MobileKYCVerification() {
 
   useEffect(() => {
     if (userId && (kycStatus === 'not_started' || kycStatus === 'rejected' || kycStatus === 'pending' || kycStatus === 'incomplete')) {
-      fetchKycData();
+      fetchKycData(true);
     }
   }, [userId, kycStatus]);
 
