@@ -806,8 +806,6 @@ export default function MobileKYCVerification() {
         logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'auto_approve_pan_verified_addr_pending', true, { error_code: data.error });
         setDigiAddrError(data.error === 'DRIVING_LICENSE_UNAVAILABLE' ? 'DRIVING_LICENSE_UNAVAILABLE' : 'ADDRESS_PROOF_UNAVAILABLE');
         setDigiStep('pan_verified_addr_pending');
-        fetchKycStatus(true);
-        fetchKycData(true);
       } else if (data.error === 'DRIVING_LICENSE_UNAVAILABLE' || data.error === 'ADDRESS_PROOF_UNAVAILABLE') {
         logEvent(userId!, kycProvider?.provider_name || 'DigiLocker', 'auto_approve_addr_unavailable', false, { error_code: data.error });
         setDigiAddrError(data.error);
