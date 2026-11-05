@@ -251,6 +251,8 @@ export default function MobileKYCVerification() {
   const [allowManualAddrProof, setAllowManualAddrProof] = useState(false);
   const [kycProvider, setKycProvider] = useState<{ provider_name: string } | null>(null);
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+  const [uploadSuccess, setUploadSuccess] = useState<Record<string, boolean>>({});
 
   // Personal details
   const [personalForm, setPersonalForm] = useState({ first_name: '', middle_name: '', last_name: '' });
@@ -504,7 +506,17 @@ export default function MobileKYCVerification() {
   const handleLogout = () => { logout(); reset('/mobile/login'); };
 
   // ── File upload ────────────────────────────────────────────────────────────
+  const setFieldUploadError = (fieldKey: string, msg: string | null) => {
+    setUploadErrors(prev => {
+      const next = { ...prev };
+      if (msg) next[fieldKey] = msg; else delete next[fieldKey];
+      return next;
+    });
+  };
+
   const uploadFile = async (fileKey: string, acceptTypes: string[]): Promise<string | null> => {
+    setFieldUploadError(fileKey, null);
+    setUploadSuccess(prev => { const n = { ...prev }; delete n[fileKey]; return n; });
     try {
       setUploadingField(fileKey);
       const uploadUrl = `${SUPABASE_URL}/functions/v1/upload-kyc-file`;
@@ -513,7 +525,8 @@ export default function MobileKYCVerification() {
         const fileObj = await pickFileViaInput(acceptTypes);
         if (!fileObj) return null;
         if (fileObj.size > 5 * 1024 * 1024) {
-          setError(`File "${fileObj.name}" exceeds the 5 MB limit.`);
+          const msg = `File "${fileObj.name}" is ${(fileObj.size / 1024 / 1024).toFixed(1)} MB — exceeds the 5 MB limit. Please choose a smaller file.`;
+          setFieldUploadError(fileKey, msg);
           return null;
         }
         const fd = new FormData();
@@ -529,11 +542,9 @@ export default function MobileKYCVerification() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Upload failed');
+        setUploadSuccess(prev => ({ ...prev, [fileKey]: true }));
         return data.url;
       } else {
-        // On native, use expo-document-picker and upload via XMLHttpRequest.
-        // XHR on React Native natively supports {uri, name, type} in FormData,
-        // so we can send the file directly without reading it into memory.
         const result = await DocumentPicker.getDocumentAsync({
           type: acceptTypes,
           copyToCacheDirectory: false,
@@ -541,7 +552,9 @@ export default function MobileKYCVerification() {
         if (result.canceled || !result.assets?.length) return null;
         const file = result.assets[0];
         if ((file.size ?? 0) > 5 * 1024 * 1024) {
-          setError(`File "${file.name}" exceeds the 5 MB limit.`);
+          const sizeMb = ((file.size ?? 0) / 1024 / 1024).toFixed(1);
+          const msg = `File "${file.name}" is ${sizeMb} MB — exceeds the 5 MB limit. Please choose a smaller file.`;
+          setFieldUploadError(fileKey, msg);
           return null;
         }
         const mimeType = file.mimeType || 'image/jpeg';
@@ -571,10 +584,12 @@ export default function MobileKYCVerification() {
           formData.append('fileKey', fileKey);
           xhr.send(formData);
         });
+        setUploadSuccess(prev => ({ ...prev, [fileKey]: true }));
         return uploadResult;
       }
     } catch (err) {
-      setError(getErrorMessage(err, 'Failed to upload file'));
+      const msg = getErrorMessage(err, 'Failed to upload file');
+      setFieldUploadError(fileKey, msg);
       return null;
     } finally { setUploadingField(null); }
   };
@@ -1120,31 +1135,55 @@ export default function MobileKYCVerification() {
   };
 
   // ── File Upload Button ─────────────────────────────────────────────────────
-  const renderFileUpload = (label: string, fieldKey: string, value: string, onUpload: (url: string) => void, acceptTypes: string[], required?: boolean, locked?: boolean) => (
-    <View>
-      <Text className="text-sm font-medium text-gray-700 mb-1.5">{label}{required ? ' *' : ''}</Text>
-      <TouchableOpacity
-        onPress={async () => {
-          const url = await uploadFile(fieldKey, acceptTypes);
-          if (url) onUpload(url);
-        }}
-        className="flex-row items-center justify-center gap-2 w-full px-4 py-3.5 border border-dashed border-gray-300 rounded-xl bg-gray-50"
-        activeOpacity={0.7} delayPressIn={0}
-        disabled={uploadingField === fieldKey || locked}
-        style={{ opacity: locked ? 0.5 : 1 }}
-      >
-        {uploadingField === fieldKey ? (
-          <ActivityIndicator size="small" color="#8c76f0" />
-        ) : (
-          <Upload size={18} color="#8c76f0" />
-        )}
-        <Text className="text-sm text-gray-600 font-medium">
-          {uploadingField === fieldKey ? 'Uploading...' : value ? 'Uploaded (tap to replace)' : 'Tap to upload'}
-        </Text>
-      </TouchableOpacity>
-      {value ? <Text className="text-xs text-green-600 mt-1">File uploaded successfully</Text> : null}
-    </View>
-  );
+  const renderFileUpload = (label: string, fieldKey: string, value: string, onUpload: (url: string) => void, acceptTypes: string[], required?: boolean, locked?: boolean) => {
+    const isUploading = uploadingField === fieldKey;
+    const fieldError = uploadErrors[fieldKey];
+    const hasSuccess = uploadSuccess[fieldKey] || !!value;
+    const borderClass = fieldError
+      ? 'border-red-400 bg-red-50'
+      : hasSuccess && !isUploading
+        ? 'border-green-400 bg-green-50'
+        : 'border-gray-300 bg-gray-50';
+    return (
+      <View>
+        <Text className="text-sm font-medium text-gray-700 mb-1.5">{label}{required ? ' *' : ''}</Text>
+        <TouchableOpacity
+          onPress={async () => {
+            const url = await uploadFile(fieldKey, acceptTypes);
+            if (url) onUpload(url);
+          }}
+          className={`flex-row items-center justify-center gap-2 w-full px-4 py-3.5 border border-dashed rounded-xl ${borderClass}`}
+          activeOpacity={0.7} delayPressIn={0}
+          disabled={isUploading || locked}
+          style={{ opacity: locked ? 0.5 : 1 }}
+        >
+          {isUploading ? (
+            <ActivityIndicator size="small" color="#8c76f0" />
+          ) : fieldError ? (
+            <AlertCircle size={18} color="#dc2626" />
+          ) : hasSuccess ? (
+            <CheckCircle size={18} color="#16a34a" />
+          ) : (
+            <Upload size={18} color="#8c76f0" />
+          )}
+          <Text className={`text-sm font-medium ${fieldError ? 'text-red-600' : hasSuccess ? 'text-green-700' : 'text-gray-600'}`}>
+            {isUploading ? 'Uploading...' : fieldError ? 'Upload failed — tap to retry' : value ? 'Uploaded (tap to replace)' : 'Tap to upload'}
+          </Text>
+        </TouchableOpacity>
+        {fieldError ? (
+          <View className="flex-row items-start gap-1.5 mt-1.5">
+            <AlertCircle size={14} color="#dc2626" />
+            <Text className="text-xs text-red-600 flex-1">{fieldError}</Text>
+          </View>
+        ) : hasSuccess && !isUploading ? (
+          <View className="flex-row items-center gap-1.5 mt-1.5">
+            <CheckCircle size={14} color="#16a34a" />
+            <Text className="text-xs text-green-600">File uploaded successfully</Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
 
   // ── Personal Details ───────────────────────────────────────────────────────
   const renderUserProfile = () => {
