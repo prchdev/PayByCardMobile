@@ -74,10 +74,10 @@ export default function MobileHome() {
           resizeMode="contain"
         />
         <Text className="text-2xl font-bold text-gray-900 text-center mt-3 leading-tight">
-          Pay Bills with Your Credit Card
+          Credit Card to Bank Transfer
         </Text>
         <Text className="text-sm text-gray-600 text-center mt-2 max-w-sm self-center">
-          Pay Your Bills Conveniently with Your Credit Card
+          Rent , Tuition Fees, Vendor & Business Payment
         </Text>
 
         {isRemembered ? (
